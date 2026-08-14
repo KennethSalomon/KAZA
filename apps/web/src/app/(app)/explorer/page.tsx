@@ -71,13 +71,15 @@ export default function ExplorerPage() {
     [geo, toast],
   );
 
-  // première recherche
+  // recherche au montage (immédiate) puis debounce sur chaque changement de filtres.
+  // Un seul effet : évite le double fetch du premier rendu.
+  const firstRun = useRef(true);
   useEffect(() => {
-    runSearch(initialFilters);
-  }, [runSearch]);
-
-  // debounce sur le texte de recherche
-  useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      runSearch(initialFilters);
+      return;
+    }
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => runSearch(filters), 450);
     return () => {

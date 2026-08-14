@@ -2,7 +2,15 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 // Routes accessibles sans authentification.
-const PUBLIC_PATHS = ['/login', '/register', '/verify-otp', '/explorer', '/residences'];
+const PUBLIC_PATHS = [
+  '/login',
+  '/register',
+  '/verify-otp',
+  '/forgot-password',
+  '/reset-password',
+  '/explorer',
+  '/residences',
+];
 const PUBLIC_PREFIXES = ['/residences/'];
 
 function isPublic(pathname: string): boolean {
@@ -12,6 +20,13 @@ function isPublic(pathname: string): boolean {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Pages 100% publiques (explorer, annonces, reset/frgt) : pas d'appel
+  // auth réseau — on renvoie directement. Seules login/register/verify-otp
+  // doivent encore vérifier pour rediriger un utilisateur connecté.
+  if (isPublic(pathname) && !['/login', '/register', '/verify-otp'].includes(pathname)) {
+    return NextResponse.next({ request });
+  }
 
   let response = NextResponse.next({ request });
 
@@ -62,6 +77,6 @@ export const config = {
      * Exclut les assets statiques, images et fichiers Next internes.
      * Toutes les autres routes passent par le middleware.
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|js|json|css|woff2?|txt|xml)$).*)',
   ],
 };

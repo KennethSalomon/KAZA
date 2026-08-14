@@ -85,21 +85,31 @@ export function ChatWindow() {
   }, [messages]);
 
   // URLs signées pour les pièces jointes (bucket privé) — mises en cache
+  // Résolues en parallèle par lots de 6 (pas de round-trip séquentiel).
   const [signedAttachments, setSignedAttachments] = useState<Record<string, string>>({});
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const pending: Record<string, string> = {};
+      const todo: string[] = [];
       for (const m of messages) {
         for (const a of m.attachments ?? []) {
           if (a in signedAttachments) continue;
-          const signed = await getSignedStorageUrl('chat-files', a);
-          if (signed && !cancelled) pending[a] = signed;
+          todo.push(a);
         }
       }
-      if (!cancelled && Object.keys(pending).length > 0) {
-        setSignedAttachments((prev) => ({ ...prev, ...pending }));
+      if (todo.length === 0) return;
+      const pending: Record<string, string> = {};
+      for (let i = 0; i < todo.length; i += 6) {
+        const batch = todo.slice(i, i + 6);
+        const settled = await Promise.all(
+          batch.map((a) => getSignedStorageUrl('chat-files', a).catch(() => null)),
+        );
+        if (cancelled) return;
+        settled.forEach((signed, j) => {
+          if (signed) pending[batch[j]] = signed;
+        });
       }
+      setSignedAttachments((prev) => ({ ...prev, ...pending }));
     })();
     return () => {
       cancelled = true;

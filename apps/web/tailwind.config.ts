@@ -22,9 +22,9 @@ const config: Config = {
           text: '#0F172A', // slate 900 — titres, données
           muted: '#475569', // slate 600 — texte secondaire
           faint: '#64748B', // slate 500 — placeholders
-          success: '#10B981', // vert mint — validé
-          danger: '#EF4444', // crimson — impayé / erreur
-          warning: '#F59E0B', // ambre — en attente
+          success: '#047857', // vert émeraude 700 — validé (contraste AA)
+          danger: '#B91C1C', // rouge 700 — impayé / erreur (contraste AA)
+          warning: '#B45309', // ambre 700 — en attente (contraste AA)
           neutral: '#6B7280',
         },
       },

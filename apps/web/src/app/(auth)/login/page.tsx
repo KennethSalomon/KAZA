@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, ApiError } from '@/lib/supabase-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,17 +14,32 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
+
+  function afterLogin() {
+    // Retour au deep-link demandé (défini par le middleware), sinon explorer.
+    const redirect = searchParams.get('redirect');
+    const target = redirect && redirect.startsWith('/') && !redirect.startsWith('//')
+      ? redirect
+      : '/explorer';
+    router.push(target);
+    router.refresh();
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const trimmed = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError('Saisissez une adresse email valide.');
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
-      await signIn(email, password);
+      await signIn(trimmed, password);
       toast.success('Bienvenue sur Kaza');
-      router.push('/explorer');
-      router.refresh();
+      afterLogin();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Connexion impossible');
     } finally {

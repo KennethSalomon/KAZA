@@ -33,7 +33,8 @@ export function ConversationList() {
     void load();
   }, [load]);
 
-  // note : temps réel — nouvelle conversation / message mis à jour instantanément
+  // note : temps réel — MAJ locale de la liste sans re-fetch réseau.
+  // Le Realtime applique déjà la RLS (on ne reçoit que SES messages).
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -41,7 +42,35 @@ export function ConversationList() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
-        () => void load(),
+        (payload) => {
+          const m = payload.new as {
+            conversation_id: string;
+            sender_id: string;
+            kind?: string;
+            body?: string | null;
+          };
+          setItems((prev) => {
+            const idx = prev.findIndex((c) => c.id === m.conversation_id);
+            if (idx === -1) {
+              // Nouvelle conversation inconnue : un seul re-fetch rarissime.
+              void load();
+              return prev;
+            }
+            const preview =
+              m.kind === 'image'
+                ? '📷 Photo'
+                : m.kind === 'document'
+                  ? '📎 Document'
+                  : m.body?.trim() || 'Nouveau message';
+            const updated: Conversation = {
+              ...prev[idx],
+              last_message_preview: preview,
+              last_message_at: new Date().toISOString(),
+              unread_count: m.sender_id === user.id ? prev[idx].unread_count : prev[idx].unread_count + 1,
+            };
+            return [updated, ...prev.filter((_, i) => i !== idx)];
+          });
+        },
       )
       .subscribe();
     return () => {

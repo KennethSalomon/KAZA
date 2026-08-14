@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Sora } from 'next/font/google';
+import { MotionConfig } from 'framer-motion';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { ToastProvider } from '@/components/ui/toast';
@@ -7,7 +8,6 @@ import { ToastProvider } from '@/components/ui/toast';
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
 const sora = Sora({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-sora',
 });
 
@@ -46,9 +46,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="fr" className={`${geist.variable} ${sora.variable}`}>
       <body className="min-h-dvh">
-        <ToastProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </ToastProvider>
+        <MotionConfig reducedMotion="user">
+          <ToastProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ToastProvider>
+        </MotionConfig>
       </body>
     </html>
   );
