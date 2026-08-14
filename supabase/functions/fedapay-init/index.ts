@@ -4,7 +4,7 @@ import { getAdminClient } from '../_shared/db.ts';
 import { unwrapFedapay } from '../_shared/fedapay.ts';
 
 // Sandbox : https://sandbox-api.fedapay.com/v1 (à utiliser en développement)
-const FEDAPAY_API_BASE = Deno.env.get('FEDAPAY_API_BASE') ?? 'https://api.fedapay.com/v1';
+const FEDAPAY_API_BASE = Deno.env.get('FEDAPAY_API_BASE') ?? 'https://sandbox-api.fedapay.com/v1';
 const APP_URL = Deno.env.get('APP_URL') ?? 'http://localhost:3000';
 
 if (!Deno.env.get('APP_URL')) {

@@ -7,7 +7,8 @@ import {
 } from '../_shared/brevo.ts';
 import { isJ7, notificationBody, notificationTitle, landlordAlertBody } from '../_shared/overdue-tiers.ts';
 
-const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? 'dev-cron-secret';
+const CRON_SECRET = Deno.env.get('CRON_SECRET');
+if (!CRON_SECRET) throw new Error('CRON_SECRET non défini');
 const APP_URL = Deno.env.get('APP_URL') ?? 'http://localhost:3000';
 
 interface OverdueLease {
