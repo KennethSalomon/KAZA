@@ -32,9 +32,9 @@ export default function ForgotPasswordPage() {
   if (sent) {
     return (
       <div className="space-y-5 text-center">
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
           Vérifiez votre boîte mail
-        </h2>
+        </h1>
         <p className="text-sm text-kaza-muted">
           Nous avons envoyé un lien de réinitialisation à <span className="font-medium text-kaza-text">{email}</span>.
           <br />
@@ -52,9 +52,9 @@ export default function ForgotPasswordPage() {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       <div>
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
           Mot de passe oublié
-        </h2>
+        </h1>
         <p className="mt-1 text-sm text-kaza-muted">
           Saisissez votre email pour recevoir un lien de réinitialisation.
         </p>

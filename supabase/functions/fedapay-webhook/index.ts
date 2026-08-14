@@ -2,6 +2,15 @@ import { verifyFedapaySignature } from '../_shared/fedapay.ts';
 import { getAdminClient } from '../_shared/db.ts';
 import { rateLimit, clientIp } from '../_shared/rate-limit.ts';
 
+// Mapping EXACT des événements FedaPay (la sous-chaîne `includes()` était
+// fragile : un futur `refund.approved` aurait été traité comme une
+// confirmation de loyer).
+const FINAL_EVENTS: Record<string, 'confirmed' | 'rejected'> = {
+  'transaction.approved': 'confirmed',
+  'transaction.declined': 'rejected',
+  'transaction.canceled': 'rejected',
+};
+
 /**
  * Webhook FedaPay (appelé par FedaPay — pas de JWT).
  *  - POST  : événement signé (X-FEDAPAY-SIGNATURE, HMAC-SHA256) ;
@@ -13,7 +22,8 @@ import { rateLimit, clientIp } from '../_shared/rate-limit.ts';
  */
 Deno.serve(async (req: Request) => {
   if (req.method === 'GET') {
-    const appUrl = Deno.env.get('APP_URL') ?? 'http://localhost:3000';
+    const appUrl = Deno.env.get('APP_URL');
+    if (!appUrl) return new Response('Webhook not configured', { status: 503 });
     // Retour navigateur depuis la page de paiement FedaPay.
     // FedaPay redirige vers callback_url avec ?id=<tx>&status=<approved|canceled|…>
     const url = new URL(req.url);
@@ -34,16 +44,19 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Anti-abus : même un corps non signé consomme une entrée du quota.
-    if (!(await rateLimit(`webhook:${clientIp(req)}`, 120, 60))) {
-      return new Response('Too many requests', { status: 429 });
-    }
-
-    // La signature porte sur le corps BRUT (raw body), jamais reformaté.
+    // 1) Signature HMAC TOUJOURS en premier : le rate limiting ci-dessous est
+    //    par IP (header x-forwarded-for contrôlable) — le limiter avant la
+    //    vérification permettrait à un attaquant d'épuiser le quota de la
+    //    vraie IP de FedaPay et de faire perdre les confirmations réelles.
     const raw = await req.text();
     const sig = req.headers.get('X-FedaPay-Signature');
     const valid = await verifyFedapaySignature(raw, sig, secret);
     if (!valid) {
+      // Rate limit ciblé sur les SEULS échecs de signature (anti-brute-force,
+      // sans jamais bloquer le trafic légitime de FedaPay).
+      if (!(await rateLimit(`webhook-fail:${clientIp(req)}`, 30, 60))) {
+        return new Response('Too many requests', { status: 429 });
+      }
       console.error('Signature FedaPay invalide');
       return new Response('Invalid signature', { status: 401 });
     }
@@ -64,10 +77,7 @@ Deno.serve(async (req: Request) => {
       return new Response('Missing transaction id', { status: 400 });
     }
 
-    const status =
-      eventName.includes('approved') ? 'confirmed'
-        : eventName.includes('declined') || eventName.includes('canceled') ? 'rejected'
-          : null;
+    const status: 'confirmed' | 'rejected' | null = FINAL_EVENTS[eventName] ?? null;
     if (!status) {
       // Événement non final (created, transferred…) : on acquitte sans agir.
       return new Response('OK (event ignored)', { status: 200 });

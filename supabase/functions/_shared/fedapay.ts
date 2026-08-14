@@ -38,8 +38,9 @@ export async function verifyFedapaySignature(
   }
   if (timestamp === -1 || signatures.length === 0) return false;
 
-  // Anti-rejeu : le timestamp ne doit pas être trop ancien.
-  if (Math.floor(Date.now() / 1000) - timestamp > FEDAPAY_SIGNATURE_TOLERANCE_SECONDS) {
+  // Anti-rejeu : le timestamp doit être proche de l'heure courante, dans les
+  // DEUX sens (un timestamp futur = skew d'horloge ou rejeu dans le futur).
+  if (Math.abs(Math.floor(Date.now() / 1000) - timestamp) > FEDAPAY_SIGNATURE_TOLERANCE_SECONDS) {
     return false;
   }
 

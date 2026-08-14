@@ -1,17 +1,21 @@
 /** Formats monétaires et date — locale fr-BJ (FCFA). */
+const xofFormatter = new Intl.NumberFormat('fr-BJ', { maximumFractionDigits: 0 });
+const dateFormatter = new Intl.DateTimeFormat('fr-BJ', { day: 'numeric', month: 'short', year: 'numeric' });
+const dateShortFormatter = new Intl.DateTimeFormat('fr-BJ', { day: '2-digit', month: '2-digit', year: '2-digit' });
+
 export function formatXof(amount: number | string | null | undefined): string {
   const n = Number(amount ?? 0);
-  return `${n.toLocaleString('fr-FR')} FCFA`;
+  return `${xofFormatter.format(n)} FCFA`;
 }
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  return dateFormatter.format(new Date(iso));
 }
 
 export function formatDateShort(iso: string | null | undefined): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  return dateShortFormatter.format(new Date(iso));
 }
 
 export function timeAgo(iso: string | null | undefined): string {

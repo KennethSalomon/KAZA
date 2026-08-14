@@ -50,7 +50,7 @@ export default function LoginPage() {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       <div>
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">Connexion</h2>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">Connexion</h1>
         <p className="mt-1 text-sm text-kaza-muted">Retrouvez votre espace Kaza.</p>
       </div>
 

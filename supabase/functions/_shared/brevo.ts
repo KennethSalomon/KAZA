@@ -12,7 +12,14 @@ export interface EmailPayload {
 
 export async function sendEmail(payload: EmailPayload): Promise<boolean> {
   const apiKey = Deno.env.get('BREVO_API_KEY');
-  if (!apiKey) return false;
+  if (!apiKey || !Deno.env.get('BREVO_SENDER_EMAIL')) {
+    // Jamais silencieux : une config manquante = aucun mail de relance,
+    // ce qui est un incident métier (impayés) à savoir diagnostiquer.
+    console.error(
+      apiKey ? 'BREVO_SENDER_EMAIL manquant — envois désactivés' : 'BREVO_API_KEY manquant — envois désactivés',
+    );
+    return false;
+  }
 
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -22,7 +29,7 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
     },
     body: JSON.stringify({
       sender: {
-        email: Deno.env.get('BREVO_SENDER_EMAIL') ?? 'kaza@example.com',
+        email: Deno.env.get('BREVO_SENDER_EMAIL'),
         name: Deno.env.get('BREVO_SENDER_NAME') ?? 'KAZA.BJ',
       },
       to: [{ email: payload.to }],
@@ -30,6 +37,7 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
       htmlContent: payload.html,
       textContent: payload.text,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
   return res.ok;
 }

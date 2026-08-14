@@ -10,6 +10,7 @@ import {
   listMyLeases,
   confirmPayment as confirmPaymentApi,
   signReceipt as signReceiptApi,
+  ApiError,
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import type { Receipt, Residence, Payment, Lease } from '@/lib/types';
@@ -17,9 +18,11 @@ import { formatXof, formatDate, PROVIDER_LABELS } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useToast } from '@/components/ui/toast';
 
 export default function LandlordHomePage() {
   const { user } = useAuth();
+  const toast = useToast();
   const [residences, setResidences] = useState<Residence[]>([]);
   const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
   const [pendingReceipts, setPendingReceipts] = useState<Receipt[]>([]);
@@ -39,8 +42,8 @@ export default function LandlordHomePage() {
       setPendingPayments(p.filter((x) => x.status === 'pending'));
       setPendingReceipts(rec.filter((x) => x.status === 'pending_signature'));
       setLeases(l.filter((x) => x.status === 'active'));
-    } catch {
-      // silencieux
+    } catch (err) {
+      toast.error('Chargement de l\u2019espace bailleur impossible', err instanceof ApiError ? err.message : undefined);
     } finally {
       setLoading(false);
     }
@@ -54,7 +57,10 @@ export default function LandlordHomePage() {
     setBusyId(paymentId);
     try {
       await confirmPaymentApi(paymentId);
+      toast.success('Paiement confirmé');
       await load();
+    } catch (err) {
+      toast.error('Confirmation impossible', err instanceof ApiError ? err.message : undefined);
     } finally {
       setBusyId(null);
     }
@@ -64,7 +70,10 @@ export default function LandlordHomePage() {
     setBusyId(receiptId);
     try {
       await signReceiptApi(receiptId);
+      toast.success('Quittance signée');
       await load();
+    } catch (err) {
+      toast.error('Signature impossible', err instanceof ApiError ? err.message : undefined);
     } finally {
       setBusyId(null);
     }

@@ -504,7 +504,8 @@ export async function signReceipt(receiptId: string): Promise<SignReceiptResult>
 // ------------------------------------------------------------
 // Stockage sécurisé (URLs signées pour les buckets privés)
 // ------------------------------------------------------------
-/** Extrait le chemin d'un objet depuis une URL de stockage Supabase. */
+/** Extrait le chemin d'un objet depuis une URL de stockage Supabase ou un
+ * chemin canonique KAZA ({userid}/fichier — bucket implicite). */
 export function storagePathFromUrl(url: string): string | null {
   try {
     const decoded = decodeURIComponent(url);
@@ -512,11 +513,14 @@ export function storagePathFromUrl(url: string): string | null {
     const marker = `/object/`;
     const idx = withoutQuery.lastIndexOf(marker);
     if (idx === -1) return withoutQuery.replace(/^\/+/, '');
+    // …/object/{access}/{bucket}/{path}
     const base = withoutQuery.slice(idx + marker.length);
-    const slash = base.indexOf('/');
-    if (slash === -1) return null;
-    const path = base.slice(slash + 1);
-    return path ? path.replace(/^\/+/, '') : null;
+    const accessSlash = base.indexOf('/');
+    if (accessSlash === -1) return null;
+    const bucketPath = base.slice(accessSlash + 1);
+    const bucketSlash = bucketPath.indexOf('/');
+    if (bucketSlash === -1) return null;
+    return bucketPath.slice(bucketSlash + 1).replace(/^\/+/, '') || null;
   } catch {
     return null;
   }
@@ -524,8 +528,10 @@ export function storagePathFromUrl(url: string): string | null {
 
 /** URL signée (1 h) pour lire un fichier d'un bucket privé (JWT header non requis). */
 export async function getSignedStorageUrl(bucket: string, url: string): Promise<string | null> {
-  const path = storagePathFromUrl(url);
+  let path = storagePathFromUrl(url);
   if (!path) return null;
+  // Un chemin nu peut être préfixé du nom du bucket — on normalise.
+  if (path.startsWith(`${bucket}/`)) path = path.slice(bucket.length + 1);
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
   if (error || !data?.signedUrl) return null;
   return data.signedUrl;

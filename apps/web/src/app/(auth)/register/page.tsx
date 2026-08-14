@@ -62,7 +62,7 @@ export default function RegisterPage() {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       <div>
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">Créer un compte</h2>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">Créer un compte</h1>
         <p className="mt-1 text-sm text-kaza-muted">Gratuit. Sans commission sur les loyers.</p>
       </div>
 

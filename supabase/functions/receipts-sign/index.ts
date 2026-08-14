@@ -1,5 +1,5 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
-import { requireUser } from '../_shared/auth.ts';
+import { requireUser, AuthError } from '../_shared/auth.ts';
 import { getAdminClient } from '../_shared/db.ts';
 import { buildSignedReceiptPdf, formatDateFr, type BuiltPdf } from '../_shared/pdf-builder.ts';
 import { rateLimit } from '../_shared/rate-limit.ts';
@@ -22,7 +22,13 @@ Deno.serve(async (req: Request) => {
       return errorResponse('Trop de signatures, réessayez dans une minute', 429, origin);
     }
 
-    const { receipt_id } = await req.json() as { receipt_id: string };
+    let body: { receipt_id?: string };
+    try {
+      body = await req.json() as { receipt_id?: string };
+    } catch {
+      return errorResponse('Corps JSON invalide', 400, origin);
+    }
+    const { receipt_id } = body;
     if (!receipt_id) return errorResponse('receipt_id requis', 400, origin);
 
     const supabase = getAdminClient();
@@ -96,18 +102,22 @@ Deno.serve(async (req: Request) => {
       });
     if (upErr) return errorResponse(`Upload PDF échoué : ${upErr.message}`, 500, origin);
 
-    // file_url = référence canonique (chemin dans le bucket privé).
-    const publicUrl = supabase.storage.from('receipts').getPublicUrl(path).data.publicUrl;
+    // file_url = référence canonique : CHEMIN dans le bucket privé
+    // (l'URL publique d'un bucket privé est morte — 403 pour quiconque
+    // n'a pas de JWT ; seule la signature est lisible).
+    const canonicalPath = path;
 
-    // URL signée (1 h) : seul moyen de lire un bucket privé sans header JWT.
+    // URL signée longue durée (7 jours) : la signature 1 h expire trop vite
+    // pour un document financier qu'on relit — sans persistance, la
+    // quittance devenait illisible après expiration.
     const { data: signed } = await supabase.storage
       .from('receipts')
-      .createSignedUrl(path, 3600);
+      .createSignedUrl(path, 7 * 24 * 3600);
 
     const { error: updErr } = await supabase
       .from('receipts')
       .update({
-        file_url: publicUrl,
+        file_url: canonicalPath,
         signature_hash: built.sha256,
         signed_by: user.id,
         signed_at: new Date().toISOString(),
@@ -118,13 +128,14 @@ Deno.serve(async (req: Request) => {
 
     return jsonResponse({
       receipt_id: receipt.id,
-      file_url: publicUrl,
+      file_url: canonicalPath,
       download_url: signed?.signedUrl ?? null,
       signature_hash: built.sha256,
       signed_at: new Date().toISOString(),
       period: `du ${formatDateFr(receipt.period_start)} au ${formatDateFr(receipt.period_end)}`,
     }, 200, origin);
   } catch (err) {
+    if (err instanceof AuthError) return errorResponse('Non authentifié', 401, origin);
     console.error('Erreur signature quittance', err);
     return errorResponse('Erreur interne', 500, origin);
   }

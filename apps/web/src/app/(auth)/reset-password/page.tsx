@@ -56,9 +56,9 @@ export default function ResetPasswordPage() {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       <div>
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
           Nouveau mot de passe
-        </h2>
+        </h1>
         <p className="mt-1 text-sm text-kaza-muted">
           Choisissez un mot de passe robuste (8 caractères min, lettres + chiffres).
         </p>

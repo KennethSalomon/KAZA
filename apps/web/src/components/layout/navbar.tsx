@@ -66,6 +66,7 @@ export function Navbar() {
               <Link
                 href="/profile"
                 title={user.full_name}
+                aria-label={`Mon profil — ${user.full_name}`}
                 className="grid h-9 w-9 place-items-center rounded-full border border-kaza-border bg-kaza-surface text-kaza-brand"
               >
                 <UserRound className="h-4 w-4" aria-hidden />

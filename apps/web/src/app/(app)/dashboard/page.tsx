@@ -3,17 +3,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { redirect } from 'next/navigation';
 import { AlertTriangle, CreditCard, FileDown, KeyRound } from 'lucide-react';
-import { listMyLeases, listMyPayments, listMyReceipts, getSignedStorageUrl } from '@/lib/supabase-api';
+import { listMyLeases, listMyPayments, listMyReceipts, getSignedStorageUrl, ApiError } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import type { Lease, Payment, Receipt } from '@/lib/types';
 import { formatXof, formatDate, PROVIDER_LABELS } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useToast } from '@/components/ui/toast';
 import { PaymentModal } from '@/components/payment/payment-modal';
 
 export default function TenantDashboardPage() {
   const { user, role, loading } = useAuth();
+  const toast = useToast();
   const [leases, setLeases] = useState<Lease[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -30,8 +32,8 @@ export default function TenantDashboardPage() {
       setLeases(l);
       setPayments(p);
       setReceipts(r);
-    } catch {
-      // silencieux : l'espace s'affiche vide en cas d'erreur
+    } catch (err) {
+      toast.error('Chargement du tableau de bord impossible', err instanceof ApiError ? err.message : undefined);
     } finally {
       setDataLoading(false);
     }

@@ -10,12 +10,14 @@ import {
   adminUnpublishResidence,
   adminSetPremium,
   adminToggleRole,
+  ApiError,
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import type { Profile, Residence } from '@/lib/types';
 import { formatXof } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/cn';
 
 interface Stats {
@@ -27,6 +29,7 @@ interface Stats {
 
 export default function AdminPage() {
   const { role } = useAuth();
+  const toast = useToast();
   const [stats, setStats] = useState<Stats | null>(null);
   const [residences, setResidences] = useState<Residence[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
@@ -34,16 +37,21 @@ export default function AdminPage() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const loadAll = useCallback(async () => {
-    const [s, r, u] = await Promise.all([
-      adminStats(),
-      adminListResidences(30),
-      adminListUsers(30),
-    ]);
-    setStats(s);
-    setResidences(r);
-    setUsers(u);
-    setLoading(false);
-  }, []);
+    try {
+      const [s, r, u] = await Promise.all([
+        adminStats(),
+        adminListResidences(30),
+        adminListUsers(30),
+      ]);
+      setStats(s);
+      setResidences(r);
+      setUsers(u);
+    } catch (err) {
+      toast.error('Chargement de l\u2019administration impossible', err instanceof ApiError ? err.message : undefined);
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (role === 'admin') void loadAll();
@@ -54,6 +62,8 @@ export default function AdminPage() {
     try {
       await action();
       await loadAll();
+    } catch (err) {
+      toast.error('Action impossible', err instanceof ApiError ? err.message : undefined);
     } finally {
       setBusy(null);
     }

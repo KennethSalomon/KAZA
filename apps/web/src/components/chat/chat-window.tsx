@@ -155,8 +155,7 @@ export function ChatWindow() {
         contentType: file.type,
       });
       if (error) throw error;
-      const url = supabase.storage.from('chat-files').getPublicUrl(path).data.publicUrl;
-      urls.push(url);
+      urls.push(path);
     }
     return urls;
   }
@@ -218,8 +217,16 @@ export function ChatWindow() {
               )}
             >
               {m.attachments.map((a, i) => {
-                const url = signedAttachments[a] ?? a;
-                return a.endsWith('.pdf') || a.includes('application/pdf') ? (
+                const url = signedAttachments[a];
+                const isPdf = a.endsWith('.pdf') || a.includes('application/pdf');
+                if (!url) {
+                  return (
+                    <span key={i} className="mb-1.5 flex items-center gap-2 rounded-kaza border border-kaza-border bg-kaza-raised px-3 py-2 text-xs text-kaza-muted">
+                      <Paperclip className="h-3.5 w-3.5" aria-hidden /> {isPdf ? 'Document' : 'Image'} joint
+                    </span>
+                  );
+                }
+                return isPdf ? (
                   <a
                     key={i}
                     href={url}

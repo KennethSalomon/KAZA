@@ -66,7 +66,10 @@ function normalize(s: string): string {
 }
 
 function escapePdfString(s: string): string {
-  return s.replace(/[\\()]/g, (m) => `\\${m}`);
+  // CR/LF/tabulation : un retour-chariot dans un full_name (champ
+  // contrôlé par l'utilisateur) casserait l'opérateur Tj du PDF.
+  return s.replace(/[\\()\r\n\t]/g, (m) =>
+    m === '\r' || m === '\n' ? ' ' : `\\${m}`);
 }
 
 function textBytes(s: string): Uint8Array {
