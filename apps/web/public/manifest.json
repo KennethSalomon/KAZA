@@ -1,0 +1,43 @@
+{
+  "name": "Kaza — Louer au Bénin",
+  "short_name": "Kaza",
+  "description": "Plateforme de gestion locative au Bénin : recherche géolocalisée, paiement mobile money, quittances signées.",
+  "lang": "fr",
+  "start_url": "/explorer",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F172A",
+  "theme_color": "#0F172A",
+  "categories": ["realestate", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Explorer les logements",
+      "url": "/explorer",
+      "description": "Recherche géolocalisée des biens disponibles"
+    },
+    {
+      "name": "Mes messages",
+      "url": "/chat"
+    }
+  ]
+}

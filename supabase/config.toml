@@ -1,0 +1,75 @@
+# KAZA.BJ — configuration Supabase locale (CLI)
+project_id = "kaza"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[local_smtp]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# MVP : pas de confirmation par email (les utilisateurs de démo sont confirmés)
+enable_confirmations = false
+
+[storage]
+enabled = true
+file_size_limit = "20MiB"
+
+[functions]
+enabled = true
+verify_jwt = true
+
+[functions.fedapay-init]
+verify_jwt = true
+
+[functions.fedapay-init.secrets]
+FEDAPAY_SECRET_KEY = "sk_dev_fedapay"
+FEDAPAY_API_BASE = "https://sandbox-api.fedapay.com/v1"
+APP_URL = "http://localhost:3000"
+
+[functions.fedapay-webhook]
+verify_jwt = false
+
+[functions.fedapay-webhook.secrets]
+FEDAPAY_WEBHOOK_SECRET = "wh_dev_secret"
+APP_URL = "http://localhost:3000"
+
+[functions.receipts-sign]
+verify_jwt = true
+
+[functions.receipts-sign.secrets]
+APP_URL = "http://localhost:3000"
+
+[functions.overdue-cron]
+verify_jwt = false
+
+[functions.overdue-cron.secrets]
+CRON_SECRET = "dev-cron-secret"
+BREVO_API_KEY = ""
+BREVO_SENDER_EMAIL = "kaza@example.com"
+BREVO_SENDER_NAME = "KAZA.BJ"
+APP_URL = "http://localhost:3000"
+
+[analytics]
+enabled = false

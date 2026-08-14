@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   KAZA — surface de base (charte graphique v1, fond clair)
+   ============================================================ */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    @apply antialiased;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-kaza-bg text-kaza-text font-sans;
+    background-image: radial-gradient(1100px 500px at 90% -10%, rgba(14, 71, 40, 0.05), transparent 60%),
+      radial-gradient(800px 450px at -10% 110%, rgba(242, 176, 145, 0.07), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  /* titres en Sora (charte) — arrondis géométriques du logo */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-sora), var(--font-geist), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  /* sélection et caret aux couleurs de la marque */
+  ::selection {
+    @apply bg-kaza-brand text-white;
+  }
+  ::placeholder {
+    @apply text-kaza-faint;
+  }
+
+  /* scrollbar thématisée */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F1F5F9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 8px;
+    border: 2px solid #F1F5F9;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #0E4728;
+  }
+
+  /* focus visible vert, cohérent partout */
+  :focus-visible {
+    outline: 2px solid rgba(14, 71, 40, 0.7);
+    outline-offset: 2px;
+  }
+
+  /* chiffres tabulaires pour les montants */
+  .price,
+  table td.num,
+  table th.num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .kaza-card {
+    @apply bg-kaza-surface border border-kaza-border rounded-kaza shadow-card transition-all duration-300;
+  }
+  .kaza-card-hover:hover {
+    @apply -translate-y-0.5 shadow-card-hover border-kaza-faint/50;
+  }
+  .kaza-input {
+    @apply w-full rounded-kaza bg-white border border-kaza-border px-4 py-2.5 text-sm text-kaza-text
+      placeholder:text-kaza-faint transition-colors duration-150
+      focus:border-kaza-brand focus:brand-ring outline-none;
+  }
+  .kaza-label {
+    @apply block text-xs font-medium text-kaza-muted mb-1.5 tracking-wide;
+  }
+}
+
+/* Leaflet — thème clair Kaza */
+.leaflet-container {
+  background: #E2E8F0 !important;
+  font-family: var(--font-geist), system-ui, sans-serif;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #FFFFFF;
+  color: #0F172A;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 18px 40px -14px rgba(15, 23, 42, 0.25);
+}
+.leaflet-popup-content {
+  margin: 12px 16px;
+  font-size: 13px;
+}
+.leaflet-control-zoom a {
+  background: #FFFFFF !important;
+  color: #0E4728 !important;
+  border-color: #E2E8F0 !important;
+}
+.leaflet-control-zoom a:hover {
+  background: #F1F5F9 !important;
+}
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #64748B !important;
+  font-size: 9px !important;
+}
+.leaflet-control-attribution a {
+  color: #0E4728 !important;
+}
+
+/* curseur de marqueur personnalisé */
+.kaza-marker {
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-45deg);
+  background: linear-gradient(135deg, #0E4728, #0B3820);
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 24px -6px rgba(14, 71, 40, 0.5);
+  display: grid;
+  place-items: center;
+}
+.kaza-marker svg {
+  transform: rotate(45deg);
+  width: 14px;
+  height: 14px;
+  color: #FFFFFF;
+}
+.kaza-marker.active {
+  background: linear-gradient(135deg, #F2B091, #F59E0B);
+  border-color: #0E4728;
+}
+.kaza-marker.active svg {
+  color: #0E4728;
+}
+
+/* PWA */
+@media (display-mode: standalone) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
