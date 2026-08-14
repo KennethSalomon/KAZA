@@ -9,6 +9,7 @@ import {
   markConversationRead,
   agreeVisit,
   getConversation,
+  getSignedStorageUrl,
   ApiError,
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
@@ -82,6 +83,28 @@ export function ChatWindow() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
+
+  // URLs signées pour les pièces jointes (bucket privé) — mises en cache
+  const [signedAttachments, setSignedAttachments] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const pending: Record<string, string> = {};
+      for (const m of messages) {
+        for (const a of m.attachments ?? []) {
+          if (a in signedAttachments) continue;
+          const signed = await getSignedStorageUrl('chat-files', a);
+          if (signed && !cancelled) pending[a] = signed;
+        }
+      }
+      if (!cancelled && Object.keys(pending).length > 0) {
+        setSignedAttachments((prev) => ({ ...prev, ...pending }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [messages, signedAttachments]);
 
   useEffect(() => {
     void getConversation(id)
@@ -184,11 +207,12 @@ export function ChatWindow() {
                 m.kind === 'visit_agreed' && 'border border-kaza-brand/40 bg-kaza-brand/10',
               )}
             >
-              {m.attachments.map((a, i) =>
-                a.endsWith('.pdf') || a.includes('application/pdf') ? (
+              {m.attachments.map((a, i) => {
+                const url = signedAttachments[a] ?? a;
+                return a.endsWith('.pdf') || a.includes('application/pdf') ? (
                   <a
                     key={i}
-                    href={a}
+                    href={url}
                     target="_blank"
                     rel="noreferrer"
                     className="mb-1.5 flex items-center gap-2 rounded-kaza border border-kaza-border bg-kaza-raised px-3 py-2 text-xs text-kaza-brand hover:border-kaza-brand/50"
@@ -197,9 +221,9 @@ export function ChatWindow() {
                   </a>
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img key={i} src={a} alt="Pièce jointe" className="mb-1.5 max-h-56 rounded-kaza border border-kaza-border object-cover" />
-                ),
-              )}
+                  <img key={i} src={url} alt="Pièce jointe" className="mb-1.5 max-h-56 rounded-kaza border border-kaza-border object-cover" />
+                );
+              })}
               {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
               <p className={cn('mt-1 flex items-center gap-1 text-[10px]', isOwn(m) ? 'justify-end text-kaza-faint' : 'text-kaza-faint')}>
                 {timeAgo(m.created_at)}

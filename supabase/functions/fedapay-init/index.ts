@@ -2,6 +2,7 @@ import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { getAdminClient } from '../_shared/db.ts';
 import { unwrapFedapay } from '../_shared/fedapay.ts';
+import { rateLimit } from '../_shared/rate-limit.ts';
 
 // Sandbox : https://sandbox-api.fedapay.com/v1 (à utiliser en développement)
 const FEDAPAY_API_BASE = Deno.env.get('FEDAPAY_API_BASE') ?? 'https://sandbox-api.fedapay.com/v1';
@@ -25,22 +26,28 @@ const MODES: Record<string, string> = {
  *  - crée la transaction + le lien de paiement et les retourne
  */
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
   if (req.method === 'OPTIONS') return handleOptions(req);
-  if (req.method !== 'POST') return errorResponse('Méthode non autorisée', 405);
+  if (req.method !== 'POST') return errorResponse('Méthode non autorisée', 405, origin);
 
   const secretKey = Deno.env.get('FEDAPAY_SECRET_KEY');
-  if (!secretKey) return errorResponse('FedaPay non configuré', 503);
+  if (!secretKey) return errorResponse('FedaPay non configuré', 503, origin);
 
   try {
     const user = await requireUser(req);
+
+    if (!(await rateLimit(`fedapay-init:${user.id}`, 10, 60))) {
+      return errorResponse('Trop de tentatives, réessayez dans une minute', 429, origin);
+    }
+
     let parsed: { lease_id?: string; channel?: string; phone?: string };
     try {
       parsed = await req.json() as { lease_id?: string; channel?: string; phone?: string };
     } catch {
-      return errorResponse('Corps JSON invalide', 400);
+      return errorResponse('Corps JSON invalide', 400, origin);
     }
     const { lease_id, channel, phone } = parsed;
-    if (!lease_id) return errorResponse('lease_id requis');
+    if (!lease_id) return errorResponse('lease_id requis', 400, origin);
 
     const supabase = getAdminClient();
 
@@ -49,9 +56,9 @@ Deno.serve(async (req: Request) => {
       .select('id, tenant_id, landlord_id, monthly_rent, date_fn_couverture, status, residences(id, title)')
       .eq('id', lease_id)
       .maybeSingle();
-    if (leaseErr || !lease) return errorResponse('Bail introuvable', 404);
-    if (lease.tenant_id !== user.id) return errorResponse('Ce bail ne vous appartient pas', 403);
-    if (lease.status !== 'active') return errorResponse('Bail inactif');
+    if (leaseErr || !lease) return errorResponse('Bail introuvable', 404, origin);
+    if (lease.tenant_id !== user.id) return errorResponse('Ce bail ne vous appartient pas', 403, origin);
+    if (lease.status !== 'active') return errorResponse('Bail inactif', 400, origin);
 
     const mode = channel ? MODES[channel.toLowerCase()] : undefined;
 
@@ -80,7 +87,7 @@ Deno.serve(async (req: Request) => {
       })
       .select('id')
       .single();
-    if (payErr || !payment) return errorResponse('Impossible d\'enregistrer le paiement', 500);
+    if (payErr || !payment) return errorResponse('Impossible d\'enregistrer le paiement', 500, origin);
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -130,6 +137,7 @@ Deno.serve(async (req: Request) => {
       return jsonResponse(
         { error: 'Échec de la création de la transaction FedaPay' },
         502,
+        origin,
       );
     }
 
@@ -146,7 +154,7 @@ Deno.serve(async (req: Request) => {
 
     if (!tokenRes.ok || !tokenData?.url) {
       await supabase.from('payments').update({ status: 'rejected' }).eq('id', payment.id);
-      return jsonResponse({ error: 'Échec de la génération du lien de paiement FedaPay' }, 502);
+      return jsonResponse({ error: 'Échec de la génération du lien de paiement FedaPay' }, 502, origin);
     }
 
     await supabase
@@ -161,9 +169,9 @@ Deno.serve(async (req: Request) => {
       amount,
       period_start: periodStart,
       period_end: periodEnd,
-    });
+    }, 200, origin);
   } catch (err) {
     console.error('Erreur init paiement FedaPay', err);
-    return errorResponse('Erreur interne', 500);
+    return errorResponse('Erreur interne', 500, origin);
   }
 });

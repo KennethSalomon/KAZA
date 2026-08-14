@@ -2,6 +2,7 @@ import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { getAdminClient } from '../_shared/db.ts';
 import { buildSignedReceiptPdf, formatDateFr, type BuiltPdf } from '../_shared/pdf-builder.ts';
+import { rateLimit } from '../_shared/rate-limit.ts';
 
 /**
  * Signature de quittance par le bailleur (ou admin).
@@ -10,13 +11,19 @@ import { buildSignedReceiptPdf, formatDateFr, type BuiltPdf } from '../_shared/p
  *  - met à jour la quittance (signed, signed_by, signature_hash)
  */
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
   if (req.method === 'OPTIONS') return handleOptions(req);
-  if (req.method !== 'POST') return errorResponse('Méthode non autorisée', 405);
+  if (req.method !== 'POST') return errorResponse('Méthode non autorisée', 405, origin);
 
   try {
     const user = await requireUser(req);
+
+    if (!(await rateLimit(`receipts-sign:${user.id}`, 20, 60))) {
+      return errorResponse('Trop de signatures, réessayez dans une minute', 429, origin);
+    }
+
     const { receipt_id } = await req.json() as { receipt_id: string };
-    if (!receipt_id) return errorResponse('receipt_id requis');
+    if (!receipt_id) return errorResponse('receipt_id requis', 400, origin);
 
     const supabase = getAdminClient();
 
@@ -26,10 +33,10 @@ Deno.serve(async (req: Request) => {
       .eq('id', receipt_id)
       .maybeSingle();
 
-    if (recErr || !receipt) return errorResponse('Quittance introuvable', 404);
-    if (receipt.status === 'signed') return errorResponse('Quittance déjà signée', 409);
+    if (recErr || !receipt) return errorResponse('Quittance introuvable', 404, origin);
+    if (receipt.status === 'signed') return errorResponse('Quittance déjà signée', 409, origin);
     if (receipt.landlord_id !== user.id && user.role !== 'admin') {
-      return errorResponse('Seul le bailleur (ou l\'admin) signe les quittances', 403);
+      return errorResponse('Seul le bailleur (ou l\'admin) signe les quittances', 403, origin);
     }
 
     const [leaseRes, landlordRes, tenantRes] = await Promise.all([
@@ -87,9 +94,15 @@ Deno.serve(async (req: Request) => {
         contentType: 'application/pdf',
         upsert: true,
       });
-    if (upErr) return errorResponse(`Upload PDF échoué : ${upErr.message}`, 500);
+    if (upErr) return errorResponse(`Upload PDF échoué : ${upErr.message}`, 500, origin);
 
+    // file_url = référence canonique (chemin dans le bucket privé).
     const publicUrl = supabase.storage.from('receipts').getPublicUrl(path).data.publicUrl;
+
+    // URL signée (1 h) : seul moyen de lire un bucket privé sans header JWT.
+    const { data: signed } = await supabase.storage
+      .from('receipts')
+      .createSignedUrl(path, 3600);
 
     const { error: updErr } = await supabase
       .from('receipts')
@@ -101,17 +114,18 @@ Deno.serve(async (req: Request) => {
         status: 'signed',
       })
       .eq('id', receipt.id);
-    if (updErr) return errorResponse('Mise à jour de la quittance échouée', 500);
+    if (updErr) return errorResponse('Mise à jour de la quittance échouée', 500, origin);
 
     return jsonResponse({
       receipt_id: receipt.id,
       file_url: publicUrl,
+      download_url: signed?.signedUrl ?? null,
       signature_hash: built.sha256,
       signed_at: new Date().toISOString(),
       period: `du ${formatDateFr(receipt.period_start)} au ${formatDateFr(receipt.period_end)}`,
-    });
+    }, 200, origin);
   } catch (err) {
     console.error('Erreur signature quittance', err);
-    return errorResponse('Erreur interne', 500);
+    return errorResponse('Erreur interne', 500, origin);
   }
 });

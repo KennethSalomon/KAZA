@@ -1,5 +1,6 @@
 import { verifyFedapaySignature } from '../_shared/fedapay.ts';
 import { getAdminClient } from '../_shared/db.ts';
+import { rateLimit, clientIp } from '../_shared/rate-limit.ts';
 
 /**
  * Webhook FedaPay (appelé par FedaPay — pas de JWT).
@@ -33,6 +34,11 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Anti-abus : même un corps non signé consomme une entrée du quota.
+    if (!(await rateLimit(`webhook:${clientIp(req)}`, 120, 60))) {
+      return new Response('Too many requests', { status: 429 });
+    }
+
     // La signature porte sur le corps BRUT (raw body), jamais reformaté.
     const raw = await req.text();
     const sig = req.headers.get('X-FedaPay-Signature');

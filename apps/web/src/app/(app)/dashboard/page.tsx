@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { redirect } from 'next/navigation';
 import { AlertTriangle, CreditCard, FileDown, KeyRound } from 'lucide-react';
-import { listMyLeases, listMyPayments, listMyReceipts } from '@/lib/supabase-api';
+import { listMyLeases, listMyPayments, listMyReceipts, getSignedStorageUrl } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import type { Lease, Payment, Receipt } from '@/lib/types';
 import { formatXof, formatDate, PROVIDER_LABELS } from '@/lib/format';
@@ -160,12 +160,18 @@ export default function TenantDashboardPage() {
                   </p>
                 </div>
                 {r.status === 'signed' && r.file_url ? (
-                  <a href={r.file_url} target="_blank" rel="noreferrer">
-                    <Button variant="secondary" size="sm" data-testid="download-receipt">
-                      <FileDown className="h-4 w-4" aria-hidden />
-                      PDF
-                    </Button>
-                  </a>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    data-testid="download-receipt"
+                    onClick={async () => {
+                      const signed = await getSignedStorageUrl('receipts', r.file_url as string);
+                      if (signed) window.open(signed, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    <FileDown className="h-4 w-4" aria-hidden />
+                    PDF
+                  </Button>
                 ) : (
                   <span className="text-xs text-kaza-faint">dès validation bailleur</span>
                 )}

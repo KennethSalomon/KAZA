@@ -1,17 +1,33 @@
 import { handleOptions, jsonResponse, errorResponse } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { getAdminClient } from '../_shared/db.ts';
+import { rateLimit, clientIp } from '../_shared/rate-limit.ts';
 
 const USERS_BUCKET = 'chat-files';
 const RESIDENCES_BUCKET = 'residence-photos';
 const RECEIPTS_BUCKET = 'receipts';
 
-/** Extrait le chemin d'un objet à partir de son URL de stockage public. */
+/**
+ * Extrait le chemin d'un objet à partir de son URL de stockage.
+ * Gère toutes les formes (public, authenticated, signée, API) en
+ * cherchant le nom du bucket dans l'URL — robuste aux changements
+ * de format du frontend.
+ */
 function pathFromUrl(bucket: string, url: string): string | null {
-  const marker = `/object/public/${bucket}/`;
-  const idx = url.indexOf(marker);
-  if (idx === -1) return null;
-  return decodeURIComponent(url.slice(idx + marker.length).split('?')[0]);
+  const decoded = decodeURIComponent(url);
+  const withoutQuery = decoded.split('?')[0];
+
+  // Formes : /storage/v1/object/{access}/{bucket}/chemin,
+  // .../object/public/{bucket}/chemin, ou chemin nu contenant bucket/...
+  const marker = `/object/`;
+  const markerIdx = withoutQuery.lastIndexOf(marker);
+  const base = markerIdx === -1 ? withoutQuery : withoutQuery.slice(markerIdx + marker.length);
+
+  const bucketIdx = base.indexOf(`${bucket}/`);
+  if (bucketIdx === -1) return null;
+
+  const path = base.slice(bucketIdx + bucket.length + 1).replace(/^\/+/, '');
+  return path ? path.replace(/^\/+/, '') : null;
 }
 
 /**
@@ -22,11 +38,17 @@ function pathFromUrl(bucket: string, url: string): string | null {
  *  - quittances PDF liées à ses baux
  */
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
   if (req.method === 'OPTIONS') return handleOptions(req);
-  if (req.method !== 'POST') return errorResponse('Méthode non autorisée', 405);
+  if (req.method !== 'POST') return errorResponse('Méthode non autorisée', 405, origin);
 
   try {
     const user = await requireUser(req);
+
+    if (!(await rateLimit(`purge:${user.id}:${clientIp(req)}`, 5, 3600))) {
+      return errorResponse('Trop de demandes de suppression, réessayez dans une heure', 429, origin);
+    }
+
     const supabase = getAdminClient();
 
     const toRemove: { bucket: string; path: string }[] = [];
@@ -91,14 +113,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const { error: delErr } = await supabase.rpc('delete_my_account');
-    if (delErr) return errorResponse('Suppression du compte impossible', 500);
+    if (delErr) return errorResponse('Suppression du compte impossible', 500, origin);
 
     return jsonResponse({
       removed_count: removed.length,
       removed: removed.slice(0, 20),
-    });
+    }, 200, origin);
   } catch (err) {
     console.error('Erreur purge RGPD', err);
-    return errorResponse('Erreur interne', 500);
+    return errorResponse('Erreur interne', 500, origin);
   }
 });

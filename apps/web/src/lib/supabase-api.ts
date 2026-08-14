@@ -502,6 +502,36 @@ export async function signReceipt(receiptId: string): Promise<SignReceiptResult>
 }
 
 // ------------------------------------------------------------
+// Stockage sécurisé (URLs signées pour les buckets privés)
+// ------------------------------------------------------------
+/** Extrait le chemin d'un objet depuis une URL de stockage Supabase. */
+export function storagePathFromUrl(url: string): string | null {
+  try {
+    const decoded = decodeURIComponent(url);
+    const withoutQuery = decoded.split('?')[0];
+    const marker = `/object/`;
+    const idx = withoutQuery.lastIndexOf(marker);
+    if (idx === -1) return withoutQuery.replace(/^\/+/, '');
+    const base = withoutQuery.slice(idx + marker.length);
+    const slash = base.indexOf('/');
+    if (slash === -1) return null;
+    const path = base.slice(slash + 1);
+    return path ? path.replace(/^\/+/, '') : null;
+  } catch {
+    return null;
+  }
+}
+
+/** URL signée (1 h) pour lire un fichier d'un bucket privé (JWT header non requis). */
+export async function getSignedStorageUrl(bucket: string, url: string): Promise<string | null> {
+  const path = storagePathFromUrl(url);
+  if (!path) return null;
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
+}
+
+// ------------------------------------------------------------
 // Notifications
 // ------------------------------------------------------------
 export async function listNotifications(limit = 30): Promise<AppNotification[]> {
