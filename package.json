@@ -21,7 +21,12 @@
   },
   "devDependencies": {
     "prettier": "^3.3.3",
-    "vitest": "^2.1.8"
+    "vitest": "^3.2.7"
+  },
+  "overrides": {
+    "vite": "^6.4.3",
+    "postcss": "8.5.26",
+    "sharp": "^0.35.3"
   },
   "engines": {
     "node": ">=20.0.0"
