@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
-import { toggleFavorite, ApiError } from '@/lib/supabase-api';
+import { toggleFavorite } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/toast';
+import { apiToast } from '@/lib/api-toast';
 import { cn } from '@/lib/cn';
 
 // Cœur de favori : optimiste, connecté requis. `initial` remplit le cœur au
@@ -42,7 +43,7 @@ export function FavoriteButton({
       onToggle?.(residenceId, now);
     } catch (err) {
       setActive((a) => !a);
-      toast.error('Favori impossible à modifier', err instanceof ApiError ? err.message : undefined);
+      apiToast(toast, err, 'Favori impossible à modifier');
     } finally {
       setBusy(false);
     }

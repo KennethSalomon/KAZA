@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
 import { residenceCompleteness, CompletenessBar } from '@/components/property/residence-completeness';
+import { apiToast } from '@/lib/api-toast';
 
 export default function LandlordHomePage() {
   const { user } = useAuth();
@@ -46,7 +47,7 @@ export default function LandlordHomePage() {
       setPendingReceipts(rec.filter((x) => x.status === 'pending_signature'));
       setLeases(l.filter((x) => x.status === 'active'));
     } catch (err) {
-      toast.error('Chargement de l\u2019espace bailleur impossible', err instanceof ApiError ? err.message : undefined);
+      apiToast(toast, err, 'Chargement de l\u2019espace bailleur impossible');
     } finally {
       setLoading(false);
     }
@@ -63,7 +64,7 @@ export default function LandlordHomePage() {
       toast.success('Paiement confirmé');
       await load();
     } catch (err) {
-      toast.error('Confirmation impossible', err instanceof ApiError ? err.message : undefined);
+      apiToast(toast, err, 'Confirmation impossible');
     } finally {
       setBusyId(null);
     }
@@ -76,7 +77,7 @@ export default function LandlordHomePage() {
       toast.success('Quittance signée');
       await load();
     } catch (err) {
-      toast.error('Signature impossible', err instanceof ApiError ? err.message : undefined);
+      apiToast(toast, err, 'Signature impossible');
     } finally {
       setBusyId(null);
     }
@@ -89,7 +90,7 @@ export default function LandlordHomePage() {
       toast.success('Paiement rejeté');
       await load();
     } catch (err) {
-      toast.error('Rejet impossible', err instanceof ApiError ? err.message : undefined);
+      apiToast(toast, err, 'Rejet impossible');
     } finally {
       setBusyId(null);
     }
@@ -102,7 +103,7 @@ export default function LandlordHomePage() {
       toast.success('Bail résilié');
       await load();
     } catch (err) {
-      toast.error('Résiliation impossible', err instanceof ApiError ? err.message : undefined);
+      apiToast(toast, err, 'Résiliation impossible');
     } finally {
       setBusyId(null);
     }

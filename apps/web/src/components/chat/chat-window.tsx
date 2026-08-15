@@ -16,6 +16,7 @@ import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase-client';
 import type { Conversation, Message } from '@/lib/types';
 import { timeAgo, formatXof } from '@/lib/format';
+import { apiToast } from '@/lib/api-toast';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
@@ -139,7 +140,7 @@ export function ChatWindow() {
       setBody('');
       setPendingFiles([]);
     } catch (err) {
-      toast.error('Envoi impossible', err instanceof ApiError ? err.message : undefined);
+      apiToast(toast, err, 'Envoi impossible');
     } finally {
       setSending(false);
     }

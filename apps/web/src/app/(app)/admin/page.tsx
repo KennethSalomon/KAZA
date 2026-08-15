@@ -10,11 +10,11 @@ import {
   adminUnpublishResidence,
   adminSetPremium,
   adminToggleRole,
-  ApiError,
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import type { Profile, Residence } from '@/lib/types';
 import { formatXof } from '@/lib/format';
+import { apiToast } from '@/lib/api-toast';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/toast';
@@ -47,7 +47,7 @@ export default function AdminPage() {
       setResidences(r);
       setUsers(u);
     } catch (err) {
-      toast.error('Chargement de l\u2019administration impossible', err instanceof ApiError ? err.message : undefined);
+      apiToast(toast, err, 'Chargement de l\u2019administration impossible');
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ export default function AdminPage() {
       await action();
       await loadAll();
     } catch (err) {
-      toast.error('Action impossible', err instanceof ApiError ? err.message : undefined);
+      apiToast(toast, err, 'Action impossible');
     } finally {
       setBusy(null);
     }

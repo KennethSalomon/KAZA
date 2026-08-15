@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Heart, Search } from 'lucide-react';
-import { listMyFavorites, ApiError } from '@/lib/supabase-api';
+import { listMyFavorites } from '@/lib/supabase-api';
 import type { Residence } from '@/lib/types';
 import { PropertyCard } from '@/components/property/property-card';
 import { PropertyCardSkeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
+import { apiToast } from '@/lib/api-toast';
 
 export default function FavoritesPage() {
   const toast = useToast();
@@ -21,7 +22,7 @@ export default function FavoritesPage() {
       const list = await listMyFavorites();
       setItems(list);
     } catch (err) {
-      toast.error('Chargement des favoris impossible', err instanceof ApiError ? err.message : undefined);
+      apiToast(toast, err, 'Chargement des favoris impossible');
     } finally {
       setLoading(false);
     }
