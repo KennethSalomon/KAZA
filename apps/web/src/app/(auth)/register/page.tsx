@@ -137,7 +137,10 @@ export default function RegisterPage() {
         />
         <span>
           J'accepte que Kaza traite mes données personnelles (identité, coordonnées) conformément à la
-          loi béninoise sur la protection des données (APDP) — voir notre politique de confidentialité.
+          loi béninoise sur la protection des données (APDP) —{' '}
+          <a href="/confidentialite" target="_blank" rel="noopener noreferrer" className="underline hover:text-kaza-brand">
+            voir notre politique de confidentialité
+          </a>.
         </span>
       </label>
       {errors.consent_apdp && (

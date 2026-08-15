@@ -12,7 +12,7 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://kaza-web.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://kaza-gup0jjiz7-kennethsalomons-projects.vercel.app'),
   title: {
     default: 'Kaza — Trouvez votre logement au Bénin',
     template: '%s · Kaza',
