@@ -40,7 +40,7 @@ export default function RegisterPage() {
     setErrors({});
     setLoading(true);
     try {
-      await signUp({
+      const { needsEmailConfirmation } = await signUp({
         full_name: form.full_name,
         email: form.email,
         phone: form.phone,
@@ -48,7 +48,14 @@ export default function RegisterPage() {
         password: form.password,
         consent_apdp: form.consent,
       });
-      toast.success('Compte créé', 'Connectez-vous pour commencer.');
+      if (needsEmailConfirmation) {
+        toast.success(
+          'Vérifiez votre boîte mail',
+          `Un lien de confirmation a été envoyé à ${form.email.trim()}.`,
+        );
+      } else {
+        toast.success('Compte créé', 'Connectez-vous pour commencer.');
+      }
       router.push('/login');
     } catch (err) {
       if (err instanceof ApiError && err.fields) setErrors(err.fields);

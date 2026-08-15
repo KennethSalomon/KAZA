@@ -41,7 +41,14 @@ function LoginForm() {
       toast.success('Bienvenue sur Kaza');
       afterLogin();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Connexion impossible');
+      const msg = err instanceof ApiError ? err.message : 'Connexion impossible';
+      if (/confirm/i.test(msg)) {
+        setError(
+          'Adresse email non confirmée. Vérifiez votre boîte mail (et les spams) pour valider votre compte.',
+        );
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }

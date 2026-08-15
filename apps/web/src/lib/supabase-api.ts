@@ -96,29 +96,29 @@ export async function signUp(input: {
   phone: string;
   role: 'locataire' | 'bailleur';
   consent_apdp: boolean;
-}): Promise<void> {
+}): Promise<{ needsEmailConfirmation: boolean }> {
   assertBeninPhone(input.phone);
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
-    options: { data: { full_name: input.full_name } },
+    options: {
+      // Métadonnées lues par le trigger handle_new_user (migration 014) qui
+      // initialise le profil (nom, téléphone, rôle, consentement) AVANT toute
+      // connexion. Aucun appel RLS ici : avec confirmation email active la
+      // session est null juste après signUp et upsert/set_my_role échoueraient.
+      data: {
+        full_name: input.full_name,
+        phone: input.phone,
+        role: input.role,
+        consent_apdp: input.consent_apdp,
+      },
+    },
   });
   if (error) throw new ApiError(400, error.message);
   if (!data.user) throw new ApiError(400, 'Inscription impossible');
 
-  // Le profil (visiteur) est créé par le trigger handle_new_user. On complète
-  // ensuite full_name / phone (colonnes autorisées), puis le rôle est attribué
-  // UNIQUEMENT via la RPC set_my_role (jamais admin, jamais par UPDATE direct).
-  const { error: profileErr } = await supabase.from('profiles').upsert({
-    id: data.user.id,
-    email: input.email,
-    phone: input.phone,
-    full_name: input.full_name,
-  });
-  if (profileErr) throw normalizeError(profileErr, 'Profil non initialisé');
-
-  const { error: roleErr } = await supabase.rpc('set_my_role', { p_role: input.role });
-  if (roleErr) throw normalizeError(roleErr, 'Rôle non initialisé');
+  // data.session === null → la confirmation email est requise (production).
+  return { needsEmailConfirmation: !data.session };
 }
 
 export async function requestOtp(phone: string): Promise<void> {
