@@ -774,7 +774,8 @@ begin
       'total', (select count(*) from public.residences),
       'by_status', (select jsonb_object_agg(status, n) from (
                       select status, count(*)::int n from public.residences group by status) t)),
-    'leases', (select count(*) from public.leases where status = 'active'),
+    'leases', jsonb_build_object(
+      'total', (select count(*) from public.leases where status = 'active')),
     'payments', jsonb_build_object(
       'confirmed_count', (select count(*) from public.payments where status = 'confirmed'),
       'total_collected_xof', (select coalesce(sum(amount), 0) from public.payments where status = 'confirmed'))

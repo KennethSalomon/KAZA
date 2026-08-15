@@ -5,23 +5,47 @@
 -- ============================================================
 
 -- Utilisateurs auth (bcrypt via pgcrypto)
+-- IMPORTANT : confirmation_token / recovery_token / email_change / invites
+-- ne doivent JAMAIS être NULL — GoTrue renvoie « Database error querying
+-- schema » (500) au login si ces colonnes sont NULL.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password,
                         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
-                        created_at, updated_at)
+                        created_at, updated_at,
+                        confirmation_token, recovery_token, email_change,
+                        email_change_token_new, email_change_token_current,
+                        invited_at)
 values
   ('00000000-0000-0000-0000-000000000001',
    '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
    'locataire.demo@kaza.bj', crypt('KazaDemo2026!', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}', '{"full_name":"Locataire Démo"}', now(), now()),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Locataire Démo"}', now(), now(),
+   '', '', '', '', '', now()),
   ('00000000-0000-0000-0000-000000000002',
    '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
    'bailleur.demo@kaza.bj', crypt('KazaDemo2026!', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}', '{"full_name":"Bailleur Démo"}', now(), now()),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Bailleur Démo"}', now(), now(),
+   '', '', '', '', '', now()),
   ('00000000-0000-0000-0000-000000000003',
    '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
    'admin@kaza.bj', crypt('KazaDemo2026!', gen_salt('bf')), now(),
-   '{"provider":"email","providers":["email"]}', '{"full_name":"Admin KAZA"}', now(), now())
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Admin KAZA"}', now(), now(),
+   '', '', '', '', '', now())
 on conflict (id) do nothing;
+
+-- Identités email (requises par GoTrue pour le login password)
+insert into auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at, id)
+select
+  u.id::text,
+  u.id,
+  jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true, 'phone_verified', false),
+  'email',
+  now(), now(), now(),
+  gen_random_uuid()
+from auth.users u
+where u.email in ('locataire.demo@kaza.bj', 'bailleur.demo@kaza.bj', 'admin@kaza.bj')
+  and not exists (
+    select 1 from auth.identities i where i.user_id = u.id and i.provider = 'email'
+  );
 
 -- Profils (le trigger handle_new_user crée un profil visiteur sur chaque insert
 -- auth.users, donc on force le rôle ici avec un UPDATE sur conflit d'id)
