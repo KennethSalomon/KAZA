@@ -11,6 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.70.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.47.10",
     "class-variance-authority": "^0.7.1",

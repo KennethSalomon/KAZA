@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const workspaceRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 
@@ -47,4 +48,8 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+});
