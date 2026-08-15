@@ -140,3 +140,4 @@ src/
 ├── lib/supabase-api.ts   # couche d'accès unique : RPC + tables + edge functions
 └── components/           # ui/, layout/, property/, chat/, payment/, notifications/
 ```
+<!-- build trigger 2026-08-15 -->
