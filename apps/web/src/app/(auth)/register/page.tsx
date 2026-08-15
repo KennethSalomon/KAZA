@@ -101,7 +101,9 @@ export default function RegisterPage() {
           type="tel"
           autoComplete="tel"
           required
-          placeholder="+229 97 00 00 00"
+          placeholder="+229 01 00 00 00 00"
+          pattern="\+229[0-9]{10}"
+          maxLength={16}
           value={form.phone}
           onChange={set('phone')}
           error={errors.phone?.[0]}

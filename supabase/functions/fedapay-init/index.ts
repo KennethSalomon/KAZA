@@ -25,7 +25,7 @@ const MODES: Record<string, string> = {
   celtiis: 'sbin',
 };
 const VALID_CHANNELS = Object.keys(MODES);
-const PHONE_RE = /^\+?[0-9]{8,15}$/;
+const PHONE_RE = /^\+229[0-9]{10}$/;
 
 const FETCH_TIMEOUT_MS = 15_000;
 

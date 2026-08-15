@@ -29,6 +29,14 @@ export class ApiError extends Error {
   }
 }
 
+/** Valide un numéro de téléphone bénin : +229 suivi de 10 chiffres. */
+function assertBeninPhone(phone: string): void {
+  const cleaned = phone.replace(/\s+/g, '');
+  if (!/^\+229\d{10}$/.test(cleaned)) {
+    throw new ApiError(400, 'Numéro invalide — format attendu : +229 01 00 00 00 00');
+  }
+}
+
 const PGRST_CODE = (code: string | undefined): number => {
   switch (code) {
     case 'P0001':
@@ -89,6 +97,7 @@ export async function signUp(input: {
   role: 'locataire' | 'bailleur';
   consent_apdp: boolean;
 }): Promise<void> {
+  assertBeninPhone(input.phone);
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
@@ -113,6 +122,7 @@ export async function signUp(input: {
 }
 
 export async function requestOtp(phone: string): Promise<void> {
+  assertBeninPhone(phone);
   const { error } = await supabase.auth.signInWithOtp({ phone });
   if (error) throw new ApiError(400, error.message);
 }

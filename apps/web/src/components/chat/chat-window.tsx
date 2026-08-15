@@ -14,7 +14,7 @@ import {
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase-client';
-import type { Message } from '@/lib/types';
+import type { Conversation, Message } from '@/lib/types';
 import { timeAgo, formatXof } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -29,6 +29,7 @@ export function ChatWindow() {
   const toast = useToast();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -39,8 +40,9 @@ export function ChatWindow() {
 
   const load = useCallback(async () => {
     try {
-      const list = await listMessages(id);
+      const [list, conv] = await Promise.all([listMessages(id), getConversation(id)]);
       setMessages(list);
+      setConversation(conv);
     } catch {
       toast.error('Chargement de la conversation impossible');
     } finally {
@@ -185,11 +187,20 @@ export function ChatWindow() {
           <ArrowLeft className="h-4 w-4" aria-hidden />
         </button>
         <span className="grid h-9 w-9 place-items-center rounded-full border border-kaza-brand/25 bg-kaza-brand/10 text-xs font-bold text-kaza-brand">
-          {'KZ'}
+          {conversation?.peer?.full_name
+            ?.split(' ')
+            .map((w) => w[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase() ?? 'KZ'}
         </span>
         <div>
-          <p className="text-sm font-semibold text-kaza-text">Conversation de location</p>
-          <p className="text-xs text-kaza-faint">Chat privé sécurisé · pièces jointes acceptées</p>
+          <p className="text-sm font-semibold text-kaza-text">
+            {conversation?.peer?.full_name ?? 'Conversation'}
+          </p>
+          <p className="text-xs text-kaza-faint">
+            {conversation?.residence?.title ?? 'Chat privé sécurisé'}{conversation?.residence ? ` · ${formatXof(conversation.residence.price_monthly)}/mois` : ' · pièces jointes acceptées'}
+          </p>
         </div>
         {isLandlord && (
           <Button variant="success" size="sm" className="ml-auto" onClick={() => setVisitModal(true)}>

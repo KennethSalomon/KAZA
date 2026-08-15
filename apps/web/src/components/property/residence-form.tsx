@@ -54,7 +54,7 @@ export function ResidenceForm({ existing }: Readonly<{ existing?: Residence | nu
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
-  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((f) => ({ ...f, [key]: e.target.value }));
   };
 
@@ -168,13 +168,18 @@ export function ResidenceForm({ existing }: Readonly<{ existing?: Residence | nu
         />
       </div>
 
-      <Input
-        label="Description"
-        placeholder="Étages, équipements, proche de…"
-        value={form.description}
-        onChange={set('description')}
-        className="min-h-24"
-      />
+      <div>
+        <label htmlFor="description" className="kaza-label !text-sm font-semibold !text-kaza-text">
+          Description
+        </label>
+        <textarea
+          id="description"
+          placeholder="Étages, équipements, proche de…"
+          value={form.description}
+          onChange={set('description')}
+          className="mt-1.5 block min-h-24 w-full rounded-kaza border border-kaza-border bg-white px-3.5 py-2.5 text-sm text-kaza-text placeholder:text-kaza-faint focus:border-kaza-brand focus:outline-none focus:ring-2 focus:ring-kaza-brand/20"
+        />
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Input label="Loyer mensuel (FCFA)" type="number" min={0} required placeholder="100000" value={form.price_monthly} onChange={set('price_monthly')} error={errors.price_monthly?.[0]} />

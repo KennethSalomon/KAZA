@@ -142,7 +142,7 @@ export function PaymentModal({
               label="Numéro mobile money"
               type="tel"
               required
-              placeholder="+229 97 00 00 00"
+              placeholder="+229 01 00 00 00 00"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               hint="Le numéro facturé n'est jamais affiché ni stocké en clair."

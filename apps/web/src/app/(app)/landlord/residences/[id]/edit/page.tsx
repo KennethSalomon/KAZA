@@ -87,7 +87,17 @@ export default function EditResidencePage() {
       </div>
     );
   }
-  if (!residence) return null;
+  if (!residence) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center px-4 text-center">
+        <div>
+          <p className="text-5xl font-bold text-kaza-brand">404</p>
+          <h1 className="mt-4 font-display text-xl font-semibold text-kaza-text">Bien introuvable</h1>
+          <p className="mt-2 text-sm text-kaza-muted">Ce bien a été supprimé ou n&apos;existe pas.</p>
+        </div>
+      </div>
+    );
+  }
 
   const completeness = residenceCompleteness(residence);
 

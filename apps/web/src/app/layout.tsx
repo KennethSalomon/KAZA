@@ -44,7 +44,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={`${geist.variable} ${sora.variable}`}>
+    <html lang="fr" className={`${geist.variable} ${sora.variable}`} suppressHydrationWarning>
       <body className="min-h-dvh">
         <MotionConfig reducedMotion="user">
           <ToastProvider>

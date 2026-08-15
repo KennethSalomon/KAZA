@@ -62,7 +62,7 @@ describe('buildSignedReceiptPdf', () => {
     const data = {
       receiptNumber: 'Q-ABCDEF01',
       landlordName: 'Bailleur Démo',
-      landlordPhone: '+229 90 00 00 02',
+      landlordPhone: '+229 01 00 00 00 02',
       tenantName: 'Locataire Démo',
       tenantPhone: null,
       residenceTitle: 'Studio Lumineux Fidjrossè',

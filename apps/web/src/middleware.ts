@@ -68,6 +68,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Garde admin côté serveur : seuls les profils avec role=admin accèdent à /admin.
+  if (user && pathname.startsWith('/admin')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (profile?.role !== 'admin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/explorer';
+      return NextResponse.redirect(url);
+    }
+  }
+
   return response;
 }
 

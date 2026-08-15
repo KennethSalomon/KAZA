@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Home, CheckCircle2, PenSquare, FileSignature, CreditCard } from 'lucide-react';
+import { Plus, Home, CheckCircle2, PenSquare, FileSignature, CreditCard, XCircle, X } from 'lucide-react';
 import {
   listMyResidences,
   listMyPayments,
   listMyReceipts,
   listMyLeases,
   confirmPayment as confirmPaymentApi,
+  rejectPayment as rejectPaymentApi,
   signReceipt as signReceiptApi,
+  terminateLease as terminateLeaseApi,
   ApiError,
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
@@ -75,6 +77,32 @@ export default function LandlordHomePage() {
       await load();
     } catch (err) {
       toast.error('Signature impossible', err instanceof ApiError ? err.message : undefined);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function rejectPayment(paymentId: string) {
+    setBusyId(paymentId);
+    try {
+      await rejectPaymentApi(paymentId);
+      toast.success('Paiement rejeté');
+      await load();
+    } catch (err) {
+      toast.error('Rejet impossible', err instanceof ApiError ? err.message : undefined);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function terminateLease(leaseId: string) {
+    setBusyId(leaseId);
+    try {
+      await terminateLeaseApi(leaseId);
+      toast.success('Bail résilié');
+      await load();
+    } catch (err) {
+      toast.error('Résiliation impossible', err instanceof ApiError ? err.message : undefined);
     } finally {
       setBusyId(null);
     }
@@ -162,9 +190,14 @@ export default function LandlordHomePage() {
                     {PROVIDER_LABELS[p.provider]} · {p.period_start} → {p.period_end}
                   </p>
                 </div>
-                <Button size="sm" variant="success" loading={busyId === p.id} onClick={() => void confirmPayment(p.id)} data-testid={`confirm-payment-${p.id}`}>
-                  Valider
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="success" loading={busyId === p.id} onClick={() => void confirmPayment(p.id)} data-testid={`confirm-payment-${p.id}`}>
+                    Valider
+                  </Button>
+                  <Button size="sm" variant="danger" loading={busyId === p.id} onClick={() => void rejectPayment(p.id)} data-testid={`reject-payment-${p.id}`}>
+                    <XCircle className="h-3.5 w-3.5" aria-hidden />
+                  </Button>
+                </div>
               </li>
             ))}
             {pendingPayments.length === 0 && (
@@ -219,10 +252,21 @@ export default function LandlordHomePage() {
                     {l.tenant?.full_name} · {formatXof(l.monthly_rent)}/mois
                   </p>
                 </div>
-                <span className="flex items-center gap-1.5 text-xs text-kaza-success">
-                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                  jusqu'au {formatDate(l.date_fn_couverture)}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-xs text-kaza-success">
+                    <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                    jusqu&apos;au {formatDate(l.date_fn_couverture)}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    loading={busyId === l.id}
+                    onClick={() => void terminateLease(l.id)}
+                    data-testid={`terminate-lease-${l.id}`}
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden />
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
