@@ -7,12 +7,21 @@ import { BedDouble, Bath, Ruler, MapPin } from 'lucide-react';
 import type { Residence } from '@/lib/types';
 import { formatXof, TYPE_LABELS } from '@/lib/format';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { FavoriteButton } from '@/components/property/favorite-button';
 
 export function PropertyCard({
   residence,
   index = 0,
   active = false,
-}: Readonly<{ residence: Residence; index?: number; active?: boolean }>) {
+  favoriteInitial = false,
+  onToggleFavorite,
+}: Readonly<{
+  residence: Residence;
+  index?: number;
+  active?: boolean;
+  favoriteInitial?: boolean;
+  onToggleFavorite?: (id: string, now: boolean) => void;
+}>) {
   const photo = residence.photos[0];
   return (
     <motion.article
@@ -44,6 +53,13 @@ export function PropertyCard({
                 à {residence.distance_km.toFixed(1)} km
               </span>
             )}
+          </div>
+          <div className="absolute right-3 top-3">
+            <FavoriteButton
+              residenceId={residence.id}
+              initial={favoriteInitial}
+              onToggle={onToggleFavorite}
+            />
           </div>
         </div>
 

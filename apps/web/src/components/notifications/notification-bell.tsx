@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Bell } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, Check } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import {
   listNotifications,
   unreadNotificationsCount,
   markAllNotificationsRead,
+  markNotificationRead,
 } from '@/lib/supabase-api';
 import { supabase } from '@/lib/supabase-client';
 import { timeAgo } from '@/lib/format';
@@ -23,12 +25,21 @@ const TYPE_ICONS: Record<string, string> = {
   system: 'ℹ️',
 };
 
+/** Cible de navigation déduite du type + payload de la notification. */
+function targetFrom(n: AppNotification): string | null {
+  const d = (n.data ?? {}) as Record<string, string | undefined>;
+  if (d.conversation_id) return `/chat/${d.conversation_id}`;
+  if (d.residence_id) return `/landlord/residences/${d.residence_id}/edit`;
+  return '/dashboard';
+}
+
 export function NotificationBell() {
   const { user } = useAuth();
+  const router = useRouter();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -65,14 +76,46 @@ export function NotificationBell() {
     };
   }, [user]);
 
+  // Fermeture au clic extérieur + Échap.
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: MouseEvent | TouchEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('touchstart', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('touchstart', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   async function markAllRead() {
     await markAllNotificationsRead();
     setItems((prev) => prev.map((n) => ({ ...n, read_at: new Date().toISOString() })));
     setUnread(0);
   }
 
+  async function markOneRead(id: string) {
+    await markNotificationRead(id);
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)));
+    setUnread((u) => Math.max(0, u - 1));
+  }
+
+  function openTarget(n: AppNotification) {
+    if (!n.read_at) void markOneRead(n.id);
+    setOpen(false);
+    const target = targetFrom(n);
+    if (target) router.push(target);
+  }
+
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={`Notifications${unread > 0 ? ` (${unread} non lues)` : ''}`}
@@ -89,7 +132,6 @@ export function NotificationBell() {
 
       {open && (
         <div
-          ref={panelRef}
           className="absolute right-0 top-11 w-[min(90vw,360px)] overflow-hidden rounded-kaza-lg border border-kaza-border bg-kaza-surface shadow-card-hover"
         >
           <div className="flex items-center justify-between border-b border-kaza-border px-4 py-3">
@@ -105,17 +147,39 @@ export function NotificationBell() {
               <li className="px-4 py-8 text-center text-sm text-kaza-muted">Aucune notification pour le moment.</li>
             )}
             {items.map((n) => (
-              <li key={n.id} className={cn('border-b border-kaza-border/60 px-4 py-3 last:border-0', !n.read_at && 'bg-kaza-brand/[0.04]')}>
-                <div className="flex items-start gap-2.5">
+              <li
+                key={n.id}
+                className={cn(
+                  'relative flex items-start gap-2.5 border-b border-kaza-border/60 px-4 py-3 last:border-0',
+                  !n.read_at && 'bg-kaza-brand/[0.04]',
+                )}
+              >
+                {!n.read_at && (
+                  <span className="absolute left-1.5 top-4 h-1.5 w-1.5 rounded-full bg-kaza-brand" aria-hidden />
+                )}
+                <button
+                  onClick={() => openTarget(n)}
+                  className="flex min-w-0 flex-1 items-start gap-2.5 text-left transition-colors hover:opacity-90"
+                >
                   <span aria-hidden className="text-base">
                     {TYPE_ICONS[n.type] ?? 'ℹ️'}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-kaza-text">{n.title}</p>
-                    {n.body && <p className="mt-0.5 text-xs leading-relaxed text-kaza-muted">{n.body}</p>}
-                    <p className="mt-1 text-[11px] text-kaza-faint">{timeAgo(n.created_at)}</p>
-                  </div>
-                </div>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-kaza-text">{n.title}</span>
+                    {n.body && <span className="mt-0.5 block text-xs leading-relaxed text-kaza-muted">{n.body}</span>}
+                    <span className="mt-1 block text-[11px] text-kaza-faint">{timeAgo(n.created_at)}</span>
+                  </span>
+                </button>
+                {!n.read_at && (
+                  <button
+                    aria-label="Marquer comme lue"
+                    title="Marquer comme lue"
+                    onClick={() => void markOneRead(n.id)}
+                    className="grid h-6 w-6 shrink-0 place-items-center self-center rounded-full border border-kaza-border text-kaza-faint transition-colors hover:border-kaza-brand hover:text-kaza-brand"
+                  >
+                    <Check className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                )}
               </li>
             ))}
           </ul>

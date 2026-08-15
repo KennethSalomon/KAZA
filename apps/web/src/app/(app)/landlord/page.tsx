@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
+import { residenceCompleteness, CompletenessBar } from '@/components/property/residence-completeness';
 
 export default function LandlordHomePage() {
   const { user } = useAuth();
@@ -114,6 +115,29 @@ export default function LandlordHomePage() {
           </Button>
         </Link>
       </div>
+
+      {/* Rappel de complétude */}
+      {(() => {
+        const incomplete = residences.filter((r) => residenceCompleteness(r).percent < 100);
+        if (residences.length === 0 || incomplete.length === 0) return null;
+        const focus = [...incomplete].sort((a, b) => residenceCompleteness(a).percent - residenceCompleteness(b).percent)[0];
+        return (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-kaza border border-kaza-warning/30 bg-kaza-warning/10 px-4 py-3">
+            <p className="flex items-center gap-2 text-sm text-kaza-text">
+              <PenSquare className="h-4 w-4 shrink-0 text-kaza-warning" aria-hidden />
+              <span>
+                <strong className="font-semibold">{incomplete.length} bien{incomplete.length > 1 ? 's' : ''} incomplet{incomplete.length > 1 ? 's' : ''}</strong>
+                {' '}— des annonces complètes sont approuvées plus vite.
+              </span>
+            </p>
+            <Link href={`/landlord/residences/${focus.id}/edit`} className="shrink-0">
+              <Button variant="secondary" size="sm">
+                Compléter l'annonce
+              </Button>
+            </Link>
+          </div>
+        );
+      })()}
 
       {/* Actions urgentes */}
       <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -261,14 +285,17 @@ export default function LandlordHomePage() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-xs text-kaza-muted">{r.zone ?? ''} {r.city}</span>
-                  <Link href={`/landlord/residences/${r.id}/edit`}>
-                    <Button variant="ghost" size="sm">
-                      <PenSquare className="h-3.5 w-3.5" aria-hidden />
-                      Gérer
-                    </Button>
-                  </Link>
+                <div className="flex flex-col gap-2 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="min-w-0 truncate text-xs text-kaza-muted">{r.zone ?? ''} {r.city}</span>
+                    <Link href={`/landlord/residences/${r.id}/edit`} className="shrink-0">
+                      <Button variant="ghost" size="sm">
+                        <PenSquare className="h-3.5 w-3.5" aria-hidden />
+                        Gérer
+                      </Button>
+                    </Link>
+                  </div>
+                  <CompletenessBar c={residenceCompleteness(r)} compact />
                 </div>
               </li>
             ))}

@@ -9,6 +9,7 @@ import type {
   Receipt,
   Residence,
   ResidenceType,
+  ReviewsResult,
 } from './types';
 
 // ============================================================
@@ -299,6 +300,27 @@ export async function incrementResidenceViews(id: string): Promise<void> {
 }
 
 // ------------------------------------------------------------
+// Favoris
+// ------------------------------------------------------------
+export async function toggleFavorite(residenceId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('toggle_favorite', { p_residence_id: residenceId });
+  if (error) throw normalizeError(error, 'Action impossible');
+  return data as boolean;
+}
+
+export async function listMyFavorites(): Promise<Residence[]> {
+  const { data, error } = await supabase.rpc('list_my_favorites');
+  if (error) throw normalizeError(error, 'Chargement impossible');
+  return (data ?? []) as unknown as Residence[];
+}
+
+export async function listMyFavoriteIds(): Promise<string[]> {
+  const { data, error } = await supabase.rpc('list_my_favorite_ids');
+  if (error) throw normalizeError(error, 'Chargement impossible');
+  return (data ?? []) as string[];
+}
+
+// ------------------------------------------------------------
 // Messagerie
 // ------------------------------------------------------------
 export async function openConversation(residenceId: string): Promise<string> {
@@ -502,6 +524,24 @@ export async function signReceipt(receiptId: string): Promise<SignReceiptResult>
 }
 
 // ------------------------------------------------------------
+// Avis & notations (locataires après bail)
+// ------------------------------------------------------------
+export async function addReview(residenceId: string, rating: number, comment?: string): Promise<void> {
+  const { error } = await supabase.rpc('add_review', {
+    p_residence_id: residenceId,
+    p_rating: rating,
+    p_comment: comment ?? null,
+  });
+  if (error) throw normalizeError(error, 'Avis impossible à publier');
+}
+
+export async function listReviews(residenceId: string): Promise<ReviewsResult> {
+  const { data, error } = await supabase.rpc('list_reviews', { p_residence_id: residenceId });
+  if (error) throw normalizeError(error, 'Chargement impossible');
+  return (data ?? { average: 0, count: 0, reviews: [] }) as unknown as ReviewsResult;
+}
+
+// ------------------------------------------------------------
 // Stockage sécurisé (URLs signées pour les buckets privés)
 // ------------------------------------------------------------
 /** Extrait le chemin d'un objet depuis une URL de stockage Supabase ou un
@@ -564,6 +604,13 @@ export async function markAllNotificationsRead(): Promise<void> {
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
     .is('read_at', null);
+}
+
+export async function markNotificationRead(notificationId: string): Promise<void> {
+  await supabase
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('id', notificationId);
 }
 
 // ------------------------------------------------------------
@@ -642,5 +689,24 @@ export async function adminSetPremium(userId: string, isPremium: boolean): Promi
 
 export async function adminToggleRole(userId: string, role: Profile['role']): Promise<void> {
   const { error } = await supabase.from('profiles').update({ role }).eq('id', userId);
+  if (error) throw normalizeError(error, 'Action impossible');
+}
+
+/** Modération avec motif : 'approve' | 'reject'. Notifie le bailleur. */
+export async function adminModerateResidence(id: string, action: 'approve' | 'reject', reason = ''): Promise<void> {
+  const { error } = await supabase.rpc('admin_moderate_residence', {
+    p_residence_id: id,
+    p_action: action,
+    p_reason: reason,
+  });
+  if (error) throw normalizeError(error, 'Action impossible');
+}
+
+/** Badge « bailleur vérifié » accordé/retiré par l'admin. */
+export async function adminSetLandlordVerified(userId: string, verified: boolean): Promise<void> {
+  const { error } = await supabase.rpc('admin_set_landlord_verified', {
+    p_user_id: userId,
+    p_verified: verified,
+  });
   if (error) throw normalizeError(error, 'Action impossible');
 }

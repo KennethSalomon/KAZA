@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, LayoutDashboard, LogOut, MessageSquare, Home, Search, UserRound } from 'lucide-react';
+import { Building2, LayoutDashboard, LogOut, MessageSquare, Home, Search, UserRound, Heart } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/components/notifications/notification-bell';
@@ -48,6 +48,17 @@ export function Navbar() {
               </Link>
             );
           })}
+
+          {user && (
+            <Link
+              href="/favorites"
+              aria-label="Mes favoris"
+              title="Mes favoris"
+              className="grid h-9 w-9 place-items-center rounded-kaza text-kaza-muted transition-colors hover:bg-kaza-surface hover:text-kaza-text"
+            >
+              <Heart className="h-4.5 w-4.5" aria-hidden />
+            </Link>
+          )}
 
           {user && <NotificationBell />}
 

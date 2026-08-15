@@ -13,6 +13,7 @@ import {
 import type { Lease, Profile, Residence } from '@/lib/types';
 import { formatXof } from '@/lib/format';
 import { ResidenceForm } from '@/components/property/residence-form';
+import { residenceCompleteness, CompletenessChecklist } from '@/components/property/residence-completeness';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -88,6 +89,8 @@ export default function EditResidencePage() {
   }
   if (!residence) return null;
 
+  const completeness = residenceCompleteness(residence);
+
   return (
     <div>
       <button onClick={() => router.push('/landlord')} className="mb-5 flex items-center gap-2 text-sm text-kaza-muted hover:text-kaza-text">
@@ -123,6 +126,22 @@ export default function EditResidencePage() {
         />
         <p className="mt-1.5 text-xs text-kaza-faint">
           Seuls les biens « Libre » apparaissent dans la recherche des locataires.
+        </p>
+      </div>
+
+      {/* Checklist de publication */}
+      <div className="mt-6 flex max-w-md flex-col gap-4 rounded-kaza border border-kaza-border bg-kaza-bg p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 font-display text-sm font-semibold text-kaza-text">
+            <Rocket className="h-4 w-4 text-kaza-brand" aria-hidden />
+            Prêt à publier&nbsp;?
+          </h2>
+          <div className="mt-2.5">
+            <CompletenessChecklist c={completeness} />
+          </div>
+        </div>
+        <p className="max-w-[11rem] text-xs leading-relaxed text-kaza-faint">
+          Les annonces complètes sont approuvées plus vite par notre équipe de modération.
         </p>
       </div>
 

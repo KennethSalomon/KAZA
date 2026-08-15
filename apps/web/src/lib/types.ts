@@ -10,6 +10,7 @@ export interface Profile {
   role: Role;
   avatar_url: string | null;
   is_premium: boolean;
+  is_verified_landlord: boolean;
   consent_apdp: boolean;
 }
 
@@ -36,7 +37,12 @@ export interface Residence {
   views_count: number;
   created_at: string;
   distance_km?: number | null;
-  owner?: { id: string; full_name: string; phone: string | null; avatar_url: string | null; is_premium: boolean } | null;
+  rating_avg?: number | null;
+  rating_count?: number;
+  owner?: { id: string; full_name: string; phone: string | null; avatar_url: string | null; is_premium: boolean; is_verified_landlord: boolean } | null;
+  owner_full_name?: string | null;
+  owner_is_verified_landlord?: boolean;
+  owner_is_premium?: boolean;
 }
 
 export interface Conversation {
@@ -121,4 +127,20 @@ export interface AppNotification {
   data: Record<string, unknown> | null;
   read_at: string | null;
   created_at: string;
+}
+
+export interface Review {
+  id: string;
+  residence_id: string;
+  tenant_id: string;
+  tenant_name?: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface ReviewsResult {
+  average: number;
+  count: number;
+  reviews: Review[];
 }

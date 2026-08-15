@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { redirect } from 'next/navigation';
-import { AlertTriangle, CreditCard, FileDown, KeyRound } from 'lucide-react';
+import { AlertTriangle, CreditCard, FileDown, KeyRound, RefreshCw } from 'lucide-react';
 import { listMyLeases, listMyPayments, listMyReceipts, getSignedStorageUrl, ApiError } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import type { Lease, Payment, Receipt } from '@/lib/types';
@@ -136,14 +136,33 @@ export default function TenantDashboardPage() {
           <h2 id="history" className="font-display text-lg font-semibold text-kaza-text">Paiements récents</h2>
           <ul className="mt-3 space-y-2">
             {payments.slice(0, 6).map((p) => (
-              <li key={p.id} className="kaza-card flex items-center justify-between px-4 py-3">
+              <li key={p.id} className="kaza-card flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="price text-sm font-semibold text-kaza-text">{formatXof(p.amount)}</p>
                   <p className="text-xs text-kaza-faint">
                     {p.period_start} → {p.period_end} · {PROVIDER_LABELS[p.provider]}
                   </p>
+                  {p.status === 'pending' && (
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-kaza-warning">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-kaza-warning" aria-hidden />
+                      En attente de validation par le bailleur
+                    </p>
+                  )}
+                  {p.status === 'rejected' && (
+                    <p className="mt-1 text-xs text-kaza-danger">
+                      Rejeté par le bailleur — réessayez avec un autre moyen de paiement.
+                    </p>
+                  )}
                 </div>
-                <PaymentStatusBadge status={p.status} />
+                <div className="flex shrink-0 items-center gap-2">
+                  <PaymentStatusBadge status={p.status} />
+                  {p.status === 'rejected' && (
+                    <Button size="sm" variant="secondary" onClick={() => setPayLease(leaseFromPayment(p))} data-testid="retry-payment">
+                      <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                      Réessayer
+                    </Button>
+                  )}
+                </div>
               </li>
             ))}
             {payments.length === 0 && <p className="text-sm text-kaza-faint">Aucun paiement pour le moment.</p>}
@@ -214,4 +233,21 @@ function PaymentStatusBadge({ status }: { status: Payment['status'] }) {
   } as const;
   const [label, cls] = map[status];
   return <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${cls}`}>{label}</span>;
+}
+
+/** Reconstruit un bail minimal depuis un paiement (réouverture du modal de paiement). */
+function leaseFromPayment(p: Payment): Lease {
+  return {
+    id: p.lease_id,
+    residence_id: p.lease?.residence_id ?? '',
+    tenant_id: p.tenant_id,
+    landlord_id: p.landlord_id,
+    monthly_rent: p.lease?.monthly_rent ?? p.amount,
+    deposit: 0,
+    start_date: p.period_start,
+    end_date: null,
+    status: 'active',
+    date_fn_couverture: p.period_end,
+    created_at: p.created_at,
+  };
 }
