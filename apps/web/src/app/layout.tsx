@@ -12,6 +12,7 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://kaza-web.vercel.app'),
   title: {
     default: 'Kaza — Trouvez votre logement au Bénin',
     template: '%s · Kaza',
@@ -33,6 +34,14 @@ export const metadata: Metadata = {
     description: 'Recherche géolocalisée, paiement mobile money, quittances signées.',
     type: 'website',
     locale: 'fr_BJ',
+    siteName: 'KAZA',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Kaza' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Kaza — Trouvez votre logement au Bénin',
+    description: 'Recherche géolocalisée, paiement mobile money, quittances signées.',
+    images: ['/twitter-image'],
   },
 };
 
