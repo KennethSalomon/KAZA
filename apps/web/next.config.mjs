@@ -6,15 +6,17 @@ import { withSentryConfig } from '@sentry/nextjs';
 const workspaceRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 
 // CSP : domaine public KAZA / Supabase (storage, auth, realtime) / tuiles OpenStreetMap.
-// 'unsafe-inline' requis par les styles injectés de next/font et Leaflet.
-// 'unsafe-eval' uniquement en DEV (react-refresh/webpack) — jamais en production.
+// 'unsafe-inline' autorisé UNIQUEMENT pour les styles (next/font, Leaflet) et en DEV
+// (react-refresh). En production, script-src interdit tout script inline : un XSS
+// ne peut pas exécuter de payload injecté (protection du JWT de session).
 const isDev = process.env.NODE_ENV === 'development';
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  `script-src 'self'${isDev ? " 'unsafe-inline' 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://*.supabase.co https://images.unsplash.com https://*.tile.openstreetmap.org",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org",
+  "object-src 'none'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

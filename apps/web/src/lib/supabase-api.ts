@@ -85,7 +85,34 @@ async function callFunction<T>(name: string, body: unknown): Promise<T> {
 // Auth
 // ------------------------------------------------------------
 export async function signIn(email: string, password: string): Promise<void> {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  // Passe par /api/login (route handler serveur) : rate limiting par IP/email
+  // AVANT l'appel Supabase, puis pose de la session via setSession.
+  const res = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const payload = (await res.json().catch(() => null)) as {
+    error?: string;
+    access_token?: string;
+    refresh_token?: string;
+    retryAfter?: number;
+  } | null;
+
+  if (!res.ok || !payload?.access_token || !payload.refresh_token) {
+    if (res.status === 429) {
+      throw new ApiError(
+        429,
+        'Trop de tentatives de connexion. Patientez quelques secondes avant de réessayer.',
+      );
+    }
+    throw new ApiError(res.status, payload?.error ?? `Erreur ${res.status}`);
+  }
+
+  const { error } = await supabase.auth.setSession({
+    access_token: payload.access_token,
+    refresh_token: payload.refresh_token,
+  });
   if (error) throw new ApiError(400, error.message);
 }
 
