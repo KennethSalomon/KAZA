@@ -8,11 +8,28 @@ const TENANT_PW = process.env.E2E_TENANT_PW ?? 'KazaDemo2026!';
 test.describe('Parcours principal locataire', () => {
   test('recherche → contact → paiement → quittance', async ({ page }) => {
     page.on('pageerror', (err) => console.log('[KAZA:PAGEERROR]', err.message, err.stack?.slice(0, 800)));
-    page.on('response', async (res) => {
-      if (res.url().includes('/api/login')) {
-        const body = await res.text().catch(() => '');
-        console.log('[KAZA:MF-RES]', res.status(), body.slice(0, 400));
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') console.log('[KAZA:BROWSER-ERR]', msg.text().slice(0, 300));
+    });
+    page.on('request', (req) => {
+      if (req.url().includes('/rest/v1/')) {
+        const auth = req.headers()['authorization'] ?? 'NONE';
+        console.log(
+          '[KAZA:RPC-REQ]',
+          req.url().replace('http://localhost:3000', ''),
+          auth === 'NONE' ? 'NO-AUTH' : auth.startsWith('Bearer ') ? 'BEARER-JWT' : auth,
+        );
       }
+    });
+    page.on('response', async (res) => {
+      const u = res.url();
+      if (u.includes('/rest/v1/rpc/get_residence') || u.includes('/api/login')) {
+        const body = await res.text().catch(() => '');
+        console.log('[KAZA:RES]', res.status(), u.replace('http://localhost:3000', ''), body.slice(0, 300));
+      }
+    });
+    page.on('framenavigated', (fr) => {
+      if (fr === page.mainFrame()) console.log('[KAZA:NAV]', fr.url());
     });
     // 1. Exploration : la recherche affiche les biens libres
     await page.goto('/explorer');
