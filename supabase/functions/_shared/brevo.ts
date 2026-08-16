@@ -3,6 +3,15 @@
  * Silencieusement désactivé si BREVO_API_KEY n'est pas configuré (dev local).
  */
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export interface EmailPayload {
   to: string;
   subject: string;
@@ -64,7 +73,7 @@ export function reminderDueIn3Days(tenantName: string, rent: number, dueOn: stri
     subject: 'Échéance de loyer dans 3 jours — KAZA.BJ',
     html: layoutEmail(
       'Échéance de loyer à venir',
-      `Bonjour ${tenantName}, votre loyer de <strong>${rent.toLocaleString('fr-FR')} FCFA</strong> arrive à échéance le <strong>${dueOn}</strong>. Pensez à régler avant la date limite.`,
+      `Bonjour ${escapeHtml(tenantName)}, votre loyer de <strong>${rent.toLocaleString('fr-FR')} FCFA</strong> arrive à échéance le <strong>${escapeHtml(dueOn)}</strong>. Pensez à régler avant la date limite.`,
       `${appUrl}/dashboard`,
       'Payer mon loyer',
     ),
@@ -77,7 +86,7 @@ export function reminderOverdueJ1(tenantName: string, rent: number, overdueDays:
     subject: 'Rappel de paiement — KAZA.BJ',
     html: layoutEmail(
       'Loyer en retard',
-      `Bonjour ${tenantName}, votre loyer de <strong>${rent.toLocaleString('fr-FR')} FCFA</strong> est en retard de <strong>${overdueDays} jour(s)</strong>. Régularisez rapidement pour éviter une relance du bailleur.`,
+      `Bonjour ${escapeHtml(tenantName)}, votre loyer de <strong>${rent.toLocaleString('fr-FR')} FCFA</strong> est en retard de <strong>${overdueDays} jour(s)</strong>. Régularisez rapidement pour éviter une relance du bailleur.`,
       `${appUrl}/dashboard`,
       'Payer mon loyer',
     ),
@@ -90,7 +99,7 @@ export function reminderOverdueJ7(tenantName: string, rent: number, overdueDays:
     subject: 'Loyer en retard de plus de 7 jours — KAZA.BJ',
     html: layoutEmail(
       'Relance bailleur engagée',
-      `Bonjour ${tenantName}, votre loyer de <strong>${rent.toLocaleString('fr-FR')} FCFA</strong> est en retard de <strong>${overdueDays} jours</strong>. Une relance a été transmise à votre bailleur. Contactez-le pour convenir d'un échéancier.`,
+      `Bonjour ${escapeHtml(tenantName)}, votre loyer de <strong>${rent.toLocaleString('fr-FR')} FCFA</strong> est en retard de <strong>${overdueDays} jours</strong>. Une relance a été transmise à votre bailleur. Contactez-le pour convenir d'un échéancier.`,
       `${appUrl}/dashboard`,
       'Voir mon dossier',
     ),
