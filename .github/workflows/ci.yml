@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - run: npm ci
@@ -59,7 +59,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - run: npm ci
@@ -73,8 +73,16 @@ jobs:
       - name: Start Supabase local
         id: supabase
         run: |
+          set +e
           output=$(supabase start 2>&1)
+          code=$?
           echo "$output"
+          if [ $code -ne 0 ]; then
+            echo "::group::supabase start --debug"
+            supabase start --debug 2>&1 || true
+            echo "::endgroup::"
+            exit $code
+          fi
           anon_key=$(echo "$output" | grep -oP 'anon key:\s*\K\S+')
           echo "ANON_KEY=$anon_key" >> "$GITHUB_OUTPUT"
         working-directory: .
