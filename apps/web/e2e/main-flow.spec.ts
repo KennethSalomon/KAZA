@@ -14,10 +14,20 @@ test.describe('Parcours principal locataire', () => {
     page.on('request', (req) => {
       if (req.url().includes('/rest/v1/')) {
         const auth = req.headers()['authorization'] ?? 'NONE';
+        let claims = '';
+        if (auth.startsWith('Bearer ')) {
+          try {
+            const part = auth.split('.')[1];
+            claims = JSON.stringify(JSON.parse(Buffer.from(part, 'base64url').toString('utf8')));
+          } catch {
+            claims = 'decode-failed';
+          }
+        }
         console.log(
           '[KAZA:RPC-REQ]',
           req.url().replace('http://localhost:3000', ''),
-          auth === 'NONE' ? 'NO-AUTH' : auth.startsWith('Bearer ') ? 'BEARER-JWT' : auth,
+          auth === 'NONE' ? 'NO-AUTH' : 'BEARER-JWT',
+          claims.slice(0, 400),
         );
       }
     });
