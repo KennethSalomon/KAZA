@@ -13,7 +13,7 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +34,9 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: DB types drift check
+        run: npm run db:types:check
+
       - name: Build
         run: npm run build
         env:
@@ -49,10 +52,9 @@ jobs:
             exit 1
           fi
 
-  e2e:
+  integration-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
@@ -64,11 +66,12 @@ jobs:
 
       - run: npm ci
 
-      - name: Install Supabase CLI
+      - name: Install Supabase CLI (pinned)
         run: |
-          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
+          curl -fsSL https://github.com/supabase/cli/releases/download/v2.114.0/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
           tar xzf /tmp/supabase.tar.gz -C /tmp
           sudo mv /tmp/supabase /usr/local/bin/supabase
+          supabase --version
 
       - name: Start Supabase local
         id: supabase
@@ -82,6 +85,57 @@ jobs:
           anon_key=$(printf '%s\n' "$env_vars" | grep -iE '^anon_key=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
           if [ -z "$anon_key" ]; then
             echo "::error::Impossible de récupérer l'ANON_KEY via 'supabase status -o env'."
+            printf '%s\n' "$env_vars" | head -40
+            exit 1
+          fi
+          echo "ANON_KEY=$anon_key" >> "$GITHUB_OUTPUT"
+        working-directory: .
+
+      - name: Apply test helpers migration
+        run: supabase db reset
+        working-directory: .
+
+      - name: Run DB integration tests
+        run: npm test -- --run tests/integration
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321/
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: .
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Supabase CLI (pinned)
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/download/v2.114.0/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
+          tar xzf /tmp/supabase.tar.gz -C /tmp
+          sudo mv /tmp/supabase /usr/local/bin/supabase
+
+      - name: Start Supabase local
+        id: supabase
+        run: |
+          for i in 1 2 3 4; do
+            if supabase start; then break; fi
+            echo "supabase start (tentative $i) échouée — nouvel essai dans 30s..."
+            sleep 30
+          done
+          env_vars=$(supabase status -o env)
+          anon_key=$(printf '%s\n' "$env_vars" | grep -iE '^anon_key=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
+          if [ -z "$anon_key" ]; then
+            echo "::error::Impossible de récupérer l'ANON_KEY."
             printf '%s\n' "$env_vars" | head -40
             exit 1
           fi
@@ -112,3 +166,53 @@ jobs:
           name: playwright-report
           path: apps/web/playwright-report/
           retention-days: 7
+
+  edge-functions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Supabase CLI (pinned)
+        run: |
+          curl -fsSL https://github.com/supabase/cli/releases/download/v2.114.0/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
+          tar xzf /tmp/supabase.tar.gz -C /tmp
+          sudo mv /tmp/supabase /usr/local/bin/supabase
+
+      - name: Lint Edge Functions (Deno)
+        run: |
+          for f in supabase/functions/*/index.ts; do
+            echo "Checking $f..."
+            deno lint "$f" || exit 1
+          done
+        working-directory: .
+
+      - name: Typecheck Edge Functions (Deno)
+        run: |
+          for f in supabase/functions/*/index.ts; do
+            echo "Typechecking $f..."
+            deno check "$f" --import-map=supabase/functions/import_map.json || exit 1
+          done
+        working-directory: .
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Audit dependencies
+        run: npm audit --audit-level=high --workspace apps/web

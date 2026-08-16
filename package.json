@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "npm run test:e2e --workspace apps/web",
+    "test:integration": "vitest run -c vitest.config.integration.ts",
     "lint": "npm run lint --workspace apps/web",
     "lint:fix": "npm run lint --workspace apps/web -- --fix",
     "format": "prettier --write \"apps/web/src/**/*.{ts,tsx,css,json}\"",
