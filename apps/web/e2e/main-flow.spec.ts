@@ -37,9 +37,10 @@ test.describe('Parcours principal locataire', () => {
     await page.getByRole('button', { name: /Signaler le paiement/ }).click();
     await expect(page.getByText('Paiement signalé')).toBeVisible();
 
-    // 6. Quittance signée (validation bailleur) — visible dans l'espace locataire
+    // 6. Quittance signée visible dans l'espace locataire (section "Mes quittances")
     await page.goto('/dashboard');
-    await expect(page.getByText(/Quittance de/).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: 'Mes quittances' })).toBeVisible();
+    await expect(page.getByText('signée').first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('recherche géolocalisée : bascule carte/liste et carte affichée', async ({ page }) => {
