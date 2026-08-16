@@ -7,6 +7,15 @@ const TENANT_PW = process.env.E2E_TENANT_PW ?? 'KazaDemo2026!';
 
 test.describe('Parcours principal locataire', () => {
   test('recherche → contact → paiement → quittance', async ({ page }) => {
+    page.on('pageerror', (err) => console.log('[KAZA:PAGEERROR]', err.message));
+    page.on('response', async (res) => {
+      const u = res.url();
+      if (u.includes('/rest/v1/messages') || u.includes('/rest/v1/conversations') || u.includes('/api/login')) {
+        const status = res.status();
+        const body = await res.text().catch(() => '');
+        console.log('[KAZA:RES]', status, u.replace('http://localhost:3000', '').replace('http://localhost:54321', ''), body.slice(0, 200));
+      }
+    });
     // 1. Exploration : la recherche affiche les biens libres
     await page.goto('/explorer');
     await expect(page.getByRole('heading', { name: /Trouvez votre prochain logement/ })).toBeVisible();
