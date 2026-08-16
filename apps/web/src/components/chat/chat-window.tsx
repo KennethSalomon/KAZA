@@ -10,7 +10,6 @@ import {
   agreeVisit,
   getConversation,
   getSignedStorageUrl,
-  ApiError,
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase-client';
@@ -307,7 +306,7 @@ export function ChatWindow() {
       <Modal open={visitModal} onClose={() => setVisitModal(false)} title="Valider une visite">
         <p className="text-sm leading-relaxed text-kaza-muted">
           Confirmez au locataire que vous acceptez la visite. Le bien passera en statut « En visite »
-          jusqu'à votre décision.
+          jusqu’à votre décision.
         </p>
         <div className="mt-5 flex gap-3">
           <Button variant="secondary" className="flex-1" onClick={() => void handleVisit(false)}>

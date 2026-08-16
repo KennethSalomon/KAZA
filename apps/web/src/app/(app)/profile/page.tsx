@@ -74,7 +74,7 @@ export default function ProfilePage() {
         </h2>
         <p className="mt-1.5 text-xs leading-relaxed text-kaza-muted">
           Suppression définitive : profils, baux, messages et photos seront effacés (droit à
-          l'effacement — Loi 2017-20 & règlement APDP). Cette action est irréversible.
+          l’effacement — Loi 2017-20 & règlement APDP). Cette action est irréversible.
         </p>
         <Button variant="danger" size="sm" className="mt-3" onClick={() => setConfirmDelete(true)}>
           Supprimer définitivement

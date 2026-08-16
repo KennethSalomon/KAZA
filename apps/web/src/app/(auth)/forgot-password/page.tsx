@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { requestPasswordReset, ApiError } from '@/lib/supabase-api';
+import { env } from '@/lib/env';
+import { useHcaptcha } from '@/components/ui/hcaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
@@ -13,13 +15,18 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const hcaptcha = useHcaptcha();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await requestPasswordReset(email);
+      const captchaToken = env.hcaptchaSitekey
+        ? await hcaptcha.execute({ sitekey: env.hcaptchaSitekey })
+        : '';
+      await requestPasswordReset(email, captchaToken);
+      hcaptcha.reset();
       setSent(true);
       toast.success('Email envoyé', 'Vérifiez votre boîte de réception.');
     } catch (err) {

@@ -10,7 +10,7 @@ import {
   listTenants,
   ApiError,
 } from '@/lib/supabase-api';
-import type { Lease, Profile, Residence } from '@/lib/types';
+import type { Profile, Residence } from '@/lib/types';
 import { formatXof } from '@/lib/format';
 import { ResidenceForm } from '@/components/property/residence-form';
 import { residenceCompleteness, CompletenessChecklist } from '@/components/property/residence-completeness';

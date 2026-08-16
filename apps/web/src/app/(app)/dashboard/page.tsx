@@ -107,7 +107,7 @@ export default function TenantDashboardPage() {
                 <div>
                   <p className="font-medium text-kaza-text">{l.residence?.title ?? 'Bien'}</p>
                   <p className="text-xs text-kaza-muted">
-                    Loyer {formatXof(l.monthly_rent)}/mois · couverture jusqu'au {formatDate(l.date_fn_couverture)}
+                    Loyer {formatXof(l.monthly_rent)}/mois · couverture jusqu’au {formatDate(l.date_fn_couverture)}
                   </p>
                 </div>
               </div>

@@ -67,7 +67,7 @@ export default function ConfidentialitePage() {
           <h2 className="mb-2 font-sora text-lg font-semibold">4. Base légale</h2>
           <p>
             Le traitement repose sur votre <strong>consentement</strong> (inscription et acceptation
-            de la présente politique) et sur l'<strong>exécution du contrat</strong> de service
+            de la présente politique) et sur l’<strong>exécution du contrat</strong> de service
             (gestion locative, paiements).
           </p>
         </div>

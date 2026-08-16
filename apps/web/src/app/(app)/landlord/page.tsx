@@ -12,7 +12,6 @@ import {
   rejectPayment as rejectPaymentApi,
   signReceipt as signReceiptApi,
   terminateLease as terminateLeaseApi,
-  ApiError,
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import type { Receipt, Residence, Payment, Lease } from '@/lib/types';
@@ -161,7 +160,7 @@ export default function LandlordHomePage() {
             </p>
             <Link href={`/landlord/residences/${focus.id}/edit`} className="shrink-0">
               <Button variant="secondary" size="sm">
-                Compléter l'annonce
+                Compléter l’annonce
               </Button>
             </Link>
           </div>

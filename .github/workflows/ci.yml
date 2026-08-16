@@ -37,8 +37,17 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-build.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-anon-key-no-secret
+          NEXT_PUBLIC_APP_URL: https://ci-build.kaza.local
+          NEXT_PUBLIC_HCAPTCHA_SITEKEY: ci-build-hcaptcha-placeholder
+
+      - name: Secret leak scan (frontend + edge functions)
+        run: |
+          if rg -n --no-ignore -i "(sk_live_|sk_dev_|sbp_[A-Za-z0-9]{16,}|vcp_[A-Za-z0-9]{16,}|xkeysib-|xox[bap]-|service_role|BEGIN (RSA|EC|OPENSSH|DSA) PRIVATE KEY|KazaDemo)" apps/web/src supabase/functions; then
+            echo "::error::Secret ou clé détecté(e) dans le code source. Retirez-le avant de merger."
+            exit 1
+          fi
 
   e2e:
     runs-on: ubuntu-latest
@@ -57,11 +66,17 @@ jobs:
 
       - name: Install Supabase CLI
         run: |
-          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar xz
-          sudo mv supabase /usr/local/bin/supabase
+          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
+          tar xzf /tmp/supabase.tar.gz -C /tmp
+          sudo mv /tmp/supabase /usr/local/bin/supabase
 
       - name: Start Supabase local
-        run: supabase start
+        id: supabase
+        run: |
+          output=$(supabase start 2>&1)
+          echo "$output"
+          anon_key=$(echo "$output" | grep -oP 'anon key:\s*\K\S+')
+          echo "ANON_KEY=$anon_key" >> "$GITHUB_OUTPUT"
         working-directory: .
 
       - name: Reset database
@@ -76,8 +91,9 @@ jobs:
         run: npm run test:e2e
         env:
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
           NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_HCAPTCHA_SITEKEY: ""
         working-directory: .
 
       - name: Upload e2e report

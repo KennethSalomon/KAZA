@@ -11,7 +11,6 @@ import { TYPE_LABELS } from '@/lib/format';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 
 const initial = {
@@ -62,12 +61,16 @@ export function ResidenceForm({ existing }: Readonly<{ existing?: Residence | nu
     if (!files || files.length === 0) return;
     setUploading(true);
     const bucket = supabase.storage.from('residence-photos');
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const ownerPrefix = user?.id ?? 'anonymous';
     for (const file of Array.from(files)) {
       if (file.size > 8 * 1024 * 1024) {
         toast.error(`${file.name} dépasse 8 Mo`);
         continue;
       }
-      const path = `${Date.now()}-${file.name.replace(/[^\w.-]/g, '_')}`;
+      const path = `${ownerPrefix}/${Date.now()}-${file.name.replace(/[^\w.-]/g, '_')}`;
       const { error } = await bucket.upload(path, file, { contentType: file.type, upsert: false });
       if (error) {
         toast.error(`Échec de l'upload de ${file.name}`);
@@ -155,7 +158,7 @@ export function ResidenceForm({ existing }: Readonly<{ existing?: Residence | nu
             />
           </label>
         </div>
-        <p className="mt-2 text-xs text-kaza-faint">Jusqu'à 12 photos, 8 Mo max chacune. La première sert de couverture.</p>
+        <p className="mt-2 text-xs text-kaza-faint">Jusqu’à 12 photos, 8 Mo max chacune. La première sert de couverture.</p>
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2">

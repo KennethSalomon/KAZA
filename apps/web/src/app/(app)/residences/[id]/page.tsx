@@ -19,7 +19,7 @@ import { cn } from '@/lib/cn';
 export default function ResidenceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { user, role } = useAuth();
+  const { user } = useAuth();
   const toast = useToast();
   const [residence, setResidence] = useState<Residence | null>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -202,7 +202,7 @@ export default function ResidenceDetailPage() {
           )}
 
           <p className="rounded-kaza border border-kaza-peach/50 bg-kaza-peach/15 px-4 py-3 text-xs leading-relaxed text-kaza-muted">
-            <strong className="text-kaza-brand-dark">Bailleur vérifié :</strong> ce bien est contrôlé par l'équipe Kaza.
+            <strong className="text-kaza-brand-dark">Bailleur vérifié :</strong> ce bien est contrôlé par l’équipe Kaza.
             Jamais de paiement avant visite — signalez tout comportement suspect depuis votre messagerie.
           </p>
         </aside>

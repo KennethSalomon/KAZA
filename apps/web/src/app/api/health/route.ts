@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
+import { env } from '@/lib/env';
 
 export const runtime = 'edge';
 
 export async function GET() {
   const start = Date.now();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = env.supabaseUrl;
+  const key = env.supabaseAnonKey;
 
   if (!url || !key) {
     return NextResponse.json(

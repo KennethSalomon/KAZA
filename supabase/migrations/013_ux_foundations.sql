@@ -143,6 +143,13 @@ revoke execute on function public.admin_set_landlord_verified(uuid, boolean) fro
 grant execute on function public.admin_set_landlord_verified(uuid, boolean) to authenticated;
 
 -- Expose le badge dans la recherche (cartes) et le détail
+-- Le type de retour change (ajout owner_id/owner_full_name/owner_is_verified_landlord/
+-- owner_is_premium) : PostgreSQL interdit le CREATE OR REPLACE sur changement de
+-- type de retour (42P13) => DROP explicite avant recréation.
+drop function if exists public.search_residences(
+  double precision, double precision, double precision,
+  public.residence_type, numeric, text, text, text, int, int
+);
 create or replace function public.search_residences(
   p_lat double precision default null,
   p_lng double precision default null,

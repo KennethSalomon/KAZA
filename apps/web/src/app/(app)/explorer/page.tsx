@@ -20,7 +20,7 @@ const ResidenceMap = dynamic(
   { ssr: false, loading: () => null },
 );
 
-const DEFAULT_CENTER = { lat: 6.3703, lng: 2.3912 };
+type Center = { lat: number; lng: number };
 
 type SortKey = 'recent' | 'price_asc' | 'price_desc';
 
@@ -41,7 +41,7 @@ export default function ExplorerPage() {
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [selectedTypes, setSelectedTypes] = useState<Set<ResidenceType>>(new Set());
   const [sort, setSort] = useState<SortKey>('recent');
-  const [center, setCenter] = useState<typeof DEFAULT_CENTER | undefined>(undefined);
+  const [center, setCenter] = useState<Center | undefined>(undefined);
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);

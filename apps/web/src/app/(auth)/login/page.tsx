@@ -4,6 +4,8 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, ApiError } from '@/lib/supabase-api';
+import { env } from '@/lib/env';
+import { useHcaptcha } from '@/components/ui/hcaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
@@ -16,6 +18,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const hcaptcha = useHcaptcha();
 
   function afterLogin() {
     // Retour au deep-link demandé (défini par le middleware), sinon explorer.
@@ -37,7 +40,13 @@ function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      await signIn(trimmed, password);
+      // En local (sitekey vide) le captcha est sauté ; en prod le token
+      // est obtenu avant tout appel, sinon GoTrue répond 400 captcha_failed.
+      const captchaToken = env.hcaptchaSitekey
+        ? await hcaptcha.execute({ sitekey: env.hcaptchaSitekey })
+        : '';
+      await signIn(trimmed, password, captchaToken);
+      hcaptcha.reset();
       toast.success('Bienvenue sur Kaza');
       afterLogin();
     } catch (err) {

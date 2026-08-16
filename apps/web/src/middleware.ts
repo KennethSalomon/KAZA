@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { env } from './lib/env';
 
 // Routes accessibles sans authentification.
 const PUBLIC_PATHS = [
@@ -31,8 +32,8 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://localhost:54321',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+    env.supabaseUrl,
+    env.supabaseAnonKey,
     {
       cookies: {
         getAll() {

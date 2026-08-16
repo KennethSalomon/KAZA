@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { requestOtp, verifyOtp, ApiError } from '@/lib/supabase-api';
+import { env } from '@/lib/env';
+import { useHcaptcha } from '@/components/ui/hcaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
@@ -16,13 +18,21 @@ export default function VerifyOtpPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const toast = useToast();
+  const hcaptcha = useHcaptcha();
+
+  async function captchaToken(): Promise<string> {
+    return env.hcaptchaSitekey
+      ? hcaptcha.execute({ sitekey: env.hcaptchaSitekey })
+      : Promise.resolve('');
+  }
 
   async function requestCode(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await requestOtp(phone);
+      await requestOtp(phone, await captchaToken());
+      hcaptcha.reset();
       setStep('verify');
       toast.info('Code envoyé', `Un code à 6 chiffres a été envoyé au ${phone}.`);
     } catch (err) {
@@ -37,7 +47,8 @@ export default function VerifyOtpPage() {
     setError(null);
     setLoading(true);
     try {
-      await verifyOtp(phone, token);
+      await verifyOtp(phone, token, await captchaToken());
+      hcaptcha.reset();
       toast.success('Connexion réussie');
       router.push('/explorer');
       router.refresh();

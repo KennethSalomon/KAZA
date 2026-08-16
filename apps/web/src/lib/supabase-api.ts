@@ -1,4 +1,5 @@
 import { supabase } from './supabase-client';
+import { env } from './env';
 import type {
   AppNotification,
   Conversation,
@@ -63,7 +64,7 @@ async function callFunction<T>(name: string, body: unknown): Promise<T> {
   // Le JWT est validé côté serveur par l'edge function (requireUser) ;
   // ici on ne récupère que le token de session pour l'Authorization header.
   const { data: session } = await supabase.auth.getSession();
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://localhost:54321';
+  const base = env.supabaseUrl;
   const res = await fetch(`${base}/functions/v1/${name}`, {
     method: 'POST',
     headers: {
@@ -84,13 +85,13 @@ async function callFunction<T>(name: string, body: unknown): Promise<T> {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-export async function signIn(email: string, password: string): Promise<void> {
+export async function signIn(email: string, password: string, captchaToken: string): Promise<void> {
   // Passe par /api/login (route handler serveur) : rate limiting par IP/email
   // AVANT l'appel Supabase, puis pose de la session via setSession.
   const res = await fetch('/api/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, captchaToken }),
   });
   const payload = (await res.json().catch(() => null)) as {
     error?: string;
@@ -116,19 +117,23 @@ export async function signIn(email: string, password: string): Promise<void> {
   if (error) throw new ApiError(400, error.message);
 }
 
-export async function signUp(input: {
-  email: string;
-  password: string;
-  full_name: string;
-  phone: string;
-  role: 'locataire' | 'bailleur';
-  consent_apdp: boolean;
-}): Promise<{ needsEmailConfirmation: boolean }> {
+export async function signUp(
+  input: {
+    email: string;
+    password: string;
+    full_name: string;
+    phone: string;
+    role: 'locataire' | 'bailleur';
+    consent_apdp: boolean;
+  },
+  captchaToken: string,
+): Promise<{ needsEmailConfirmation: boolean }> {
   assertBeninPhone(input.phone);
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
     options: {
+      captchaToken,
       // Métadonnées lues par le trigger handle_new_user (migration 014) qui
       // initialise le profil (nom, téléphone, rôle, consentement) AVANT toute
       // connexion. Aucun appel RLS ici : avec confirmation email active la
@@ -148,20 +153,30 @@ export async function signUp(input: {
   return { needsEmailConfirmation: !data.session };
 }
 
-export async function requestOtp(phone: string): Promise<void> {
+export async function requestOtp(phone: string, captchaToken: string): Promise<void> {
   assertBeninPhone(phone);
-  const { error } = await supabase.auth.signInWithOtp({ phone });
+  const { error } = await supabase.auth.signInWithOtp({ phone, options: { captchaToken } });
   if (error) throw new ApiError(400, error.message);
 }
 
-export async function verifyOtp(phone: string, token: string): Promise<void> {
-  const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
+export async function verifyOtp(phone: string, token: string, captchaToken: string): Promise<void> {
+  const { error } = await supabase.auth.verifyOtp({
+    phone,
+    token,
+    type: 'sms',
+    options: { captchaToken },
+  });
   if (error) throw new ApiError(400, error.message);
 }
 
 /** Envoie un email de réinitialisation de mot de passe (lien unique + court). */
-export async function requestPasswordReset(email: string, redirectTo?: string): Promise<void> {
+export async function requestPasswordReset(
+  email: string,
+  captchaToken: string,
+  redirectTo?: string,
+): Promise<void> {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    captchaToken,
     redirectTo: redirectTo ?? '/reset-password',
   });
   if (error) throw new ApiError(400, error.message);

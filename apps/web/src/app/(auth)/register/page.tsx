@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signUp, ApiError } from '@/lib/supabase-api';
+import { env } from '@/lib/env';
+import { useHcaptcha } from '@/components/ui/hcaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -24,6 +26,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const toast = useToast();
+  const hcaptcha = useHcaptcha();
 
   const set = (key: keyof typeof initial) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
@@ -40,14 +43,21 @@ export default function RegisterPage() {
     setErrors({});
     setLoading(true);
     try {
-      const { needsEmailConfirmation } = await signUp({
-        full_name: form.full_name,
-        email: form.email,
-        phone: form.phone,
-        role: form.role as 'locataire' | 'bailleur',
-        password: form.password,
-        consent_apdp: form.consent,
-      });
+      const captchaToken = env.hcaptchaSitekey
+        ? await hcaptcha.execute({ sitekey: env.hcaptchaSitekey })
+        : '';
+      const { needsEmailConfirmation } = await signUp(
+        {
+          full_name: form.full_name,
+          email: form.email,
+          phone: form.phone,
+          role: form.role as 'locataire' | 'bailleur',
+          password: form.password,
+          consent_apdp: form.consent,
+        },
+        captchaToken,
+      );
+      hcaptcha.reset();
       if (needsEmailConfirmation) {
         toast.success(
           'Vérifiez votre boîte mail',
@@ -136,7 +146,7 @@ export default function RegisterPage() {
           required
         />
         <span>
-          J'accepte que Kaza traite mes données personnelles (identité, coordonnées) conformément à la
+          J’accepte que Kaza traite mes données personnelles (identité, coordonnées) conformément à la
           loi béninoise sur la protection des données (APDP) —{' '}
           <a href="/confidentialite" target="_blank" rel="noopener noreferrer" className="underline hover:text-kaza-brand">
             voir notre politique de confidentialité

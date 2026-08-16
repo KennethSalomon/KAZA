@@ -1,0 +1,48 @@
+{
+  "comment": "KAZA.BJ - Rate limiting WAF Cloudflare. Import : cf rulesets /<zone_id>/rulesets -X PUT (voir commande dans la description de livraison). A appliquer APRES avoir mis le domaine custom Supabase derrière Cloudflare.",
+  "ruleset_type": "http_rate_limit",
+  "rules": [
+    {
+      "description": "Anti brute-force Auth (token/signup/otp) : 10 req / 5 min / IP",
+      "expression": "(http.request.uri.path starts_with \"/auth/v1/token\") or (http.request.uri.path starts_with \"/auth/v1/signup\") or (http.request.uri.path starts_with \"/auth/v1/otp\") or (http.request.uri.path starts_with \"/auth/v1/verify\")",
+      "action": "block",
+      "ratelimit": { "characteristics": ["ip.src"], "period": 300, "requests_per_period": 10, "mitigation_timeout": 300 },
+      "enabled": true
+    },
+    {
+      "description": "PostgREST : burst 60 req / 10 s / IP (recherche, pages, listing)",
+      "expression": "http.request.uri.path starts_with \"/rest/v1/\"",
+      "action": "managed_challenge",
+      "ratelimit": { "characteristics": ["ip.src"], "period": 10, "requests_per_period": 60, "mitigation_timeout": 60 },
+      "enabled": true
+    },
+    {
+      "description": "RPC coûteux search_residences (PostGIS) : 20 req / 60 s / IP",
+      "expression": "http.request.uri.path starts_with \"/rest/v1/rpc/search_residences\"",
+      "action": "block",
+      "ratelimit": { "characteristics": ["ip.src"], "period": 60, "requests_per_period": 20, "mitigation_timeout": 60 },
+      "enabled": true
+    },
+    {
+      "description": "Storage : 120 req / 10 s / IP (photos, PJ, uploads)",
+      "expression": "http.request.uri.path starts_with \"/storage/v1/\"",
+      "action": "managed_challenge",
+      "ratelimit": { "characteristics": ["ip.src"], "period": 10, "requests_per_period": 120, "mitigation_timeout": 60 },
+      "enabled": true
+    },
+    {
+      "description": "Edge Functions : 120 req / 10 s / IP (les limtes par utilisateur sont deja en Postgres/KV)",
+      "expression": "http.request.uri.path starts_with \"/functions/v1/\"",
+      "action": "managed_challenge",
+      "ratelimit": { "characteristics": ["ip.src"], "period": 10, "requests_per_period": 120, "mitigation_timeout": 60 },
+      "enabled": true
+    },
+    {
+      "description": "Webhook FedaPay : exclu du rate limiting general, verification HMAC stricte cote fonction",
+      "expression": "http.request.uri.path eq \"/functions/v1/fedapay-webhook\"",
+      "action": "skip",
+      "action_parameters": { "ruleset": "current" },
+      "enabled": true
+    }
+  ]
+}

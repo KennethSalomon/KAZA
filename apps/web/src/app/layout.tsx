@@ -4,6 +4,7 @@ import { MotionConfig } from 'framer-motion';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { ToastProvider } from '@/components/ui/toast';
+import { env } from '@/lib/env';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
 const sora = Sora({
@@ -12,7 +13,7 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://kaza-gup0jjiz7-kennethsalomons-projects.vercel.app'),
+  metadataBase: new URL(env.appUrl),
   title: {
     default: 'Kaza — Trouvez votre logement au Bénin',
     template: '%s · Kaza',

@@ -70,7 +70,7 @@ export default function AdminPage() {
   }
 
   if (role !== 'admin') {
-    return <p className="py-16 text-center text-sm text-kaza-faint">Accès réservé à l'administration.</p>;
+    return <p className="py-16 text-center text-sm text-kaza-faint">Accès réservé à l’administration.</p>;
   }
 
   if (loading || !stats) {

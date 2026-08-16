@@ -2,7 +2,27 @@
 -- KAZA.BJ — seed de démo (uniquement en local : supabase db reset)
 -- Comptes E2E/Playwright : locataire.demo@kaza.bj / bailleur.demo@kaza.bj
 -- Mot de passe commun : KazaDemo2026!
+--
+-- ⚠️ GARDE ANTI-PROD (audit sécurité) : ce seed ne doit JAMAIS être
+-- appliqué à la base de production. Les comptes de démo ont un mot de
+-- passe public et constitueraient une porte d'entrée admin.
+-- Si cette base n'est PAS un environnement local, le seed s'arrête ici.
 -- ============================================================
+
+do $$
+declare
+  v_host inet;
+begin
+  select inet_server_addr() into v_host;
+  -- Local (CLI Docker) : 127.0.0.1 / ::1 ou réseau privé 172.x.x.x.
+  -- Production Supabase : IP publique AWS.
+  if v_host is not null
+     and v_host::text not in ('127.0.0.1', '::1')
+     and v_host::text not like '172.%' then
+    raise exception 'Seed de démo interdit hors environnement local (hôte : %)', v_host;
+  end if;
+end;
+$$;
 
 -- Utilisateurs auth (bcrypt via pgcrypto)
 -- IMPORTANT : confirmation_token / recovery_token / email_change / invites

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { checkLoginAttempts } from '@/lib/login-rate-limit';
+import { env } from '@/lib/env';
 
 export const runtime = 'nodejs';
 
@@ -17,13 +18,23 @@ function getClientIp(req: NextRequest): string {
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as
-    | { email?: string; password?: string }
+    | { email?: string; password?: string; captchaToken?: string }
     | null;
   const email = (body?.email ?? '').trim().toLowerCase();
   const password = body?.password ?? '';
+  const captchaToken = body?.captchaToken ?? '';
 
   if (!email || !EMAIL_RE.test(email) || !password) {
     return NextResponse.json({ error: 'Email ou mot de passe invalide' }, { status: 400 });
+  }
+  // Le captcha est actif dès que la sitekey est configurée (même env que
+  // l'API Supabase) ; en local (pas de sitekey) GoTrue n'exige rien.
+  const captchaRequired = Boolean(env.hcaptchaSitekey);
+  if (captchaRequired && !captchaToken) {
+    return NextResponse.json(
+      { error: 'Vérification anti-robot requise (hCaptcha)' },
+      { status: 400 },
+    );
   }
 
   // Verrouillage avant tout appel réseau : un spammeur ne consomme pas le
@@ -42,8 +53,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = env.supabaseUrl;
+  const anonKey = env.supabaseAnonKey;
   if (!supabaseUrl || !anonKey) {
     return NextResponse.json({ error: 'Configuration serveur incomplète' }, { status: 503 });
   }
@@ -56,7 +67,13 @@ export async function POST(req: NextRequest) {
         apikey: anonKey,
         Authorization: `Bearer ${anonKey}`,
       },
-      body: JSON.stringify({ email, password }),
+      // gotrue_meta_security.captcha_token : format attendu par GoTrue pour
+      // le captcha hCaptcha (PKCE ne s'applique qu'au grant refresh_token).
+      body: JSON.stringify({
+        email,
+        password,
+        ...(captchaToken ? { gotrue_meta_security: { captcha_token: captchaToken } } : {}),
+      }),
     });
     const payload = (await res.json().catch(() => null)) as {
       access_token?: string;
