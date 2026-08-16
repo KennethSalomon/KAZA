@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
         onChange={(e) => setEmail(e.target.value)}
       />
 
-      <Button type="submit" loading={loading} className="w-full" size="lg">
+      <Button type="submit" loading={loading} className="w-full btn-responsive-lg" size="lg">
         Envoyer le lien
       </Button>
 

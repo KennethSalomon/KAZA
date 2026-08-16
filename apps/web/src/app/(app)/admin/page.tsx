@@ -125,11 +125,11 @@ export default function AdminPage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button size="sm" variant="success" loading={busy === r.id} onClick={() => act(() => adminVerifyResidence(r.id), r.id)}>
+                  <Button size="sm" variant="success" className="btn-responsive-sm" loading={busy === r.id} onClick={() => act(() => adminVerifyResidence(r.id), r.id)}>
                     <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
                     Approuver
                   </Button>
-                  <Button size="sm" variant="danger" loading={busy === r.id} onClick={() => act(() => adminUnpublishResidence(r.id), r.id)}>
+                  <Button size="sm" variant="danger" className="btn-responsive-sm" loading={busy === r.id} onClick={() => act(() => adminUnpublishResidence(r.id), r.id)}>
                     Retirer
                   </Button>
                 </div>
@@ -155,10 +155,10 @@ export default function AdminPage() {
                     {u.is_premium ? <Crown className="mr-1 inline h-3 w-3" aria-hidden /> : null}
                     {u.role}
                   </span>
-                  <Button size="sm" variant="ghost" loading={busy === u.id} onClick={() => act(() => adminSetPremium(u.id, !u.is_premium), u.id)}>
+                  <Button size="sm" variant="ghost" className="btn-responsive-sm" loading={busy === u.id} onClick={() => act(() => adminSetPremium(u.id, !u.is_premium), u.id)}>
                     {u.is_premium ? 'Retirer Premium' : 'Passer Premium'}
                   </Button>
-                  <Button size="sm" variant="ghost" loading={busy === u.id} onClick={() => act(() => adminToggleRole(u.id, u.role === 'bailleur' ? 'locataire' : 'bailleur'), u.id)}>
+                  <Button size="sm" variant="ghost" className="btn-responsive-sm" loading={busy === u.id} onClick={() => act(() => adminToggleRole(u.id, u.role === 'bailleur' ? 'locataire' : 'bailleur'), u.id)}>
                     <Shield className="h-3.5 w-3.5" aria-hidden />
                     {u.role === 'bailleur' ? '→ locataire' : '→ bailleur'}
                   </Button>

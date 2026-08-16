@@ -80,7 +80,7 @@ export default function TenantDashboardPage() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setPayLease(overdue[0])} className="shrink-0">
+          <Button onClick={() => setPayLease(overdue[0])} className="shrink-0 btn-responsive-lg">
             Payer maintenant
           </Button>
         </div>
@@ -121,7 +121,7 @@ export default function TenantDashboardPage() {
                     À jour
                   </span>
                 )}
-                <Button size="sm" onClick={() => setPayLease(l)} data-testid="pay-loyer">
+                <Button size="sm" className="btn-responsive-sm" onClick={() => setPayLease(l)} data-testid="pay-loyer">
                   <CreditCard className="h-4 w-4" aria-hidden />
                   Payer
                 </Button>
@@ -158,7 +158,7 @@ export default function TenantDashboardPage() {
                 <div className="flex shrink-0 items-center gap-2">
                   <PaymentStatusBadge status={p.status} />
                   {p.status === 'rejected' && (
-                    <Button size="sm" variant="secondary" onClick={() => setPayLease(leaseFromPayment(p))} data-testid="retry-payment">
+                    <Button size="sm" variant="secondary" className="btn-responsive-sm" onClick={() => setPayLease(leaseFromPayment(p))} data-testid="retry-payment">
                       <RefreshCw className="h-3.5 w-3.5" aria-hidden />
                       Réessayer
                     </Button>
@@ -185,6 +185,7 @@ export default function TenantDashboardPage() {
                   <Button
                     variant="secondary"
                     size="sm"
+                    className="btn-responsive-sm"
                     data-testid="download-receipt"
                     onClick={async () => {
                       const signed = await getSignedStorageUrl('receipts', r.file_url as string);

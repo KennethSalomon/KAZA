@@ -137,7 +137,7 @@ export default function LandlordHomePage() {
           </p>
         </div>
         <Link href="/landlord/residences/new">
-          <Button>
+          <Button className="btn-responsive">
             <Plus className="h-4 w-4" aria-hidden />
             Ajouter un bien
           </Button>
@@ -159,7 +159,7 @@ export default function LandlordHomePage() {
               </span>
             </p>
             <Link href={`/landlord/residences/${focus.id}/edit`} className="shrink-0">
-              <Button variant="secondary" size="sm">
+              <Button variant="secondary" className="btn-responsive-sm" size="sm">
                 Compléter l’annonce
               </Button>
             </Link>
@@ -191,10 +191,10 @@ export default function LandlordHomePage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="success" loading={busyId === p.id} onClick={() => void confirmPayment(p.id)} data-testid={`confirm-payment-${p.id}`}>
+                  <Button size="sm" variant="success" className="btn-responsive-sm" loading={busyId === p.id} onClick={() => void confirmPayment(p.id)} data-testid={`confirm-payment-${p.id}`}>
                     Valider
                   </Button>
-                  <Button size="sm" variant="danger" loading={busyId === p.id} onClick={() => void rejectPayment(p.id)} data-testid={`reject-payment-${p.id}`}>
+                  <Button size="sm" variant="danger" className="btn-responsive-sm touch-target" loading={busyId === p.id} onClick={() => void rejectPayment(p.id)} data-testid={`reject-payment-${p.id}`}>
                     <XCircle className="h-3.5 w-3.5" aria-hidden />
                   </Button>
                 </div>
@@ -225,7 +225,7 @@ export default function LandlordHomePage() {
                     Quittance {r.period_start} → {r.period_end}
                   </p>
                 </div>
-                <Button size="sm" loading={busyId === r.id} onClick={() => void signReceipt(r.id)} data-testid={`sign-receipt-${r.id}`}>
+                <Button size="sm" className="btn-responsive-sm" loading={busyId === r.id} onClick={() => void signReceipt(r.id)} data-testid={`sign-receipt-${r.id}`}>
                   Signer et envoyer
                 </Button>
               </li>
@@ -260,6 +260,7 @@ export default function LandlordHomePage() {
                   <Button
                     size="sm"
                     variant="danger"
+                    className="btn-responsive-sm touch-target"
                     loading={busyId === l.id}
                     onClick={() => void terminateLease(l.id)}
                     data-testid={`terminate-lease-${l.id}`}
@@ -285,7 +286,7 @@ export default function LandlordHomePage() {
               body="Ajoutez votre premier logement : photos, prix, localisation — la recherche géolocalisée s'occupe du reste."
               action={
                 <Link href="/landlord/residences/new">
-                  <Button>
+                  <Button className="btn-responsive">
                     <Plus className="h-4 w-4" aria-hidden />
                     Ajouter un bien
                   </Button>
@@ -333,7 +334,7 @@ export default function LandlordHomePage() {
                   <div className="flex items-center justify-between gap-3">
                     <span className="min-w-0 truncate text-xs text-kaza-muted">{r.zone ?? ''} {r.city}</span>
                     <Link href={`/landlord/residences/${r.id}/edit`} className="shrink-0">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" className="btn-responsive-sm">
                         <PenSquare className="h-3.5 w-3.5" aria-hidden />
                         Gérer
                       </Button>

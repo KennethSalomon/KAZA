@@ -87,7 +87,7 @@ export default function ResidenceDetailPage() {
             className="relative aspect-[16/9] overflow-hidden rounded-kaza-lg border border-kaza-border bg-kaza-raised"
           >
             {photo ? (
-              <Image src={photo} alt={`${residence.title} — photo ${photoIndex + 1}`} fill priority sizes="50vw" className="object-cover" />
+              <Image src={photo} alt={`${residence.title} — photo ${photoIndex + 1}`} fill priority sizes="(max-width: 640px) 100vw, 50vw" className="object-cover" />
             ) : (
               <div className="grid h-full place-items-center text-kaza-faint">
                 <MapPin className="h-10 w-10" aria-hidden />
@@ -110,7 +110,7 @@ export default function ResidenceDetailPage() {
                   aria-selected={i === photoIndex}
                   onClick={() => setPhotoIndex(i)}
                   className={cn(
-                    'relative h-16 w-24 shrink-0 overflow-hidden rounded-kaza border transition-all',
+                    'relative h-16 w-24 shrink-0 overflow-hidden rounded-kaza border transition-all touch-target',
                     i === photoIndex ? 'border-kaza-brand ring-1 ring-kaza-brand/50' : 'border-kaza-border opacity-60 hover:opacity-100',
                   )}
                 >
@@ -123,7 +123,7 @@ export default function ResidenceDetailPage() {
           <div className="mt-6 space-y-4">
             <div>
               <h2 className="font-display text-lg font-semibold text-kaza-text">À propos de ce bien</h2>
-              <p className="mt-2 text-sm leading-relaxed text-kaza-muted">
+              <p className="mt-2 text-sm leading-relaxed text-kaza-muted truncate-mobile">
                 {residence.description || 'Description bientôt disponible. Contactez le bailleur pour plus de détails.'}
               </p>
             </div>
@@ -163,12 +163,12 @@ export default function ResidenceDetailPage() {
             <div className="mt-5 flex flex-col gap-2.5">
               {isOwner ? (
                 <Link href={`/landlord/residences/${residence.id}/edit`}>
-                  <Button variant="secondary" className="w-full" size="lg">
+                  <Button variant="secondary" className="w-full btn-responsive-lg" size="lg">
                     Gérer ce bien
                   </Button>
                 </Link>
               ) : (
-                <Button onClick={() => void openConversation()} loading={sending} size="lg" className="w-full" data-testid="contact-owner">
+                <Button onClick={() => void openConversation()} loading={sending} className="w-full btn-responsive-lg" data-testid="contact-owner">
                   <MessageSquare className="h-4 w-4" aria-hidden />
                   {user ? 'Contacter le bailleur' : 'Se connecter pour contacter'}
                 </Button>

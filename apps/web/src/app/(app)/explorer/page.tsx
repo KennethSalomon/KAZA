@@ -47,9 +47,22 @@ export default function ExplorerPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [showFilters, setShowFilters] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [isPending, startTransition] = useTransition();
   const toast = useToast();
   const debounceRef = useRef<number | null>(null);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Mobile map toggle - on mobile, map replaces list when toggled
+  const toggleMap = () => setShowMap((prev) => !prev);
 
   const runSearch = useCallback(
     (f: Filters) => {
@@ -374,11 +387,40 @@ export default function ExplorerPage() {
       </div>
 
       {/* Résultats : grille + carte */}
-      <div className={cn('mt-4 gap-4', view === 'map' && 'lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]')}>
-        <div
-          className={cn(
+      <div className="mt-4">
+        {/* Mobile: toggle between list and map */}
+        <div className="lg:hidden">
+          <div role="tablist" aria-label="Vue" className="flex rounded-kaza border border-kaza-border bg-kaza-surface p-1 mb-4">
+            <button
+              role="tab"
+              aria-selected={!showMap}
+              onClick={() => setShowMap(false)}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 rounded-[9px] px-3 py-1.5 text-xs font-medium transition-colors',
+                !showMap ? 'bg-kaza-brand text-kaza-bg' : 'text-kaza-muted hover:text-kaza-text',
+              )}
+            >
+              <List className="h-3.5 w-3.5" aria-hidden /> Liste
+            </button>
+            <button
+              role="tab"
+              aria-selected={showMap}
+              onClick={() => setShowMap(true)}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 rounded-[9px] px-3 py-1.5 text-xs font-medium transition-colors',
+                showMap ? 'bg-kaza-brand text-kaza-bg' : 'text-kaza-muted hover:text-kaza-text',
+              )}
+            >
+              <MapIcon className="h-3.5 w-3.5" aria-hidden /> Carte
+            </button>
+          </div>
+        </div>
+
+        {(!showMap || !isMobile) && (
+          <div className={cn(
             'grid grid-cols-1 content-start gap-4 sm:grid-cols-2 xl:grid-cols-3',
-            view === 'map' && 'lg:max-h-[72vh] lg:overflow-y-auto lg:pr-2',
+            (view === 'map' || showMap) && 'lg:max-h-[72vh] lg:overflow-y-auto lg:pr-2',
+            isMobile && showMap && 'hidden',
           )}
           aria-busy={loading}
         >
@@ -409,9 +451,15 @@ export default function ExplorerPage() {
             </div>
           )}
         </div>
+        )}
 
-        {view === 'map' && (
-          <div className="h-[52vh] overflow-hidden rounded-kaza-lg border border-kaza-border shadow-card lg:sticky lg:top-24 lg:h-[72vh]"
+        {(view === 'map' || showMap) && (
+          <div className={cn(
+            'overflow-hidden rounded-kaza-lg border border-kaza-border shadow-card',
+            'h-[52vh] lg:h-[72vh] lg:sticky lg:top-24',
+            isMobile && !showMap && 'hidden lg:block',
+            isMobile && showMap && 'block',
+          )}
             data-testid="map"
           >
             <ResidenceMap residences={visible} center={center} activeId={activeId} onSelect={(r) => setActiveId(r.id)} />

@@ -168,7 +168,7 @@ export default function RegisterPage() {
         </p>
       )}
 
-      <Button type="submit" loading={loading} className="w-full" size="lg">
+      <Button type="submit" loading={loading} className="w-full btn-responsive-lg" size="lg">
         Créer mon compte
       </Button>
 

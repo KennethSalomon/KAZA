@@ -95,7 +95,7 @@ function LoginForm() {
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <Button type="submit" loading={loading} className="w-full" size="lg">
+      <Button type="submit" loading={loading} className="w-full btn-responsive-lg" size="lg">
         Se connecter
       </Button>
 

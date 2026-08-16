@@ -90,7 +90,7 @@ export default function VerifyOtpPage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
-          <Button type="submit" loading={loading} className="w-full" size="lg">
+          <Button type="submit" loading={loading} className="w-full btn-responsive-lg" size="lg">
             Envoyer le code
           </Button>
         </form>
@@ -108,7 +108,7 @@ export default function VerifyOtpPage() {
             onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
             hint="Consultez les SMS sur votre téléphone."
           />
-          <Button type="submit" loading={loading} className="w-full" size="lg">
+          <Button type="submit" loading={loading} className="w-full btn-responsive-lg" size="lg">
             Valider et me connecter
           </Button>
           <button

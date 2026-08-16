@@ -177,12 +177,12 @@ export function ChatWindow() {
   const isOwn = (m: Message) => m.sender_id === user?.id;
 
   return (
-    <div className="flex h-[calc(100dvh-11.5rem)] flex-col overflow-hidden rounded-kaza-lg border border-kaza-border bg-kaza-surface shadow-card">
+    <div className="flex flex-col h-full min-h-0 max-h-[calc(100dvh-4rem)] rounded-kaza-lg border border-kaza-border bg-kaza-surface shadow-card md:max-h-[calc(100dvh-5rem)]">
       {/* En-tête */}
       <div className="flex items-center gap-3 border-b border-kaza-border px-4 py-3">
         <button
           onClick={() => router.push('/chat')}
-          className="rounded-lg p-1.5 text-kaza-muted transition-colors hover:bg-kaza-bg hover:text-kaza-text lg:hidden"
+          className="rounded-lg p-1.5 text-kaza-muted transition-colors hover:bg-kaza-bg hover:text-kaza-text md:hidden"
           aria-label="Retour à la liste"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
