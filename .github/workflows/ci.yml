@@ -95,10 +95,10 @@ jobs:
       - name: Run e2e tests
         run: npm run test:e2e
         env:
-          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321/
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
-          NEXT_PUBLIC_HCAPTCHA_SITEKEY: ""
+          NEXT_PUBLIC_APP_URL: http://localhost:3000/
+          NEXT_PUBLIC_HCAPTCHA_SITEKEY: ci-build-sitekey-no-secret
         working-directory: .
 
       - name: Upload e2e report
