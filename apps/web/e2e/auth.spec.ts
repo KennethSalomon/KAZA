@@ -29,17 +29,6 @@ test.describe('Auth flow', () => {
   });
 
   test('login shows error on bad credentials', async ({ page }) => {
-    page.on('console', (msg) => console.log('[KAZA:BROWSER]', msg.type(), msg.text()));
-    page.on('pageerror', (err) => console.log('[KAZA:PAGEERROR]', err.message, err.stack?.slice(0, 500)));
-    page.on('request', (req) => {
-      if (req.url().includes('/api/login')) console.log('[KAZA:REQ]', req.method(), req.url());
-    });
-    page.on('response', async (res) => {
-      if (res.url().includes('/api/login')) {
-        const body = await res.text().catch(() => '');
-        console.log('[KAZA:RES]', res.status(), body.slice(0, 300));
-      }
-    });
     await page.goto('/login');
     await page.getByLabel(/e-?mail/i).fill('nonexistent@example.com');
     await page.getByLabel(/mot de passe/i).fill('WrongPass123!');
