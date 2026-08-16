@@ -41,7 +41,7 @@ export async function GET() {
     });
   } catch (err) {
     return NextResponse.json(
-      { status: 'error', message: String(err), latencyMs: Date.now() - start },
+      { status: 'error', message: 'Service indisponible', latencyMs: Date.now() - start },
       { status: 503 },
     );
   }
