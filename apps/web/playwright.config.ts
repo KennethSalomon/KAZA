@@ -11,13 +11,15 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run dev',
+    command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: true,
-    timeout: 60_000,
+    timeout: 180_000,
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['iPhone 13'] } },
+    ...(process.env.CI
+      ? []
+      : [{ name: 'mobile', use: { ...devices['iPhone 13'] } }]),
   ],
 });
