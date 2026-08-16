@@ -73,17 +73,14 @@ jobs:
       - name: Start Supabase local
         id: supabase
         run: |
-          set +e
-          output=$(supabase start 2>&1)
-          code=$?
-          echo "$output"
-          if [ $code -ne 0 ]; then
-            echo "::group::supabase start --debug"
-            supabase start --debug 2>&1 || true
-            echo "::endgroup::"
-            exit $code
+          supabase start
+          env_vars=$(supabase status -o env)
+          anon_key=$(printf '%s\n' "$env_vars" | grep -iE '^anon_key=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
+          if [ -z "$anon_key" ]; then
+            echo "::error::Impossible de récupérer l'ANON_KEY via 'supabase status -o env'."
+            printf '%s\n' "$env_vars" | head -40
+            exit 1
           fi
-          anon_key=$(echo "$output" | grep -oP 'anon key:\s*\K\S+')
           echo "ANON_KEY=$anon_key" >> "$GITHUB_OUTPUT"
         working-directory: .
 
