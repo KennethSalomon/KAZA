@@ -112,3 +112,15 @@ values (
   'libre', false, false
 )
 on conflict (id) do nothing;
+
+-- Bail actif entre le locataire et le bailleur (pour le parcours e2e : paiement loyer)
+insert into public.leases (id, residence_id, tenant_id, landlord_id,
+                           monthly_rent, deposit, start_date, date_fn_couverture, status)
+values (
+  '00000000-0000-0000-0000-000000000201',
+  '00000000-0000-0000-0000-000000000101',
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000002',
+  85000, 255000, '2026-07-01', '2026-07-31', 'active'
+)
+on conflict (id) do nothing;
