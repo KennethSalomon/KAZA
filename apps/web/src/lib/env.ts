@@ -53,10 +53,16 @@ function resolvePublic(name: keyof typeof RAW): string {
   return value ?? devFallback;
 }
 
+function normalizeUrl(value: string): string {
+  return value.replace(/\/+$/g, '');
+}
+
 export const env = {
-  supabaseUrl: resolvePublic('NEXT_PUBLIC_SUPABASE_URL'),
+  // Slash final retiré : les fetch bruts (api/login, callFunction) et Kong
+  // ne tolèrent pas les doubles slashes (http://host//auth/v1 → 404).
+  supabaseUrl: normalizeUrl(resolvePublic('NEXT_PUBLIC_SUPABASE_URL')),
   supabaseAnonKey: resolvePublic('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-  appUrl: resolvePublic('NEXT_PUBLIC_APP_URL'),
+  appUrl: normalizeUrl(resolvePublic('NEXT_PUBLIC_APP_URL')),
   // Sitekey hCaptcha : PUBLIQUE par design (embarquée dans le bundle pour
   // exécuter le widget). Requise en production : si l'API Supabase a le
   // captcha activé, toute requête auth sans token est rejetée (400).
