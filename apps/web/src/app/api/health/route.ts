@@ -39,7 +39,7 @@ export async function GET() {
       latencyMs,
       timestamp: new Date().toISOString(),
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { status: 'error', message: 'Service indisponible', latencyMs: Date.now() - start },
       { status: 503 },
