@@ -60,7 +60,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+    const target = `${supabaseUrl}/auth/v1/token?grant_type=password`;
+    console.log('[KAZA:DEBUG] login target =', target);
+    const res = await fetch(target, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -75,7 +77,16 @@ export async function POST(req: NextRequest) {
         ...(captchaToken ? { gotrue_meta_security: { captcha_token: captchaToken } } : {}),
       }),
     });
-    const payload = (await res.json().catch(() => null)) as {
+    console.log('[KAZA:DEBUG] login status =', res.status);
+    const text = await res.text();
+    console.log('[KAZA:DEBUG] login body =', text.slice(0, 500));
+    const payload = (() => {
+      try {
+        return JSON.parse(text);
+      } catch {
+        return null;
+      }
+    })() as {
       access_token?: string;
       refresh_token?: string;
       user?: unknown;
