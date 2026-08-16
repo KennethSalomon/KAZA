@@ -124,3 +124,34 @@ values (
   85000, 255000, '2026-07-01', '2026-07-31', 'active'
 )
 on conflict (id) do nothing;
+
+-- Paiement confirmé (pour afficher la quittance dans le dashboard locataire)
+insert into public.payments (id, lease_id, tenant_id, landlord_id, amount,
+                             period_start, period_end, method, provider, status,
+                             confirmed_at, confirmed_by)
+values (
+  '00000000-0000-0000-0000-000000000301',
+  '00000000-0000-0000-0000-000000000201',
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000002',
+  85000, '2026-07-01', '2026-07-31',
+  'cash', 'cash', 'confirmed',
+  now(), '00000000-0000-0000-0000-000000000002'
+)
+on conflict (id) do nothing;
+
+-- Quittance signée pour le paiement confirmé
+insert into public.receipts (id, payment_id, lease_id, tenant_id, landlord_id,
+                            amount, period_start, period_end,
+                            file_url, signature_hash, signed_by, signed_at, status)
+values (
+  '00000000-0000-0000-0000-000000000401',
+  '00000000-0000-0000-0000-000000000301',
+  '00000000-0000-0000-0000-000000000201',
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000002',
+  85000, '2026-07-01', '2026-07-31',
+  '/quittances/2026-07.pdf', 'sha256:e3b0c44298fc',
+  '00000000-0000-0000-0000-000000000002', now(), 'signed'
+)
+on conflict (id) do nothing;
