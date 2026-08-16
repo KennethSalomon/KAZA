@@ -34,8 +34,11 @@ test.describe('Auth flow', () => {
     page.on('request', (req) => {
       if (req.url().includes('/api/login')) console.log('[KAZA:REQ]', req.method(), req.url());
     });
-    page.on('response', (res) => {
-      if (res.url().includes('/api/login')) console.log('[KAZA:RES]', res.status());
+    page.on('response', async (res) => {
+      if (res.url().includes('/api/login')) {
+        const body = await res.text().catch(() => '');
+        console.log('[KAZA:RES]', res.status(), body.slice(0, 300));
+      }
     });
     await page.goto('/login');
     await page.getByLabel(/e-?mail/i).fill('nonexistent@example.com');
