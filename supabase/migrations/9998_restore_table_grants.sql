@@ -1,5 +1,5 @@
 -- ============================================================
--- 9999_restore_table_grants.sql — Parité privilèges avec Supabase Cloud
+-- 9998_restore_table_grants.sql — Parité privilèges avec Supabase Cloud
 -- ------------------------------------------------------------
 -- Le reset local (supabase db reset, CLI 2.1xx) n'applique PAS les
 -- privilèges par défaut de Supabase Cloud sur les tables (grant ALL à

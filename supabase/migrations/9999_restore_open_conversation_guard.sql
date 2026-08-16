@@ -1,5 +1,5 @@
 -- ------------------------------------------------------------
--- 017_restore_open_conversation_guard.sql
+-- 9999_restore_open_conversation_guard.sql
 -- RÉGRESSION CORRIGÉE : la migration 999_fix_rls_complete.sql a
 -- écrasé open_conversation() en supprimant le garde-fou
 -- « bien publié + vérifié uniquement » ajouté par la migration 004.

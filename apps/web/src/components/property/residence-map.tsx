@@ -79,7 +79,9 @@ export function ResidenceMap({
         marker.on('click', () => onSelect?.(r));
         markersRef.current.set(r.id, marker);
       } else {
-        markersRef.current.get(r.id)?.setIcon(icon(r.id === activeId));
+        const existing = markersRef.current.get(r.id);
+        existing?.setIcon(icon(r.id === activeId));
+        existing?.off('click').on('click', () => onSelect?.(r));
       }
     }
     // retrait des marqueurs disparus

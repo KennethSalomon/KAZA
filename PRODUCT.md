@@ -27,7 +27,7 @@ Français (bénin). Ton humain, proche, rassurant : la gestion locative expliqu�
 Frontend Next.js 15 (App Router, TS strict, Tailwind, Framer Motion, Leaflet, lucide) → Supabase Cloud (Auth, PostgreSQL 15 + PostGIS, Storage, Realtime) + Edge Functions Deno (FedaPay, quittances, CRON impayés). Pas de backend applicatif : logique métier en SQL (triggers, RPC security definer). Docker/local abandonné (BIOS verrouillé → cloud uniquement).
 
 ## Liens
-- Dépôt GitHub (principal) : https://github.com/kazagroupe0-blip/Kaza
+- Dépôt GitHub (principal) : https://github.com/KennethSalomon/KAZA
 - Projet Supabase cloud : `qbogbuwnkwqgarbchtyr` (https://qbogbuwnkwqgarbchtyr.supabase.co)
 - Comptes démo (seed) : locataire.demo@kaza.bj / bailleur.demo@kaza.bj / admin@kaza.bj — `KazaDemo2026!`
 - Charte graphique : `C:\Users\hp\Downloads\KAZA\kaza.md\kaza-charte-graphique.md` (source de vérité pour DESIGN.md)

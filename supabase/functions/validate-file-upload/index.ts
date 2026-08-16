@@ -86,6 +86,6 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ ok: true, validated: match.name }, 200, origin);
   } catch (err) {
     console.error('[validate-upload] unexpected error', err);
-    return jsonResponse({ ok: true, skipped: true, reason: 'internal error' }, 200, origin);
+    return jsonResponse({ ok: false, error: 'internal error' }, 500, origin);
   }
 });
