@@ -92,9 +92,10 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Exclut les assets statiques, images et fichiers Next internes.
-     * Toutes les autres routes passent par le middleware.
+     * Exclut les routes API (les route handlers gèrent leur propre auth),
+     * les assets statiques, images et fichiers Next internes. Toutes les
+     * autres routes passent par le middleware.
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|js|json|css|woff2?|txt|xml)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|js|json|css|woff2?|txt|xml)$).*)',
   ],
 };
