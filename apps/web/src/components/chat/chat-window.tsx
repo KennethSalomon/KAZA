@@ -138,6 +138,7 @@ export function ChatWindow() {
       });
       setBody('');
       setPendingFiles([]);
+      void load();
     } catch (err) {
       apiToast(toast, err, 'Envoi impossible');
     } finally {
