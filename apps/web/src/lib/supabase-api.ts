@@ -512,9 +512,16 @@ export async function reportCashPayment(input: {
 }): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new ApiError(401, 'Connectez-vous pour payer');
+  const { data: lease, error: leaseErr } = await supabase
+    .from('leases')
+    .select('landlord_id')
+    .eq('id', input.lease_id)
+    .single();
+  if (leaseErr || !lease) throw new ApiError(400, 'Bail introuvable');
   const { error } = await supabase.from('payments').insert({
     lease_id: input.lease_id,
     tenant_id: user.id,
+    landlord_id: lease.landlord_id,
     amount: input.amount,
     period_start: input.period_start,
     period_end: input.period_end,

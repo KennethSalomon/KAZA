@@ -34,12 +34,6 @@ test.describe('Parcours principal locataire', () => {
     await page.goto('/dashboard');
     await page.getByTestId('pay-loyer').first().click();
     await page.getByRole('tab', { name: 'Espèces' }).click();
-    page.on('response', async (res) => {
-      if (res.url().includes('/rest/v1/payments')) {
-        const body = await res.text().catch(() => '');
-        console.log('[KAZA:PAY]', res.status(), body.slice(0, 300));
-      }
-    });
     await page.getByRole('button', { name: /Signaler le paiement/ }).click();
     await expect(page.getByText('Paiement signalé')).toBeVisible();
 
