@@ -552,8 +552,9 @@ export async function initFedapayPayment(
   leaseId: string,
   channel: string,
   phone?: string,
+  months: number = 1,
 ): Promise<FedapayInitResult> {
-  return callFunction<FedapayInitResult>('fedapay-init', { lease_id: leaseId, channel, phone });
+  return callFunction<FedapayInitResult>('fedapay-init', { lease_id: leaseId, channel, phone, months });
 }
 
 export async function confirmPayment(paymentId: string): Promise<void> {

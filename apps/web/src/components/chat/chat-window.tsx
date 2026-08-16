@@ -168,7 +168,8 @@ export function ChatWindow() {
     try {
       await agreeVisit(id, agreed);
       toast.success(agreed ? 'Visite confirmée' : 'Visite refusée');
-      setBody(agreed ? '✅ Visite confirmée par le bailleur.' : '❌ Visite refusée.');
+      // RPC agree_visit already inserts a system message (kind='visit_agreed' or 'system')
+      // Do NOT pre-fill the input to avoid duplicate message if user clicks send
     } catch {
       toast.error('Action impossible');
     }

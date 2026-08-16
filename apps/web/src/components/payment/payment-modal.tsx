@@ -57,7 +57,7 @@ export function PaymentModal({
       } else {
         // Mobile money : transaction créée via l'edge function FedaPay,
         // puis redirection vers la page de paiement hébergée.
-        const res = await initFedapayPayment(lease.id, provider, phone);
+        const res = await initFedapayPayment(lease.id, provider, phone, months);
         if (!res.payment_url) {
           throw new ApiError(502, 'Le fournisseur de paiement n\'a pas renvoyé de page de paiement.');
         }

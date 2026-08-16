@@ -55,13 +55,15 @@ Deno.serve(async (req: Request) => {
       return errorResponse('Trop de tentatives, réessayez dans une minute', 429, origin);
     }
 
-    let parsed: { lease_id?: string; channel?: string; phone?: string };
+    let parsed: { lease_id?: string; channel?: string; phone?: string; months?: number };
     try {
-      parsed = await req.json() as { lease_id?: string; channel?: string; phone?: string };
+      parsed = await req.json() as { lease_id?: string; channel?: string; phone?: string; months?: number };
     } catch {
       return errorResponse('Corps JSON invalide', 400, origin);
     }
-    const { lease_id, channel, phone } = parsed;
+    const { lease_id, channel, phone, months = 1 } = parsed;
+    // Borner months entre 1 et 6 pour éviter abus
+    const monthsClamped = Math.max(1, Math.min(6, months));
     if (!lease_id) return errorResponse('lease_id requis', 400, origin);
 
     // Validation runtime du canal (le cast TS ≠ validation) : un canal inconnu
@@ -102,16 +104,18 @@ Deno.serve(async (req: Request) => {
       return errorResponse('Un paiement est déjà en attente pour ce bail', 409, origin);
     }
 
-    // Période suivante due : depuis date_fn_couverture sur un mois.
+    // Période suivante due : depuis date_fn_couverture sur N mois (1-6).
     const start = new Date(`${lease.date_fn_couverture}T00:00:00Z`);
     if (Number.isNaN(start.getTime()) || Number(lease.monthly_rent) <= 0) {
       return errorResponse('Bail invalide (couverture ou loyer manquant)', 409, origin);
     }
     const end = new Date(start);
-    end.setUTCMonth(end.getUTCMonth() + 1);
+    end.setUTCMonth(end.getUTCMonth() + monthsClamped);
     end.setUTCDate(end.getUTCDate() - 1);
     const periodStart = start.toISOString().slice(0, 10);
     const periodEnd = end.toISOString().slice(0, 10);
+
+    const amount = Number(lease.monthly_rent) * monthsClamped;
 
     // Insertion du paiement AVANT l'appel provider (le paiement reste pending
     // jusqu'à confirmation du webhook FedaPay).
@@ -121,7 +125,7 @@ Deno.serve(async (req: Request) => {
         lease_id: lease.id,
         tenant_id: lease.tenant_id,
         landlord_id: lease.landlord_id,
-        amount: lease.monthly_rent,
+        amount,
         period_start: periodStart,
         period_end: periodEnd,
         method: 'mobile_money',
@@ -138,14 +142,14 @@ Deno.serve(async (req: Request) => {
       .eq('id', user.id)
       .maybeSingle();
 
-    const amount = Number(lease.monthly_rent);
+    const amount = Number(lease.monthly_rent) * monthsClamped;
     const fullName = profile?.full_name?.trim() ?? '';
     const nameParts = fullName.split(/\s+/).filter(Boolean);
     const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/fedapay-webhook`;
 
     // 1) Création de la transaction FedaPay (timeout : 15 s)
     const createBody: Record<string, unknown> = {
-      description: `Loyer mensuel — ${lease.residences?.[0]?.title ?? 'KAZA.BJ'}`,
+      description: `${monthsClamped > 1 ? `Loyer ${monthsClamped} mois` : 'Loyer mensuel'} — ${lease.residences?.[0]?.title ?? 'KAZA.BJ'}`,
       amount,
       currency: { iso: 'XOF' },
       callback_url: callbackUrl,
