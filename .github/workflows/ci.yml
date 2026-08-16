@@ -88,6 +88,40 @@ jobs:
         run: supabase db reset
         working-directory: .
 
+      - name: Debug ACLs (temporaire)
+        run: |
+          API="http://localhost:54321"
+          ANON="${{ steps.supabase.outputs.ANON_KEY }}"
+          echo "== get_residence en ANON =="
+          curl -s -o /tmp/r1.json -w "HTTP %{http_code}\n" -X POST "$API/rest/v1/rpc/get_residence" \
+            -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "Content-Type: application/json" \
+            -d '{"p_residence_id":"00000000-0000-0000-0000-000000000101"}'
+          head -c 400 /tmp/r1.json; echo
+          echo "== login locataire demo =="
+          curl -s -o /tmp/login.json -w "HTTP %{http_code}\n" -X POST "$API/auth/v1/token?grant_type=password" \
+            -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "Content-Type: application/json" \
+            -d '{"email":"locataire.demo@kaza.bj","password":"KazaDemo2026!"}'
+          head -c 300 /tmp/login.json; echo
+          JWT=$(grep -o '"access_token":"[^"]*"' /tmp/login.json | cut -d'"' -f4)
+          echo "JWT len: ${#JWT}"
+          echo "== get_residence en AUTHENTICATED =="
+          curl -s -o /tmp/r2.json -w "HTTP %{http_code}\n" -X POST "$API/rest/v1/rpc/get_residence" \
+            -H "apikey: $ANON" -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
+            -d '{"p_residence_id":"00000000-0000-0000-0000-000000000101"}'
+          head -c 400 /tmp/r2.json; echo
+          echo "== profiles select ANON =="
+          curl -s -o /tmp/p1.json -w "HTTP %{http_code}\n" "$API/rest/v1/profiles?select=id&limit=1" -H "apikey: $ANON"
+          head -c 200 /tmp/p1.json; echo
+          echo "== profiles select AUTH =="
+          curl -s -o /tmp/p2.json -w "HTTP %{http_code}\n" "$API/rest/v1/profiles?select=id&limit=1" -H "apikey: $ANON" -H "Authorization: Bearer $JWT"
+          head -c 200 /tmp/p2.json; echo
+          echo "== search_residences AUTH =="
+          curl -s -o /tmp/s1.json -w "HTTP %{http_code}\n" -X POST "$API/rest/v1/rpc/search_residences" \
+            -H "apikey: $ANON" -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
+            -d '{"p_q":null,"p_city":null,"p_zone":null,"p_type":null,"p_max_price":null,"p_lat":null,"p_lng":null,"p_radius_km":10,"p_limit":10,"p_offset":0}'
+          head -c 400 /tmp/s1.json; echo
+          echo "== FAILED_RUN_MARKER =="
+
       - name: Install Playwright browsers
         run: npx playwright install chromium
         working-directory: apps/web
