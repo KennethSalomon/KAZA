@@ -51,7 +51,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
@@ -73,7 +73,11 @@ jobs:
       - name: Start Supabase local
         id: supabase
         run: |
-          supabase start
+          for i in 1 2 3 4; do
+            if supabase start; then break; fi
+            echo "supabase start (tentative $i) échouée — nouvel essai dans 30s (rate limit Docker Hub)..."
+            sleep 30
+          done
           env_vars=$(supabase status -o env)
           anon_key=$(printf '%s\n' "$env_vars" | grep -iE '^anon_key=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
           if [ -z "$anon_key" ]; then
