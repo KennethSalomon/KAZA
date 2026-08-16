@@ -1,133 +1,76 @@
-export type Role = 'visiteur' | 'locataire' | 'bailleur' | 'admin';
-export type Status = 'libre' | 'occupee' | 'en_visite' | 'maintenance';
-export type ResidenceType = 'studio' | 'chambre' | 'appartement' | 'villa' | 'magasin' | 'terrain';
+// Re-export database-generated types for application use
+// DO NOT EDIT MANUALLY — this file derives from database.types.ts
+// Run `npm run db:types` to regenerate the source
 
-export interface Profile {
-  id: string;
-  email: string | null;
-  phone: string | null;
-  full_name: string;
-  role: Role;
-  avatar_url: string | null;
-  is_premium: boolean;
-  is_verified_landlord: boolean;
-  consent_apdp: boolean;
-}
+import type { Database } from './database.types';
 
-export interface Residence {
-  id: string;
-  owner_id: string;
-  title: string;
-  description: string | null;
-  type: ResidenceType;
-  price_monthly: number;
-  deposit: number;
-  bedrooms: number;
-  bathrooms: number;
-  surface: number | null;
-  address: string | null;
-  city: string;
-  zone: string | null;
-  lat: number | null;
-  lng: number | null;
-  photos: string[];
-  status: Status;
-  is_published: boolean;
-  is_verified: boolean;
-  views_count: number;
-  created_at: string;
+export type Role = Database['public']['Enums']['user_role'];
+export type ResidenceStatus = Database['public']['Enums']['residence_status'];
+export type ResidenceType = Database['public']['Enums']['residence_type'];
+export type LeaseStatus = Database['public']['Enums']['lease_status'];
+export type PaymentMethod = Database['public']['Enums']['payment_method'];
+export type PaymentProvider = Database['public']['Enums']['payment_provider'];
+export type PaymentStatus = Database['public']['Enums']['payment_status'];
+export type NotificationType = Database['public']['Enums']['notification_type'];
+
+export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type Residence = Database['public']['Tables']['residences']['Row'];
+export type Conversation = Database['public']['Tables']['conversations']['Row'];
+export type Message = Database['public']['Tables']['messages']['Row'];
+export type Lease = Database['public']['Tables']['leases']['Row'];
+export type Payment = Database['public']['Tables']['payments']['Row'];
+export type Receipt = Database['public']['Tables']['receipts']['Row'];
+export type AppNotification = Database['public']['Tables']['notifications']['Row'];
+
+// Extended types with relations (matching RPC return shapes)
+export type ResidenceWithRelations = Residence & {
   distance_km?: number | null;
   rating_avg?: number | null;
   rating_count?: number;
-  owner?: { id: string; full_name: string; phone: string | null; avatar_url: string | null; is_premium: boolean; is_verified_landlord: boolean } | null;
-  owner_full_name?: string | null;
-  owner_is_verified_landlord?: boolean;
-  owner_is_premium?: boolean;
-}
+  owner?: {
+    id: string;
+    full_name: string;
+    phone: string | null;
+    avatar_url: string | null;
+    is_premium: boolean;
+    is_verified_landlord: boolean;
+  } | null;
+};
 
-export interface Conversation {
-  id: string;
-  residence_id: string;
-  landlord_id: string;
-  tenant_id: string;
-  last_message_at: string | null;
-  last_message_preview: string | null;
-  residence: { id: string; title: string; photos: string[]; price_monthly: number; city: string; zone: string } | null;
-  peer: { id: string; full_name: string; role: string; avatar_url: string | null } | null;
+export type ConversationWithRelations = Conversation & {
+  residence: {
+    id: string;
+    title: string;
+    photos: string[];
+    price_monthly: number;
+    city: string;
+    zone: string | null;
+  } | null;
+  peer: {
+    id: string;
+    full_name: string;
+    role: string;
+    avatar_url: string | null;
+  } | null;
   unread_count: number;
-}
+};
 
-export interface Message {
-  id: string;
-  conversation_id: string;
-  sender_id: string;
-  body: string | null;
-  attachments: string[];
-  kind: 'text' | 'image' | 'document' | 'visit_request' | 'visit_agreed' | 'system';
-  read_at: string | null;
-  created_at: string;
-}
-
-export interface Lease {
-  id: string;
-  residence_id: string;
-  tenant_id: string;
-  landlord_id: string;
-  monthly_rent: number;
-  deposit: number;
-  start_date: string;
-  end_date: string | null;
-  status: 'active' | 'terminated' | 'pending';
-  date_fn_couverture: string;
-  created_at: string;
-  residence?: Residence | null;
+export type LeaseWithRelations = Lease & {
+  residence?: ResidenceWithRelations | null;
   tenant?: Profile | null;
   landlord?: Profile | null;
   is_overdue?: boolean;
-}
+};
 
-export interface Payment {
-  id: string;
-  lease_id: string;
-  tenant_id: string;
-  landlord_id: string;
-  amount: number;
-  period_start: string;
-  period_end: string;
-  method: 'mobile_money' | 'cash';
-  provider: 'mtn' | 'moov' | 'celtiis' | 'cash';
-  provider_ref: string | null;
-  status: 'pending' | 'confirmed' | 'rejected';
-  created_at: string;
+export type PaymentWithRelations = Payment & {
   lease?: { id: string; residence_id: string; monthly_rent: number; status: string } | null;
-}
+};
 
-export interface Receipt {
-  id: string;
-  payment_id: string;
-  lease_id: string;
-  tenant_id: string;
-  landlord_id: string;
-  amount: number;
-  period_start: string;
-  period_end: string;
-  file_url: string | null;
-  signature_hash: string | null;
-  signed_at: string | null;
-  status: 'pending_signature' | 'signed';
-  created_at: string;
+export type ReceiptWithRelations = Receipt & {
   landlord?: { id: string; full_name: string } | null;
-}
+};
 
-export interface AppNotification {
-  id: string;
-  type: 'message' | 'payment' | 'receipt' | 'lease' | 'overdue' | 'system' | 'visit';
-  title: string;
-  body: string | null;
-  data: Record<string, unknown> | null;
-  read_at: string | null;
-  created_at: string;
-}
+export type MessageKind = Message['kind'];
 
 export interface Review {
   id: string;
@@ -144,3 +87,27 @@ export interface ReviewsResult {
   count: number;
   reviews: Review[];
 }
+
+// Admin types
+export interface AdminStats {
+  users: {
+    total: number;
+    by_role: Record<string, number>;
+  };
+  residences: {
+    total: number;
+    by_status: Record<string, number>;
+  };
+  leases: {
+    total: number;
+  };
+  payments: {
+    confirmed_count: number;
+    total_collected_xof: number;
+  };
+}
+
+// Type aliases for backward compatibility (components expecting relations)
+export type ResidenceInput = Database['public']['Tables']['residences']['Insert'];
+export type ResidenceCreateInput = Omit<ResidenceInput, 'owner_id'>;
+export type Status = ResidenceStatus;

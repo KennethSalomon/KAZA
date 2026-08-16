@@ -3,12 +3,18 @@ import { env } from './env';
 import type {
   AppNotification,
   Conversation,
+  ConversationWithRelations,
   Lease,
+  LeaseWithRelations,
   Message,
   Payment,
+  PaymentWithRelations,
   Profile,
   Receipt,
+  ReceiptWithRelations,
   Residence,
+  ResidenceCreateInput,
+  ResidenceWithRelations,
   ResidenceType,
   ReviewsResult,
 } from './types';
@@ -246,13 +252,13 @@ export async function searchResidences(params: SearchParams = {}): Promise<Resid
   return (data ?? []) as unknown as Residence[];
 }
 
-export async function getResidence(id: string): Promise<Residence> {
+export async function getResidence(id: string): Promise<ResidenceWithRelations> {
   const { data, error } = await supabase.rpc('get_residence', { p_residence_id: id });
   if (error) throw normalizeError(error, 'Bien introuvable');
-  return data as unknown as Residence;
+  return data as unknown as ResidenceWithRelations;
 }
 
-export async function listMyResidences(): Promise<Residence[]> {
+export async function listMyResidences(): Promise<ResidenceWithRelations[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
   const { data, error } = await supabase
@@ -261,7 +267,7 @@ export async function listMyResidences(): Promise<Residence[]> {
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false });
   if (error) throw normalizeError(error, 'Chargement impossible');
-  return (data ?? []) as Residence[];
+  return (data ?? []) as ResidenceWithRelations[];
 }
 
 export type ResidenceInput = Omit<
@@ -296,7 +302,7 @@ export async function geocode(city: string, zone: string): Promise<{ lat: number
   }
 }
 
-export async function createResidence(input: ResidenceInput): Promise<Residence> {
+export async function createResidence(input: ResidenceCreateInput): Promise<Residence> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new ApiError(401, 'Connectez-vous pour créer un bien');
 
@@ -306,6 +312,7 @@ export async function createResidence(input: ResidenceInput): Promise<Residence>
 
   const payload = {
     ...input,
+    owner_id: user.id,
     price_monthly: Number(input.price_monthly),
     deposit: Number(input.deposit ?? 0),
     bedrooms: Number(input.bedrooms ?? 1),
@@ -383,20 +390,20 @@ export async function openConversation(residenceId: string): Promise<string> {
   return data as string;
 }
 
-export async function listMyConversations(): Promise<Conversation[]> {
+export async function listMyConversations(): Promise<ConversationWithRelations[]> {
   const { data, error } = await supabase.rpc('list_my_conversations');
   if (error) throw normalizeError(error, 'Chargement impossible');
-  return (data ?? []) as unknown as Conversation[];
+  return (data ?? []) as unknown as ConversationWithRelations[];
 }
 
-export async function getConversation(id: string): Promise<Conversation | null> {
+export async function getConversation(id: string): Promise<ConversationWithRelations | null> {
   const { data, error } = await supabase
     .from('conversations')
     .select('*')
     .eq('id', id)
     .maybeSingle();
   if (error) throw normalizeError(error, 'Conversation introuvable');
-  return data as Conversation | null;
+  return data as ConversationWithRelations | null;
 }
 
 export async function listMessages(conversationId: string): Promise<Message[]> {
@@ -452,10 +459,10 @@ export async function agreeVisit(
 // ------------------------------------------------------------
 // Baux
 // ------------------------------------------------------------
-export async function listMyLeases(): Promise<Lease[]> {
+export async function listMyLeases(): Promise<LeaseWithRelations[]> {
   const { data, error } = await supabase.rpc('list_my_leases');
   if (error) throw normalizeError(error, 'Chargement impossible');
-  return (data ?? []) as unknown as Lease[];
+  return (data ?? []) as unknown as LeaseWithRelations[];
 }
 
 export async function createLease(input: {
@@ -492,16 +499,16 @@ export async function listTenants(): Promise<Profile[]> {
 // ------------------------------------------------------------
 // Paiements & quittances
 // ------------------------------------------------------------
-export async function listMyPayments(): Promise<Payment[]> {
+export async function listMyPayments(): Promise<PaymentWithRelations[]> {
   const { data, error } = await supabase.rpc('list_my_payments');
   if (error) throw normalizeError(error, 'Chargement impossible');
-  return (data ?? []) as unknown as Payment[];
+  return (data ?? []) as unknown as PaymentWithRelations[];
 }
 
-export async function listMyReceipts(): Promise<Receipt[]> {
+export async function listMyReceipts(): Promise<ReceiptWithRelations[]> {
   const { data, error } = await supabase.rpc('list_my_receipts');
   if (error) throw normalizeError(error, 'Chargement impossible');
-  return (data ?? []) as unknown as Receipt[];
+  return (data ?? []) as unknown as ReceiptWithRelations[];
 }
 
 export async function reportCashPayment(input: {

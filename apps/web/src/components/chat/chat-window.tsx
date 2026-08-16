@@ -13,7 +13,7 @@ import {
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase-client';
-import type { Conversation, Message } from '@/lib/types';
+import type { ConversationWithRelations, Message } from '@/lib/types';
 import { timeAgo, formatXof } from '@/lib/format';
 import { apiToast } from '@/lib/api-toast';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,7 @@ export function ChatWindow() {
   const toast = useToast();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [conversation, setConversation] = useState<ConversationWithRelations | null>(null);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);

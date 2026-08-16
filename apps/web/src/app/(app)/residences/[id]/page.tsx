@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowLeft, BedDouble, Bath, Ruler, MapPin, ShieldCheck, MessageSquare, Eye } from 'lucide-react';
 import { getResidence, openConversation as openConv, incrementResidenceViews, ApiError } from '@/lib/supabase-api';
-import type { Residence } from '@/lib/types';
+import type { ResidenceWithRelations } from '@/lib/types';
 import { formatXof, formatDate, PROVIDER_LABELS } from '@/lib/format';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ export default function ResidenceDetailPage() {
   const router = useRouter();
   const { user } = useAuth();
   const toast = useToast();
-  const [residence, setResidence] = useState<Residence | null>(null);
+  const [residence, setResidence] = useState<ResidenceWithRelations | null>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);

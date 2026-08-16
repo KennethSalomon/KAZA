@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import dynamic from 'next/dynamic';
 import { LocateFixed, Map as MapIcon, List, SlidersHorizontal, X } from 'lucide-react';
 import { searchResidences } from '@/lib/supabase-api';
-import type { Residence, ResidenceType } from '@/lib/types';
+import type { ResidenceWithRelations, ResidenceType } from '@/lib/types';
 import { TYPE_LABELS } from '@/lib/format';
 import { PropertyCard } from '@/components/property/property-card';
 import { PropertyCardSkeleton } from '@/components/ui/skeleton';
@@ -37,7 +37,7 @@ const initialFilters: Filters = { q: '', city: '', zone: '', min_price: '', max_
 const ALL_TYPES = Object.keys(TYPE_LABELS) as ResidenceType[];
 
 export default function ExplorerPage() {
-  const [residences, setResidences] = useState<Residence[]>([]);
+  const [residences, setResidences] = useState<ResidenceWithRelations[]>([]);
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [selectedTypes, setSelectedTypes] = useState<Set<ResidenceType>>(new Set());
   const [sort, setSort] = useState<SortKey>('recent');
@@ -128,7 +128,7 @@ export default function ExplorerPage() {
     const cityCounts = new Map<string, number>();
     const zoneCounts = new Map<string, number>();
     for (const r of residences) {
-      cityCounts.set(r.city, (cityCounts.get(r.city) ?? 0) + 1);
+      cityCounts.set(r.city ?? 'Inconnu', (cityCounts.get(r.city ?? 'Inconnu') ?? 0) + 1);
       if (r.zone) zoneCounts.set(r.zone, (zoneCounts.get(r.zone) ?? 0) + 1);
     }
     const byFreq = (m: Map<string, number>) => [...m.entries()].sort((a, b) => b[1] - a[1]).map(([v]) => v);

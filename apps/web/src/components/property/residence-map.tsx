@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin } from 'lucide-react';
-import type { Residence } from '@/lib/types';
+import type { ResidenceWithRelations } from '@/lib/types';
 import { formatXof } from '@/lib/format';
 
 // note : carte Leaflet + tuiles OpenStreetMap, thème clair Kaza (globals.css).
@@ -19,10 +19,10 @@ export function ResidenceMap({
   activeId,
   onSelect,
 }: {
-  residences: Residence[];
+  residences: ResidenceWithRelations[];
   center?: { lat: number; lng: number };
   activeId?: string | null;
-  onSelect?: (r: Residence) => void;
+  onSelect?: (r: ResidenceWithRelations) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -74,7 +74,7 @@ export function ResidenceMap({
         popup.setContent(
           `<strong style="color:#0F172A">${escHtml(r.title)}</strong><br/>
            <span style="color:#0E4728;font-weight:600">${formatXof(r.price_monthly)}</span> /mois<br/>
-           <span style="color:#64748B">${escHtml(r.zone ?? '')} ${escHtml(r.city)}</span>`,
+           <span style="color:#64748B">${escHtml(r.zone ?? '')} ${escHtml(r.city ?? '')}</span>`,
         );
         marker.on('click', () => onSelect?.(r));
         markersRef.current.set(r.id, marker);

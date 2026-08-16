@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { listMyConversations } from '@/lib/supabase-api';
 import { supabase } from '@/lib/supabase-client';
-import type { Conversation } from '@/lib/types';
+import type { ConversationWithRelations } from '@/lib/types';
 import { timeAgo, formatXof } from '@/lib/format';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,7 +14,7 @@ import { PanelsTopLeft } from 'lucide-react';
 
 export function ConversationList() {
   const { user } = useAuth();
-  const [items, setItems] = useState<Conversation[]>([]);
+  const [items, setItems] = useState<ConversationWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -62,7 +62,7 @@ export function ConversationList() {
                 : m.kind === 'document'
                   ? '📎 Document'
                   : m.body?.trim() || 'Nouveau message';
-            const updated: Conversation = {
+            const updated: ConversationWithRelations = {
               ...prev[idx],
               last_message_preview: preview,
               last_message_at: new Date().toISOString(),

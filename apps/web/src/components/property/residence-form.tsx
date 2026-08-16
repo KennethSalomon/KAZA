@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Upload, Trash2 } from 'lucide-react';
 import { createResidence, updateResidence, ApiError } from '@/lib/supabase-api';
 import { supabase } from '@/lib/supabase-client';
-import type { Residence, ResidenceType } from '@/lib/types';
+import type { ResidenceWithRelations, ResidenceType } from '@/lib/types';
 import { TYPE_LABELS } from '@/lib/format';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -27,7 +27,7 @@ const initial = {
   zone: '',
 };
 
-export function ResidenceForm({ existing }: Readonly<{ existing?: Residence | null }>) {
+export function ResidenceForm({ existing }: Readonly<{ existing?: ResidenceWithRelations | null }>) {
   const router = useRouter();
   const toast = useToast();
   const [form, setForm] = useState(() =>
@@ -42,7 +42,7 @@ export function ResidenceForm({ existing }: Readonly<{ existing?: Residence | nu
           bathrooms: String(existing.bathrooms),
           surface: existing.surface != null ? String(existing.surface) : '',
           address: existing.address ?? '',
-          city: existing.city,
+          city: existing.city ?? '',
           zone: existing.zone ?? '',
         }
       : initial,

@@ -14,7 +14,7 @@ import {
   terminateLease as terminateLeaseApi,
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
-import type { Receipt, Residence, Payment, Lease } from '@/lib/types';
+import type { ReceiptWithRelations, ResidenceWithRelations, PaymentWithRelations, LeaseWithRelations } from '@/lib/types';
 import { formatXof, formatDate, PROVIDER_LABELS } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,10 +26,10 @@ import { apiToast } from '@/lib/api-toast';
 export default function LandlordHomePage() {
   const { user } = useAuth();
   const toast = useToast();
-  const [residences, setResidences] = useState<Residence[]>([]);
-  const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
-  const [pendingReceipts, setPendingReceipts] = useState<Receipt[]>([]);
-  const [leases, setLeases] = useState<Lease[]>([]);
+  const [residences, setResidences] = useState<ResidenceWithRelations[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<PaymentWithRelations[]>([]);
+  const [pendingReceipts, setPendingReceipts] = useState<ReceiptWithRelations[]>([]);
+  const [leases, setLeases] = useState<LeaseWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 

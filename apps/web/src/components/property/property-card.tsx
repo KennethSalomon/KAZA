@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { BedDouble, Bath, Ruler, MapPin } from 'lucide-react';
-import type { Residence } from '@/lib/types';
+import type { ResidenceWithRelations } from '@/lib/types';
 import { formatXof, TYPE_LABELS } from '@/lib/format';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { FavoriteButton } from '@/components/property/favorite-button';
@@ -16,7 +16,7 @@ export function PropertyCard({
   favoriteInitial = false,
   onToggleFavorite,
 }: Readonly<{
-  residence: Residence;
+  residence: ResidenceWithRelations;
   index?: number;
   active?: boolean;
   favoriteInitial?: boolean;

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { AlertTriangle, CreditCard, FileDown, KeyRound, RefreshCw } from 'lucide-react';
 import { listMyLeases, listMyPayments, listMyReceipts, getSignedStorageUrl } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
-import type { Lease, Payment, Receipt } from '@/lib/types';
+import type { LeaseWithRelations, PaymentWithRelations, ReceiptWithRelations, Payment, Lease } from '@/lib/types';
 import { formatXof, formatDate, PROVIDER_LABELS } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,11 +17,11 @@ import { PaymentModal } from '@/components/payment/payment-modal';
 export default function TenantDashboardPage() {
   const { user, role, loading } = useAuth();
   const toast = useToast();
-  const [leases, setLeases] = useState<Lease[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [leases, setLeases] = useState<LeaseWithRelations[]>([]);
+  const [payments, setPayments] = useState<PaymentWithRelations[]>([]);
+  const [receipts, setReceipts] = useState<ReceiptWithRelations[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const [payLease, setPayLease] = useState<Lease | null>(null);
+  const [payLease, setPayLease] = useState<LeaseWithRelations | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -238,7 +238,7 @@ function PaymentStatusBadge({ status }: { status: Payment['status'] }) {
 }
 
 /** Reconstruit un bail minimal depuis un paiement (réouverture du modal de paiement). */
-function leaseFromPayment(p: Payment): Lease {
+function leaseFromPayment(p: PaymentWithRelations): Lease {
   return {
     id: p.lease_id,
     residence_id: p.lease?.residence_id ?? '',
@@ -251,5 +251,6 @@ function leaseFromPayment(p: Payment): Lease {
     status: 'active',
     date_fn_couverture: p.period_end,
     created_at: p.created_at,
+    updated_at: p.created_at,
   };
 }

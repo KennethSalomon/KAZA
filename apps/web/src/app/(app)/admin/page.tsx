@@ -12,7 +12,7 @@ import {
   adminToggleRole,
 } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
-import type { Profile, Residence } from '@/lib/types';
+import type { Profile, ResidenceWithRelations } from '@/lib/types';
 import { formatXof } from '@/lib/format';
 import { apiToast } from '@/lib/api-toast';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ export default function AdminPage() {
   const { role } = useAuth();
   const toast = useToast();
   const [stats, setStats] = useState<Stats | null>(null);
-  const [residences, setResidences] = useState<Residence[]>([]);
+  const [residences, setResidences] = useState<ResidenceWithRelations[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
