@@ -36,13 +36,12 @@ grant execute on function public.create_lease(uuid, uuid, date, numeric, numeric
 grant execute on function public.terminate_lease(uuid) to authenticated;
 grant execute on function public.admin_stats() to authenticated;
 grant execute on function public.list_tenants() to authenticated;
--- delete_my_account est recréée plus bas : le create réaccorde EXECUTE à
--- PUBLIC par défaut → on le retire immédiatement.
-revoke execute on function public.delete_my_account(uuid) from public, anon;
-grant execute on function public.delete_my_account(uuid) to authenticated;
 -- list_overdue_leases / list_upcoming_due : service_role uniquement
 -- (déjà grantés en 004 ; la suppression du grant PUBLIC suffit).
 -- search_residences reste PUBLIC par conception (recherche publique).
+-- delete_my_account(uuid) : créée plus bas dans cette migration (la
+-- signature uuid n'existe pas avant le create) → revoke/grant placés
+-- après le create pour rester valide sur une base repartie de zéro.
 
 -- ------------------------------------------------------------
 -- 2. Storage — basename exact + brouillons invisibles
@@ -191,6 +190,11 @@ begin
    where id = p_user_id;
 end;
 $$;
+
+-- Le create réaccorde EXECUTE à PUBLIC par défaut → on le retire
+-- immédiatement (après le create, pour rester valide de zéro).
+revoke execute on function public.delete_my_account(uuid) from public, anon;
+grant execute on function public.delete_my_account(uuid) to authenticated;
 
 -- Index négligés (audit v2 — section index)
 create index if not exists payments_landlord_idx
