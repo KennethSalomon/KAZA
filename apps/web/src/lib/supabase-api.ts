@@ -730,31 +730,22 @@ export async function adminListUsers(limit = 30): Promise<Profile[]> {
 }
 
 export async function adminVerifyResidence(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('residences')
-    .update({ is_verified: true })
-    .eq('id', id);
+  const { error } = await supabase.rpc('admin_verify_residence', { p_residence_id: id });
   if (error) throw normalizeError(error, 'Action impossible');
 }
 
 export async function adminUnpublishResidence(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('residences')
-    .update({ is_published: false })
-    .eq('id', id);
+  const { error } = await supabase.rpc('admin_unpublish_residence', { p_residence_id: id });
   if (error) throw normalizeError(error, 'Action impossible');
 }
 
 export async function adminSetPremium(userId: string, isPremium: boolean): Promise<void> {
-  const { error } = await supabase
-    .from('profiles')
-    .update({ is_premium: isPremium })
-    .eq('id', userId);
+  const { error } = await supabase.rpc('admin_set_premium', { p_user_id: userId, p_is_premium: isPremium });
   if (error) throw normalizeError(error, 'Action impossible');
 }
 
 export async function adminToggleRole(userId: string, role: Profile['role']): Promise<void> {
-  const { error } = await supabase.from('profiles').update({ role }).eq('id', userId);
+  const { error } = await supabase.rpc('admin_toggle_role', { p_user_id: userId, p_role: role });
   if (error) throw normalizeError(error, 'Action impossible');
 }
 
