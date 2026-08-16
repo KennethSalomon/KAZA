@@ -98,7 +98,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321/
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
           NEXT_PUBLIC_APP_URL: http://localhost:3000/
-          NEXT_PUBLIC_HCAPTCHA_SITEKEY: ci-build-sitekey-no-secret
+          NEXT_PUBLIC_HCAPTCHA_SITEKEY: ""
         working-directory: .
 
       - name: Upload e2e report

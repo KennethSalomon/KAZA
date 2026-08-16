@@ -4,6 +4,7 @@ import { env } from './lib/env';
 
 // Routes accessibles sans authentification.
 const PUBLIC_PATHS = [
+  '/',
   '/login',
   '/register',
   '/verify-otp',
@@ -11,8 +12,10 @@ const PUBLIC_PATHS = [
   '/reset-password',
   '/explorer',
   '/residences',
+  '/confidentialite',
+  '/mentions-legales',
 ];
-const PUBLIC_PREFIXES = ['/residences/'];
+const PUBLIC_PREFIXES = ['/residences/', '/confidentialite', '/mentions-legales'];
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;

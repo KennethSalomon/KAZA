@@ -43,6 +43,10 @@ export default function RegisterPage() {
     setErrors({});
     setLoading(true);
     try {
+      if (!form.consent) {
+        setErrors({ consent: ['Votre consentement est requis pour créer un compte.'] });
+        return;
+      }
       const captchaToken = env.hcaptchaSitekey
         ? await hcaptcha.execute({ sitekey: env.hcaptchaSitekey })
         : '';
@@ -156,6 +160,11 @@ export default function RegisterPage() {
       {errors.consent_apdp && (
         <p role="alert" className="text-xs text-kaza-danger">
           {errors.consent_apdp[0]}
+        </p>
+      )}
+      {errors.consent && (
+        <p role="alert" className="text-xs text-kaza-danger">
+          {errors.consent[0]}
         </p>
       )}
 

@@ -85,8 +85,11 @@ export async function POST(req: NextRequest) {
     } | null;
 
     if (!res.ok || !payload?.access_token) {
-      const message =
+      const raw =
         payload?.error_description ?? payload?.msg ?? payload?.error ?? `Erreur ${res.status}`;
+      const message = /invalid login credentials|invalid_credentials/i.test(raw)
+        ? 'Identifiants invalides. Vérifiez votre e-mail et votre mot de passe.'
+        : raw;
       return NextResponse.json({ error: message }, { status: res.status === 400 ? 400 : res.status });
     }
 
