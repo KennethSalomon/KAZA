@@ -40,7 +40,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://ci-build.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-anon-key-no-secret
           NEXT_PUBLIC_APP_URL: https://ci-build.kaza.local
-          NEXT_PUBLIC_HCAPTCHA_SITEKEY: ci-build-hcaptcha-placeholder
+          NEXT_PUBLIC_HCAPTCHA_SITEKEY: ci-build-sitekey-no-secret
 
       - name: Secret leak scan (frontend + edge functions)
         run: |

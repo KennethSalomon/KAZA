@@ -35,40 +35,32 @@ enable_confirmations = true
 enabled = true
 file_size_limit = "20MiB"
 
-[functions]
+[edge_runtime]
 enabled = true
-verify_jwt = true
+policy = "oneshot"
+inspector_port = 8083
 
-[functions.fedapay-init]
-verify_jwt = true
-
-[functions.fedapay-init.secrets]
+[edge_runtime.secrets]
 FEDAPAY_SECRET_KEY = "sk_dev_fedapay"
 FEDAPAY_API_BASE = "https://sandbox-api.fedapay.com/v1"
-APP_URL = "http://localhost:3000"
-
-[functions.fedapay-webhook]
-verify_jwt = false
-
-[functions.fedapay-webhook.secrets]
 FEDAPAY_WEBHOOK_SECRET = "wh_dev_secret"
-APP_URL = "http://localhost:3000"
-
-[functions.receipts-sign]
-verify_jwt = true
-
-[functions.receipts-sign.secrets]
-APP_URL = "http://localhost:3000"
-
-[functions.overdue-cron]
-verify_jwt = false
-
-[functions.overdue-cron.secrets]
 CRON_SECRET = "dev-cron-secret"
 BREVO_API_KEY = ""
 BREVO_SENDER_EMAIL = "kaza@example.com"
 BREVO_SENDER_NAME = "KAZA.BJ"
 APP_URL = "http://localhost:3000"
+
+[functions.fedapay-init]
+verify_jwt = true
+
+[functions.fedapay-webhook]
+verify_jwt = false
+
+[functions.receipts-sign]
+verify_jwt = true
+
+[functions.overdue-cron]
+verify_jwt = false
 
 [analytics]
 enabled = false
