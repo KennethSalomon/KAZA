@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -62,17 +62,7 @@ export default function ResidenceDetailPage() {
   }, [residence, user, router, toast]);
 
   if (loading) return <DetailSkeleton />;
-  if (!residence) {
-    return (
-      <div className="grid min-h-[60vh] place-items-center px-4 text-center">
-        <div>
-          <p className="text-5xl font-bold text-kaza-brand">404</p>
-          <h1 className="mt-4 font-display text-xl font-semibold text-kaza-text">Bien introuvable</h1>
-          <p className="mt-2 text-sm text-kaza-muted">Ce logement n&apos;existe plus ou n&apos;est pas disponible.</p>
-        </div>
-      </div>
-    );
-  }
+  if (!residence) notFound();
 
   const photo = residence.photos[photoIndex];
   const isOwner = user?.id === residence.owner_id;
