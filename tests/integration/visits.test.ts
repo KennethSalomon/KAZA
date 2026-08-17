@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { supabaseAnon, supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '@tests/helpers/supabase-test-client';
 import { createClient } from '@supabase/supabase-js';
+import { proposeVisit } from '@/lib/supabase-api';
 
 describe('Visits: table & RLS', () => {
   let landlord: any;
@@ -129,6 +130,15 @@ describe('Visits: table & RLS', () => {
       expect(selectError).toBeNull();
       expect(confirmedVisit?.status).toBe('confirmed');
       expect(confirmedVisit?.confirmed_by).toBe(landlord.user.id);
+    });
+  });
+
+  describe('API: proposeVisit', () => {
+    it('proposeVisit API', async () => {
+      const conversationId = await setupConversation();
+
+      const visitId = await proposeVisit(conversationId, [{ start: '2026-08-20T14:00:00Z', end: '2026-08-20T16:00:00Z' }]);
+      expect(visitId).toBeDefined();
     });
   });
 });

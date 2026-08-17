@@ -13,6 +13,8 @@ import type {
   ResidenceWithRelations,
   ResidenceType,
   ReviewsResult,
+  Visit,
+  VisitStatus,
 } from './types';
 
 // ============================================================
@@ -763,4 +765,57 @@ export async function adminSetLandlordVerified(userId: string, verified: boolean
     p_verified: verified,
   });
   if (error) throw normalizeError(error, 'Action impossible');
+}
+
+// ------------------------------------------------------------
+// Visites
+// ------------------------------------------------------------
+
+export async function proposeVisit(
+  conversationId: string,
+  slots: { start: string; end: string }[]
+): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new ApiError(401, 'Connectez-vous');
+  // On insère une visite par slot proposé (simplification MVP)
+  const visitPromises = slots.map(slot =>
+    supabase.from('visits').insert({
+      conversation_id: conversationId,
+      proposed_by: user.id,
+      slot_start: slot.start,
+      slot_end: slot.end,
+      status: 'proposed',
+    }).select('id').single()
+  );
+  const results = await Promise.all(visitPromises);
+  const first = results[0];
+  if (first.error) throw normalizeError(first.error, 'Proposition impossible');
+  return first.data.id;
+}
+
+export async function confirmVisit(visitId: string, slotIndex: number): Promise<void> {
+  const { error } = await supabase.rpc('confirm_visit', { p_visit_id: visitId, p_slot_index: slotIndex });
+  if (error) throw normalizeError(error, 'Confirmation impossible');
+}
+
+export async function listVisits(conversationId: string): Promise<Visit[]> {
+  const { data, error } = await supabase
+    .from('visits')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false });
+  if (error) throw normalizeError(error, 'Chargement impossible');
+  return (data ?? []) as Visit[];
+}
+
+export async function listMyVisits(): Promise<Visit[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from('visits')
+    .select('*')
+    .or(`proposed_by.eq.${user.id},confirmed_by.eq.${user.id}`)
+    .order('created_at', { ascending: false });
+  if (error) throw normalizeError(error, 'Chargement impossible');
+  return (data ?? []) as Visit[];
 }

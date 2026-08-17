@@ -12,6 +12,7 @@ export type PaymentMethod = Database['public']['Enums']['payment_method'];
 export type PaymentProvider = Database['public']['Enums']['payment_provider'];
 export type PaymentStatus = Database['public']['Enums']['payment_status'];
 export type NotificationType = Database['public']['Enums']['notification_type'];
+export type VisitStatus = 'proposed' | 'confirmed' | 'cancelled' | 'completed';
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Residence = Database['public']['Tables']['residences']['Row'];
@@ -21,6 +22,19 @@ export type Lease = Database['public']['Tables']['leases']['Row'];
 export type Payment = Database['public']['Tables']['payments']['Row'];
 export type Receipt = Database['public']['Tables']['receipts']['Row'];
 export type AppNotification = Database['public']['Tables']['notifications']['Row'];
+
+export interface Visit {
+  id: string;
+  conversation_id: string;
+  proposed_by: string;
+  confirmed_by: string | null;
+  slot_start: string;
+  slot_end: string;
+  status: VisitStatus;
+  note: string | null;
+  created_at: string;
+  confirmed_at: string | null;
+}
 
 // Extended types with relations (matching RPC return shapes)
 export type ResidenceWithRelations = Residence & {
