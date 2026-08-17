@@ -20,6 +20,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'apps/web/src'),
+      '@tests': path.resolve(__dirname, 'tests'),
     },
   },
 });

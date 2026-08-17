@@ -54,3 +54,63 @@ create policy visits_update_landlord on public.visits
     confirmed_by = auth.uid() and
     status = 'confirmed'
   );
+
+-- RPC: confirm_visit (bailleur confirme un créneau)
+create or replace function public.confirm_visit(
+  p_visit_id uuid,
+  p_slot_index int
+)
+returns void language plpgsql security definer set search_path = public
+as $$
+declare
+  v_visit public.visits%rowtype;
+  v_conv public.conversations%rowtype;
+  v_slot_start timestamptz;
+  v_slot_end timestamptz;
+begin
+  -- Load visit
+  select * into v_visit from public.visits where id = p_visit_id;
+  if v_visit is null then
+    raise exception 'Visite introuvable' using errcode = 'P0002';
+  end if;
+  if v_visit.status <> 'proposed' then
+    raise exception 'Visite déjà traitée' using errcode = 'P0001';
+  end if;
+
+  -- Load conversation
+  select * into v_conv from public.conversations where id = v_visit.conversation_id;
+  if v_conv.landlord_id <> auth.uid() then
+    raise exception 'Seul le bailleur confirme la visite' using errcode = '42501';
+  end if;
+
+  -- Pour l'instant un seul slot par visit (p_slot_index ignoré, slot_start/end déjà fixés)
+  -- Si plus tard multi-slots par visit, stocker slots dans jsonb
+  v_slot_start := v_visit.slot_start;
+  v_slot_end := v_visit.slot_end;
+
+  -- Confirm
+  update public.visits
+     set status = 'confirmed',
+         confirmed_by = auth.uid(),
+         confirmed_at = now(),
+         slot_start = v_slot_start,
+         slot_end = v_slot_end
+   where id = p_visit_id;
+
+  -- Message système dans chat
+  insert into public.messages (conversation_id, sender_id, body, kind)
+  values (v_visit.conversation_id, auth.uid(),
+          '✅ Visite confirmée pour le ' || to_char(v_slot_start, 'DD/MM/YYYY à HH24:MI'), 'visit_agreed');
+
+  -- Notification locataire
+  insert into public.notifications (user_id, type, title, body, data)
+  values (v_conv.tenant_id, 'visit', 'Visite confirmée',
+          'Le bailleur vous reçoit le ' || to_char(v_slot_start, 'DD/MM/YYYY à HH24:MI'),
+          jsonb_build_object('visit_id', p_visit_id, 'conversation_id', v_visit.conversation_id));
+
+  -- Statut résidence
+  update public.residences
+     set status = 'en_visite'
+   where id = v_conv.residence_id and status = 'libre';
+end;
+$$;
