@@ -1,12 +1,84 @@
-import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { requireUser } from '../_shared/auth.ts';
+import { getAdminClient } from '../_shared/db.ts';
 
-const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SERVICE_ROLE_KEY')!);
+const CRON_SECRET = Deno.env.get('CRON_SECRET');
+if (!CRON_SECRET) throw new Error('CRON_SECRET non défini');
+const cronSecret: string = CRON_SECRET;
 
-serve(async (req) => {
-  const auth = await requireUser(req, supabase);
-  if (!auth) return new Response('Unauthorized', { status: 401 });
+function secretMatches(header: string | null): boolean {
+  if (!header || header.length !== cronSecret.length) return false;
+  const a = new TextEncoder().encode(header);
+  const b = new TextEncoder().encode(cronSecret);
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
+interface Visit {
+  id: string;
+  conversation_id: string;
+  slot_start: string;
+  proposed_by: string;
+  confirmed_by: string | null;
+}
+
+const DAYS_7 = 1000 * 60 * 60 * 24 * 7;
+
+function hasRecentReminder(
+  visitId: string,
+  recipientId: string,
+  recent: { data: { visit_id?: string } | null; user_id: string; created_at: string }[],
+): boolean {
+  const cutoff = new Date(Date.now() - DAYS_7).toISOString();
+  return recent.some(
+    (n) =>
+      (n.data as { visit_id?: string } | null)?.visit_id === visitId &&
+      n.user_id === recipientId &&
+      n.created_at >= cutoff,
+  );
+}
+
+async function notify(
+  userId: string,
+  title: string,
+  body: string,
+  visitId: string,
+  conversationId: string,
+): Promise<void> {
+  const supabase = getAdminClient();
+  await supabase.from('notifications').insert({
+    user_id: userId,
+    type: 'visit',
+    title,
+    body,
+    data: { visit_id: visitId, conversation_id: conversationId },
+  });
+}
+
+/**
+ * CRON de rappels de visite :
+ *  - J-1 (24h) : rappel aux deux parties
+ *  - J-0 (2h) : rappel aux deux parties
+ * Protégé par l'en-tête x-cron-secret (planification via pg_cron + net.http_post).
+ */
+Deno.serve(async (req: Request) => {
+  if (!secretMatches(req.headers.get('x-cron-secret'))) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const supabase = getAdminClient();
+  const report = { visits24h: 0, visits2h: 0, notifications: 0, errors: 0 };
+
+  // Rappels récents (déduplication sur 7 jours)
+  const { data: recent } = await supabase
+    .from('notifications')
+    .select('user_id, data, created_at')
+    .eq('type', 'visit')
+    .gte('created_at', new Date(Date.now() - DAYS_7).toISOString());
+  const recentList = (recent ?? []).map((n) => ({
+    data: n.data as { visit_id?: string } | null,
+    user_id: String(n.user_id),
+    created_at: String(n.created_at),
+  }));
 
   const now = new Date();
   const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -30,32 +102,44 @@ serve(async (req) => {
   const allVisits = [...(visits24h ?? []), ...(visits2h ?? [])];
 
   for (const v of allVisits) {
-    const hoursLeft = Math.round((new Date(v.slot_start).getTime() - now.getTime()) / 3600000);
-    const label = hoursLeft <= 2 ? '2 heures' : '24 heures';
+    try {
+      const hoursLeft = Math.round((new Date(v.slot_start).getTime() - now.getTime()) / 3600000);
+      const label = hoursLeft <= 2 ? '2 heures' : '24 heures';
 
-    // Notif locataire
-    await supabase.from('notifications').insert({
-      user_id: v.proposed_by,
-      type: 'visit',
-      title: `Rappel visite dans ${label}`,
-      body: `Votre visite est prévue ${label}.`,
-      data: { visit_id: v.id, conversation_id: v.conversation_id },
-    });
+      // Notif locataire (dédupliquée)
+      if (!hasRecentReminder(v.id, v.proposed_by, recentList)) {
+        await notify(
+          v.proposed_by,
+          `Rappel visite dans ${label}`,
+          `Votre visite est prévue ${label}.`,
+          v.id,
+          v.conversation_id,
+        );
+        report.notifications++;
+      }
 
-    // Notif bailleur
-    if (v.confirmed_by) {
-      await supabase.from('notifications').insert({
-        user_id: v.confirmed_by,
-        type: 'visit',
-        title: `Rappel visite dans ${label}`,
-        body: `Vous recevez un locataire ${label}.`,
-        data: { visit_id: v.id, conversation_id: v.conversation_id },
-      });
+      // Notif bailleur (dédupliquée)
+      if (v.confirmed_by && !hasRecentReminder(v.id, v.confirmed_by, recentList)) {
+        await notify(
+          v.confirmed_by,
+          `Rappel visite dans ${label}`,
+          `Vous recevez un locataire ${label}.`,
+          v.id,
+          v.conversation_id,
+        );
+        report.notifications++;
+      }
+
+      if (hoursLeft <= 2) report.visits2h++;
+      else report.visits24h++;
+    } catch (e) {
+      report.errors++;
+      console.error('Échec rappel visite', v.id, e);
     }
-
-    // Email Brevo (optionnel, via app_settings)
-    // TODO: appeler sendEmail si configuré
   }
 
-  return new Response(JSON.stringify({ processed: allVisits.length }), { status: 200 });
+  return new Response(JSON.stringify(report), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
 });
