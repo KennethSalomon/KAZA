@@ -29,7 +29,7 @@ const PHONE_RE = /^\+229[0-9]{10}$/;
 
 const FETCH_TIMEOUT_MS = 15_000;
 
-async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
   return fetch(url, { ...init, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 }
 
@@ -142,7 +142,6 @@ Deno.serve(async (req: Request) => {
       .eq('id', user.id)
       .maybeSingle();
 
-    const amount = Number(lease.monthly_rent) * monthsClamped;
     const fullName = profile?.full_name?.trim() ?? '';
     const nameParts = fullName.split(/\s+/).filter(Boolean);
     const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/fedapay-webhook`;
