@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, LayoutDashboard, LogOut, MessageSquare, Home, Search, UserRound, Heart, X, Menu, ChevronDown } from 'lucide-react';
+import { Building2, LayoutDashboard, LogOut, MessageSquare, Home, Search, UserRound, Heart, X, Menu } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/components/notifications/notification-bell';
@@ -20,14 +20,10 @@ export function Navbar() {
   const { user, role, signOut } = useAuth();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isLandlordOpen, setIsLandlordOpen] = useState(false);
 
   // Close menus on route change
   useEffect(() => {
     setIsMenuOpen(false);
-    setIsProfileOpen(false);
-    setIsLandlordOpen(false);
   }, [pathname]);
 
   // Close mobile menu on escape key
@@ -35,102 +31,11 @@ export function Navbar() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsMenuOpen(false);
-        setIsProfileOpen(false);
-        setIsLandlordOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  const userLinks = user ? (
-    <>
-      <Link
-        href="/favorites"
-        aria-label="Mes favoris"
-        className="grid h-11 w-11 place-items-center rounded-kaza text-kaza-muted transition-colors hover:bg-kaza-surface hover:text-kaza-text md:hidden"
-      >
-        <Heart className="h-5 w-5" aria-hidden />
-      </Link>
-      <div className="md:hidden">
-        <NotificationBell />
-      </div>
-      {(role === 'bailleur' || role === 'admin') && (
-        <div className="relative md:hidden">
-          <button
-            onClick={() => setIsLandlordOpen(!isLandlordOpen)}
-            className="flex w-full items-center gap-3 rounded-kaza px-3 py-2.5 text-sm font-medium text-kaza-muted transition-colors hover:bg-kaza-surface hover:text-kaza-text"
-            aria-expanded={isLandlordOpen}
-            aria-haspopup="true"
-          >
-            <Home className="h-4.5 w-4.5 shrink-0" aria-hidden />
-            {role === 'admin' ? 'Administration' : 'Mes biens'}
-            <ChevronDown className={cn('h-4 w-4 transition-transform', isLandlordOpen && 'rotate-180')} aria-hidden />
-          </button>
-          <AnimatePresence>
-            {isLandlordOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="absolute right-0 mt-1 w-48 rounded-kaza border border-kaza-border bg-kaza-surface shadow-card overflow-hidden"
-              >
-                <Link
-                  href={role === 'admin' ? '/admin' : '/landlord'}
-                  className="block px-3 py-2 text-sm text-kaza-text hover:bg-kaza-bg"
-                  onClick={() => setIsLandlordOpen(false)}
-                >
-                  {role === 'admin' ? 'Administration' : 'Mes biens'}
-                </Link>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
-      <div className="relative md:hidden">
-        <button
-          onClick={() => setIsProfileOpen(!isProfileOpen)}
-          className="grid h-11 w-11 place-items-center rounded-full border border-kaza-border bg-kaza-surface text-kaza-brand"
-          aria-expanded={isProfileOpen}
-          aria-haspopup="true"
-          aria-label={`Mon profil — ${user.full_name}`}
-        >
-          <UserRound className="h-5 w-5" aria-hidden />
-        </button>
-        <AnimatePresence>
-          {isProfileOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="absolute right-0 mt-1 w-48 rounded-kaza border border-kaza-border bg-kaza-surface shadow-card overflow-hidden"
-            >
-              <Link
-                href="/profile"
-                className="block px-3 py-2 text-sm text-kaza-text hover:bg-kaza-bg"
-                onClick={() => setIsProfileOpen(false)}
-              >
-                Mon profil
-              </Link>
-              <hr className="border-kaza-border" />
-              <button
-                onClick={() => void signOut()}
-                className="w-full text-left px-3 py-2 text-sm text-kaza-text hover:bg-kaza-bg"
-              >
-                Se déconnecter
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </>
-  ) : (
-    <Link href="/login" className="md:hidden">
-      <Button variant="primary" className="w-full" size="sm">
-        Connexion
-      </Button>
-    </Link>
-  );
 
   return (
     <header className="sticky top-0 z-40 border-b border-kaza-border bg-kaza-bg/85 backdrop-blur-md">
@@ -326,7 +231,7 @@ export function Navbar() {
                     <p className="mt-3 text-center text-sm text-kaza-muted">
                       Pas encore de compte ?
                       <Link href="/register" className="text-kaza-brand font-medium hover:opacity-80" onClick={() => setIsMenuOpen(false)}>
-                        S'inscrire
+                        S&apos;inscrire
                       </Link>
                     </p>
                   </div>

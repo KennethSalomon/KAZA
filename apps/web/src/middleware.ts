@@ -41,6 +41,7 @@ function logRequest(requestId: string, request: NextRequest, userId: string | nu
   };
   // In production, send to structured logger (Sentry, Datadog, etc.)
   // For now, use console with JSON for log aggregation
+  // eslint-disable-next-line no-console
   console.log(JSON.stringify(logEntry));
 }
 

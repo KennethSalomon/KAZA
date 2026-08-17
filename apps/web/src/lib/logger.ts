@@ -1,3 +1,5 @@
+import { type SupabaseClient } from '@supabase/supabase-js';
+
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
@@ -40,20 +42,27 @@ function writeLog(level: LogLevel, action: string, options: {
   if (isProduction) {
     switch (level) {
       case 'error':
+        // eslint-disable-next-line no-console
         console.error(output);
         break;
       case 'warn':
+        // eslint-disable-next-line no-console
         console.warn(output);
         break;
       case 'debug':
-        if (process.env.NODE_ENV === 'development') console.debug(output);
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.debug(output);
+        }
         break;
       default:
+        // eslint-disable-next-line no-console
         console.log(output);
     }
   } else {
     const color = level === 'error' ? '\x1b[31m' : level === 'warn' ? '\x1b[33m' : level === 'debug' ? '\x1b[36m' : '\x1b[32m';
     const reset = '\x1b[0m';
+    // eslint-disable-next-line no-console
     console.log(`${color}[${level.toUpperCase()}]${reset} ${action}`, options.message ? `- ${options.message}` : '', output);
   }
 }
@@ -95,7 +104,7 @@ export function getRequestId(headers: Headers): string | undefined {
 }
 
 /** Get user ID from Supabase auth context (if available) */
-export async function getCurrentUserId(supabase: any): Promise<string | null> {
+export async function getCurrentUserId(supabase: SupabaseClient): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   return user?.id ?? null;
 }

@@ -38,7 +38,7 @@ export default function TenantDashboardPage() {
     } finally {
       setDataLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (!loading) void load();

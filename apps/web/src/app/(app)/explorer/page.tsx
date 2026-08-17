@@ -61,9 +61,6 @@ export default function ExplorerPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mobile map toggle - on mobile, map replaces list when toggled
-  const toggleMap = () => setShowMap((prev) => !prev);
-
   const runSearch = useCallback(
     (f: Filters) => {
       startTransition(async () => {

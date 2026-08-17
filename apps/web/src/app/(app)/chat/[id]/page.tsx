@@ -1,15 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { ChatWindow } from '@/components/chat/chat-window';
 import { ConversationList } from '@/components/chat/conversation-list';
-import { useAuth } from '@/lib/auth-context';
 
 export default function ChatConversationPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const { user } = useAuth();
   const [showList, setShowList] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 

@@ -90,9 +90,7 @@ begin
   v_max := v_lease.monthly_rent * 6;
 
   if new.amount < v_min or new.amount > v_max then
-    raise exception
-      'Montant hors bornes autorisées (0.5x à 6x le loyer mensuel = ' ||
-      v_min || ' à ' || v_max || ' FCFA)' using errcode = 'P0001';
+    raise exception 'Montant hors bornes autorisées (0.5x à 6x le loyer mensuel = % à % FCFA)', v_min, v_max using errcode = 'P0001';
   end if;
 
   return new;

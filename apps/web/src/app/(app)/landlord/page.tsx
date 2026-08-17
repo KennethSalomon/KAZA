@@ -50,7 +50,7 @@ export default function LandlordHomePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     void load();

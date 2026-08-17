@@ -2,15 +2,11 @@ import { supabase } from './supabase-client';
 import { env } from './env';
 import type {
   AppNotification,
-  Conversation,
   ConversationWithRelations,
-  Lease,
   LeaseWithRelations,
   Message,
-  Payment,
   PaymentWithRelations,
   Profile,
-  Receipt,
   ReceiptWithRelations,
   Residence,
   ResidenceCreateInput,
