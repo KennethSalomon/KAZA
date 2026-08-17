@@ -209,7 +209,7 @@ jobs:
         run: |
           for f in supabase/functions/*/index.ts; do
             echo "Typechecking $f..."
-            deno check "$f" --import-map=supabase/functions/import_map.json || exit 1
+            deno check "$f" || exit 1
           done
         working-directory: .
 
