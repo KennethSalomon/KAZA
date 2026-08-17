@@ -44,7 +44,6 @@ interface UpcomingDue {
 }
 
 const DAYS_7 = 1000 * 60 * 60 * 24 * 7;
-const EMAIL_DEDUP_DAYS_MS = 7 * 24 * 3600 * 1000;
 
 function hasRecentReminder(
   leaseId: string,
