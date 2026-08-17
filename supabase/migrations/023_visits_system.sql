@@ -114,3 +114,12 @@ begin
    where id = v_conv.residence_id and status = 'libre';
 end;
 $$;
+
+-- pg_cron: quotidien 07:00 UTC (08:00 Bénin)
+select cron.schedule('visit-reminders-daily', '0 7 * * *', $$
+  select net.http_post(
+    url := 'https://' || current_setting('app.settings.supabase_url') || '/functions/v1/visit-reminders',
+    headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')),
+    body := '{}'::jsonb
+  );
+$$);
