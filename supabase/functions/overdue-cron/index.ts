@@ -11,12 +11,13 @@ const CRON_SECRET = Deno.env.get('CRON_SECRET');
 if (!CRON_SECRET) throw new Error('CRON_SECRET non défini');
 const APP_URL = Deno.env.get('APP_URL');
 if (!APP_URL) throw new Error('APP_URL non défini');
+const cronSecret: string = CRON_SECRET;
 
 // Comparaison à temps constant (pas de fuite de longueur/timing)
 function secretMatches(header: string | null): boolean {
-  if (!header || header.length !== CRON_SECRET.length) return false;
+  if (!header || header.length !== cronSecret.length) return false;
   const a = new TextEncoder().encode(header);
-  const b = new TextEncoder().encode(CRON_SECRET);
+  const b = new TextEncoder().encode(cronSecret);
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
   return diff === 0;

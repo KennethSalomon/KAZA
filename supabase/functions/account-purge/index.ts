@@ -30,7 +30,7 @@ function pathFromUrl(bucket: string, url: string): string | null {
 
 /** Pagination complète : `.limit()` seul laisserait des fichiers orphelins. */
 async function fetchAllRows<T>(
-  build: (from: number, to: number) => Promise<{ data: T[] | null }>,
+  build: (from: number, to: number) => PromiseLike<{ data: T[] | null }>,
 ): Promise<T[]> {
   const out: T[] = [];
   for (let offset = 0; ; offset += BATCH) {
