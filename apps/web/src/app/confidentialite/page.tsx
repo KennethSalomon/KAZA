@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Politique de confidentialité',
   description:
-    'Politique de protection des données personnelles de MARSAL TECHNOLOGIES — conformité APDP (Bénin).',
+    'Politique de protection des données personnelles de KAZA — conformité APDP (Bénin).',
 };
 
 export default function ConfidentialitePage() {
@@ -16,10 +16,10 @@ export default function ConfidentialitePage() {
         <div>
           <h2 className="mb-2 font-sora text-lg font-semibold">1. Responsable du traitement</h2>
           <p>
-            MARSAL TECHNOLOGIES (« nous »), plateforme de gestion locative et de mise en relation entre locataires
+            KAZA (« nous »), plateforme de gestion locative et de mise en relation entre locataires
             et bailleurs au Bénin. Contact :{' '}
-            <a href="mailto:contact@marsal-tech.bj" className="underline hover:text-kaza-brand">
-              contact@marsal-tech.bj
+            <a href="mailto:kazagroupe0@gmail.com" className="underline hover:text-kaza-brand">
+              kazagroupe0@gmail.com
             </a>
           </p>
         </div>
@@ -127,8 +127,8 @@ export default function ConfidentialitePage() {
           </ul>
           <p className="mt-2">
             Pour exercer ces droits, contactez-nous à{' '}
-            <a href="mailto:contact@kaza.bj" className="underline hover:text-kaza-brand">
-              contact@kaza.bj
+            <a href="mailto:kazagroupe0@gmail.com" className="underline hover:text-kaza-brand">
+              kazagroupe0@gmail.com
             </a>{' '}
             ou via la fonctionnalité de suppression de compte dans votre profil.
           </p>
@@ -146,7 +146,7 @@ export default function ConfidentialitePage() {
         <div>
           <h2 className="mb-2 font-sora text-lg font-semibold">9. Cookies</h2>
           <p>
-            MARSAL TECHNOLOGIES utilise uniquement des cookies strictement nécessaires au fonctionnement
+            KAZA utilise uniquement des cookies strictement nécessaires au fonctionnement
             (authentification de session). Aucun cookie publicitaire ou de tracking n&apos;est
             utilisé.
           </p>

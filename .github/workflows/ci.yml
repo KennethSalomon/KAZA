@@ -52,7 +52,6 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
@@ -97,7 +96,6 @@ jobs:
 
       - name: DB types drift check
         run: npm run db:types:check
-        continue-on-error: true
         id: types-check
 
       - name: Run DB integration tests

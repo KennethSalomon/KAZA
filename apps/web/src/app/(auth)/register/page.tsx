@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -150,7 +150,7 @@ export default function RegisterPage() {
           required
         />
         <span>
-          J’accepte que MARSAL TECHNOLOGIES traite mes données personnelles (identité, coordonnées) conformément à la
+          J’accepte que KAZA traite mes données personnelles (identité, coordonnées) conformément à la
           loi béninoise sur la protection des données (APDP) —{' '}
           <a href="/confidentialite" target="_blank" rel="noopener noreferrer" className="underline hover:text-kaza-brand">
             voir notre politique de confidentialité

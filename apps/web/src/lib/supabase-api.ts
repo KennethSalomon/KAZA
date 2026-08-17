@@ -287,7 +287,7 @@ export async function geocode(city: string, zone: string): Promise<{ lat: number
     const q = encodeURIComponent(`${zone} ${city}, Bénin`);
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`,
-      { headers: { Accept: 'application/json', 'User-Agent': 'KazaBJ/1.0 (contact@kaza.bj)' } },
+      { headers: { Accept: 'application/json', 'User-Agent': 'KazaBJ/1.0 (kazagroupe0@gmail.com)' } },
     );
     if (!res.ok) return null;
     const hits = (await res.json()) as { lat: string; lon: string }[];

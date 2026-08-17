@@ -23,7 +23,7 @@ export default function AuthLayout({ children }: Readonly<{ children: React.Reac
         />
         <div className="relative">
           <p className="font-display text-2xl font-bold tracking-tight text-white">
-            MARSAL<span className="text-kaza-peach"> TECHNOLOGIES</span>
+            KAZA
           </p>
         </div>
         <div className="relative max-w-md">
@@ -49,7 +49,7 @@ export default function AuthLayout({ children }: Readonly<{ children: React.Reac
           </ul>
         </div>
         <p className="relative text-xs text-white/50">
-          © {new Date().getFullYear()} MARSAL TECHNOLOGIES — Cotonou, Bénin. Données protégées (APDP).
+          © {new Date().getFullYear()} KAZA — Cotonou, Bénin. Données protégées (APDP).
         </p>
       </aside>
 
@@ -58,7 +58,7 @@ export default function AuthLayout({ children }: Readonly<{ children: React.Reac
         <div className="w-full max-w-sm">
           <p className="mb-8 flex items-center gap-2 font-display text-xl font-bold text-kaza-text lg:hidden">
             <Building2 className="h-5 w-5 text-kaza-brand" aria-hidden />
-            MARSAL<span className="text-kaza-peach"> TECHNOLOGIES</span>
+            KAZA
           </p>
           {children}
         </div>

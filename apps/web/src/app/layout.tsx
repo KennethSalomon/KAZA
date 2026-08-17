@@ -15,32 +15,32 @@ const sora = Sora({
 export const metadata: Metadata = {
   metadataBase: new URL(env.appUrl),
   title: {
-    default: 'MARSAL TECHNOLOGIES — Solutions Immobilières au Bénin',
-    template: '%s · MARSAL TECHNOLOGIES',
+    default: 'KAZA — Solutions Immobilières au Bénin',
+    template: '%s · KAZA',
   },
   description:
-    'MARSAL TECHNOLOGIES : plateforme de gestion locative et solutions immobilières innovantes à Cotonou. Recherche géolocalisée, paiement mobile money, quittances signées légalement.',
+    'KAZA : plateforme de gestion locative et solutions immobilières innovantes à Cotonou. Recherche géolocalisée, paiement mobile money, quittances signées légalement.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'MARSAL TECHNOLOGIES',
+    title: 'KAZA',
   },
   icons: {
     icon: '/icons/icon.svg',
     apple: '/icons/icon-180.png',
   },
   openGraph: {
-    title: 'MARSAL TECHNOLOGIES — Solutions Immobilières au Bénin',
+    title: 'KAZA — Solutions Immobilières au Bénin',
     description: 'Plateforme de gestion locative innovante : recherche géolocalisée, paiement mobile money, quittances signées.',
     type: 'website',
     locale: 'fr_BJ',
-    siteName: 'MARSAL TECHNOLOGIES',
-    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'MARSAL TECHNOLOGIES' }],
+    siteName: 'KAZA',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'KAZA' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'MARSAL TECHNOLOGIES — Solutions Immobilières au Bénin',
+    title: 'KAZA — Solutions Immobilières au Bénin',
     description: 'Plateforme de gestion locative innovante : recherche géolocalisée, paiement mobile money, quittances signées.',
     images: ['/twitter-image'],
   },
