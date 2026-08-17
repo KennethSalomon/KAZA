@@ -13,7 +13,7 @@ as $$
 declare
   v_source text;
 begin
-  select prosrc into v_source
+  select pg_get_functiondef(oid) into v_source
   from pg_proc
   where proname = p_function_name
     and pronamespace = 'public'::regnamespace

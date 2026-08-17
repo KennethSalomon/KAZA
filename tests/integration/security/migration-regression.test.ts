@@ -1,13 +1,33 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { supabaseAdmin, resetDatabase } from '../../helpers/supabase-test-client';
+import { supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '../../helpers/supabase-test-client';
+import { createClient } from '@supabase/supabase-js';
 
 describe('Migration regression tests', () => {
+  let landlord: { user: any; email: string; password: string };
+  let tenant: { user: any; email: string; password: string };
+  let landlordClient: ReturnType<typeof createClient>;
+  let tenantClient: ReturnType<typeof createClient>;
+
   beforeAll(async () => {
     await resetDatabase();
+    landlord = await createTestUser('bailleur');
+    tenant = await createTestUser('locataire');
+
+    const signInLandlord = await signInTestUser(landlord.email, landlord.password);
+    const signInTenant = await signInTestUser(tenant.email, tenant.password);
+
+    landlordClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: `Bearer ${signInLandlord.session?.access_token}` } },
+    });
+    tenantClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: `Bearer ${signInTenant.session?.access_token}` } },
+    });
   });
 
   afterAll(async () => {
     await resetDatabase();
+    if (landlord) await deleteTestUser(landlord.user.id);
+    if (tenant) await deleteTestUser(tenant.user.id);
   });
 
   describe('open_conversation() guard must exist', () => {
@@ -26,7 +46,7 @@ describe('Migration regression tests', () => {
     });
 
     it('function rejects draft residence', async () => {
-      const { data: residence, error: resError } = await supabaseAdmin.rpc('create_residence', {
+      const { data: residence, error: resError } = await landlordClient.rpc('create_residence', {
         title: 'Draft Test',
         type: 'appartement',
         price_monthly: 100000,
@@ -35,7 +55,7 @@ describe('Migration regression tests', () => {
       });
       expect(resError).toBeNull();
 
-      const { error } = await supabaseAdmin.rpc('open_conversation', {
+      const { error } = await tenantClient.rpc('open_conversation', {
         p_residence_id: residence,
       });
 
@@ -44,7 +64,7 @@ describe('Migration regression tests', () => {
     });
 
     it('function rejects unverified residence', async () => {
-      const { data: residence } = await supabaseAdmin.rpc('create_residence', {
+      const { data: residence } = await landlordClient.rpc('create_residence', {
         title: 'Unverified Test',
         type: 'appartement',
         price_monthly: 100000,
@@ -54,7 +74,7 @@ describe('Migration regression tests', () => {
 
       await supabaseAdmin.from('residences').update({ is_published: true }).eq('id', residence);
 
-      const { error } = await supabaseAdmin.rpc('open_conversation', {
+      const { error } = await tenantClient.rpc('open_conversation', {
         p_residence_id: residence,
       });
 
@@ -63,7 +83,7 @@ describe('Migration regression tests', () => {
     });
 
     it('function allows published + verified residence', async () => {
-      const { data: residence } = await supabaseAdmin.rpc('create_residence', {
+      const { data: residence } = await landlordClient.rpc('create_residence', {
         title: 'Verified Test',
         type: 'appartement',
         price_monthly: 100000,
@@ -73,21 +93,12 @@ describe('Migration regression tests', () => {
 
       await supabaseAdmin.from('residences').update({ is_published: true, is_verified: true }).eq('id', residence);
 
-      const { data: { user: tenant } } = await supabaseAdmin.auth.admin.createUser({
-        email: `tenant_test_${Date.now()}@kaza.test`,
-        password: 'TestPass123!',
-        email_confirm: true,
-        user_metadata: { full_name: 'Test Tenant', role: 'locataire', consent_apdp: true },
-      });
-
-      const { data: convId, error } = await supabaseAdmin.rpc('open_conversation', {
+      const { data: convId, error } = await tenantClient.rpc('open_conversation', {
         p_residence_id: residence,
       });
 
       expect(error).toBeNull();
       expect(convId).toBeDefined();
-
-      await supabaseAdmin.auth.admin.deleteUser(tenant.id);
     });
   });
 
@@ -105,17 +116,17 @@ describe('Migration regression tests', () => {
 
   describe('set_my_role() function integrity', () => {
     it('function rejects admin role', async () => {
-      const { error } = await supabaseAdmin.rpc('set_my_role', { p_role: 'admin' });
+      const { error } = await tenantClient.rpc('set_my_role', { p_role: 'admin' });
       expect(error).toBeDefined();
     });
 
     it('function accepts locataire', async () => {
-      const { error } = await supabaseAdmin.rpc('set_my_role', { p_role: 'locataire' });
+      const { error } = await tenantClient.rpc('set_my_role', { p_role: 'locataire' });
       expect(error).toBeNull();
     });
 
     it('function accepts bailleur', async () => {
-      const { error } = await supabaseAdmin.rpc('set_my_role', { p_role: 'bailleur' });
+      const { error } = await landlordClient.rpc('set_my_role', { p_role: 'bailleur' });
       expect(error).toBeNull();
     });
   });

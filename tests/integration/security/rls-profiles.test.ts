@@ -27,6 +27,10 @@ describe('RLS: profiles table', () => {
     await deleteTestUser(adminUser.user.id);
   });
 
+  let clientA: ReturnType<typeof createClient>;
+  let clientB: ReturnType<typeof createClient>;
+  let clientAdmin: ReturnType<typeof createClient>;
+
   beforeEach(async () => {
     await resetDatabase();
     // Re-sign in to get fresh tokens
@@ -36,21 +40,16 @@ describe('RLS: profiles table', () => {
     userA.token = signInA.session?.access_token ?? '';
     userB.token = signInB.session?.access_token ?? '';
     adminUser.token = signInAdmin.session?.access_token ?? '';
-  });
 
-  const anonClient = supabaseAnon;
-  const adminClient = supabaseAdmin;
-
-  const clientA = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${userA.token}` } },
-  });
-
-  const clientB = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${userB.token}` } },
-  });
-
-  const clientAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${adminUser.token}` } },
+    clientA = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: `Bearer ${userA.token}` } },
+    });
+    clientB = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: `Bearer ${userB.token}` } },
+    });
+    clientAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: `Bearer ${adminUser.token}` } },
+    });
   });
 
   // Helper to get current user's profile ID

@@ -49,6 +49,17 @@ export async function createTestUser(role: 'locataire' | 'bailleur' | 'admin' = 
   if (authError) throw authError;
   if (!authData.user) throw new Error('User creation failed');
 
+  // The handle_new_user trigger only accepts 'locataire'/'bailleur' from
+  // user_metadata — anything else (including 'admin') becomes 'visiteur'.
+  // Promote the profile to the requested role after creation.
+  if (role !== 'visiteur') {
+    const { error: roleError } = await supabaseAdmin
+      .from('profiles')
+      .update({ role, consent_apdp: true })
+      .eq('id', authData.user.id);
+    if (roleError) throw roleError;
+  }
+
   return { user: authData.user, email, password };
 }
 
