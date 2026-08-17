@@ -71,9 +71,9 @@ where u.email in ('locataire.demo@kaza.bj', 'bailleur.demo@kaza.bj', 'admin@kaza
 -- auth.users, donc on force le rôle ici avec un UPDATE sur conflit d'id)
 insert into public.profiles (id, email, phone, full_name, role, consent_apdp)
 values
-  ('00000000-0000-0000-0000-000000000001', 'locataire.demo@kaza.bj', '+229 01 00 00 00 01', 'Locataire Démo', 'locataire', true),
-  ('00000000-0000-0000-0000-000000000002', 'bailleur.demo@kaza.bj', '+229 01 00 00 00 02', 'Bailleur Démo', 'bailleur', true),
-  ('00000000-0000-0000-0000-000000000003', 'admin@kaza.bj', '+229 01 00 00 00 03', 'Admin KAZA', 'admin', true)
+  ('00000000-0000-0000-0000-000000000001', 'locataire.demo@kaza.bj', '+2290100000001', 'Locataire Démo', 'locataire', true),
+  ('00000000-0000-0000-0000-000000000002', 'bailleur.demo@kaza.bj', '+2290100000002', 'Bailleur Démo', 'bailleur', true),
+  ('00000000-0000-0000-0000-000000000003', 'admin@kaza.bj', '+2290100000003', 'Admin KAZA', 'admin', true)
 on conflict (id) do update set
   email = excluded.email,
   phone = excluded.phone,

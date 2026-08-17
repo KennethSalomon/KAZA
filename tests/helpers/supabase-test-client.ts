@@ -1,14 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
+import { existsSync } from 'fs';
 
-config({ path: '.env.test' });
+// Load .env.test only if it exists (local dev); CI injects vars via env
+if (existsSync('.env.test')) {
+  config({ path: '.env.test' });
+}
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://localhost:54321';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Missing Supabase keys in .env.test');
+  throw new Error(
+    'Missing Supabase keys — set NEXT_PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY ' +
+    'in .env.test (local) or as CI env vars / GitHub secrets.'
+  );
 }
 
 export const supabaseAnon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

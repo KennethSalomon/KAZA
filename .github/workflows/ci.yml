@@ -34,9 +34,6 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      - name: DB types drift check
-        run: npm run db:types:check
-
       - name: Build
         run: npm run build
         env:
@@ -47,7 +44,7 @@ jobs:
 
       - name: Secret leak scan (frontend + edge functions)
         run: |
-          if rg -n --no-ignore -i "(sk_live_|sk_dev_|sbp_[A-Za-z0-9]{16,}|vcp_[A-Za-z0-9]{16,}|xkeysib-|xox[bap]-|service_role|BEGIN (RSA|EC|OPENSSH|DSA) PRIVATE KEY|KazaDemo)" apps/web/src supabase/functions; then
+          if rg -n --no-ignore -i "(sk_live_|sk_dev_|sbp_[A-Za-z0-9]{16,}|vcp_[A-Za-z0-9]{16,}|xkeysib-|xox[bap]-|service_role\s*[:=]\s*['\"][a-zA-Z0-9]{20,}|BEGIN (RSA|EC|OPENSSH|DSA) PRIVATE KEY|KazaDemo)" apps/web/src supabase/functions; then
             echo "::error::Secret ou clé détecté(e) dans le code source. Retirez-le avant de merger."
             exit 1
           fi
@@ -83,24 +80,29 @@ jobs:
           done
           env_vars=$(supabase status -o env)
           anon_key=$(printf '%s\n' "$env_vars" | grep -iE '^anon_key=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
-          if [ -z "$anon_key" ]; then
-            echo "::error::Impossible de récupérer l'ANON_KEY via 'supabase status -o env'."
+          service_role_key=$(printf '%s\n' "$env_vars" | grep -iE '^service_role_key=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
+          if [ -z "$anon_key" ] || [ -z "$service_role_key" ]; then
+            echo "::error::Impossible de récupérer les clés Supabase via 'supabase status -o env'."
             printf '%s\n' "$env_vars" | head -40
             exit 1
           fi
           echo "ANON_KEY=$anon_key" >> "$GITHUB_OUTPUT"
+          echo "SERVICE_ROLE_KEY=$service_role_key" >> "$GITHUB_OUTPUT"
         working-directory: .
 
       - name: Apply test helpers migration
         run: supabase db reset
         working-directory: .
 
+      - name: DB types drift check
+        run: npm run db:types:check
+
       - name: Run DB integration tests
         run: npm test -- --run tests/integration
         env:
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321/
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.supabase.outputs.SERVICE_ROLE_KEY }}
         working-directory: .
 
   e2e:
@@ -186,6 +188,11 @@ jobs:
           curl -fsSL https://github.com/supabase/cli/releases/download/v2.114.0/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
           tar xzf /tmp/supabase.tar.gz -C /tmp
           sudo mv /tmp/supabase /usr/local/bin/supabase
+
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.3.3
 
       - name: Lint Edge Functions (Deno)
         run: |

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { supabaseAdmin, resetDatabase } from '../helpers/supabase-test-client';
+import { supabaseAdmin, resetDatabase } from '../../helpers/supabase-test-client';
 
 describe('Migration regression tests', () => {
   beforeAll(async () => {
