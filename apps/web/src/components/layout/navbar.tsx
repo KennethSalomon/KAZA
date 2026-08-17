@@ -45,7 +45,7 @@ export function Navbar() {
             <Building2 className="h-4.5 w-4.5" aria-hidden />
           </span>
           <span className="text-kaza-text">
-            Kaza<span className="text-kaza-peach">.</span>
+            MARSAL<span className="text-kaza-peach"> TECHNOLOGIES</span>
           </span>
         </Link>
 

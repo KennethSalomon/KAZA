@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Politique de confidentialité',
   description:
-    'Politique de protection des données personnelles de Kaza — conformité APDP (Bénin).',
+    'Politique de protection des données personnelles de MARSAL TECHNOLOGIES — conformité APDP (Bénin).',
 };
 
 export default function ConfidentialitePage() {
@@ -16,10 +16,10 @@ export default function ConfidentialitePage() {
         <div>
           <h2 className="mb-2 font-sora text-lg font-semibold">1. Responsable du traitement</h2>
           <p>
-            Kaza (« nous »), plateforme de gestion locative et de mise en relation entre locataires
+            MARSAL TECHNOLOGIES (« nous »), plateforme de gestion locative et de mise en relation entre locataires
             et bailleurs au Bénin. Contact :{' '}
-            <a href="mailto:contact@kaza.bj" className="underline hover:text-kaza-brand">
-              contact@kaza.bj
+            <a href="mailto:contact@marsal-tech.bj" className="underline hover:text-kaza-brand">
+              contact@marsal-tech.bj
             </a>
           </p>
         </div>
@@ -146,7 +146,7 @@ export default function ConfidentialitePage() {
         <div>
           <h2 className="mb-2 font-sora text-lg font-semibold">9. Cookies</h2>
           <p>
-            Kaza utilise uniquement des cookies strictement nécessaires au fonctionnement
+            MARSAL TECHNOLOGIES utilise uniquement des cookies strictement nécessaires au fonctionnement
             (authentification de session). Aucun cookie publicitaire ou de tracking n&apos;est
             utilisé.
           </p>

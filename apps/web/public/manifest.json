@@ -1,7 +1,7 @@
 {
-  "name": "Kaza — Louer au Bénin",
-  "short_name": "Kaza",
-  "description": "Plateforme de gestion locative au Bénin : recherche géolocalisée, paiement mobile money, quittances signées.",
+  "name": "MARSAL TECHNOLOGIES — Solutions Immobilières",
+  "short_name": "MARSAL TECH",
+  "description": "MARSAL TECHNOLOGIES : plateforme de gestion locative et solutions immobilières innovantes au Bénin.",
   "lang": "fr",
   "start_url": "/explorer",
   "display": "standalone",
@@ -31,7 +31,7 @@
   ],
   "shortcuts": [
     {
-      "name": "Explorer les logements",
+      "name": "Explorer les biens",
       "url": "/explorer",
       "description": "Recherche géolocalisée des biens disponibles"
     },

@@ -47,7 +47,7 @@ function LoginForm() {
         : '';
       await signIn(trimmed, password, captchaToken);
       hcaptcha.reset();
-      toast.success('Bienvenue sur Kaza');
+      toast.success('Bienvenue sur MARSAL TECHNOLOGIES');
       afterLogin();
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Connexion impossible';
@@ -67,7 +67,7 @@ function LoginForm() {
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">Connexion</h1>
-        <p className="mt-1 text-sm text-kaza-muted">Retrouvez votre espace Kaza.</p>
+        <p className="mt-1 text-sm text-kaza-muted">Retrouvez votre espace MARSAL TECHNOLOGIES.</p>
       </div>
 
       {error && (

@@ -186,13 +186,13 @@ export default function ResidenceDetailPage() {
                   {residence.owner.full_name}
                   {residence.owner.is_premium && <ShieldCheck className="h-3.5 w-3.5 text-kaza-brand" aria-label="Bailleur Premium" />}
                 </p>
-                <p className="text-xs text-kaza-faint">Membre Kaza · {formatDate(residence.created_at)}</p>
+                <p className="text-xs text-kaza-faint">Membre MARSAL TECH · {formatDate(residence.created_at)}</p>
               </div>
             </div>
           )}
 
-          <p className="rounded-kaza border border-kaza-peach/50 bg-kaza-peach/15 px-4 py-3 text-xs leading-relaxed text-kaza-muted">
-            <strong className="text-kaza-brand-dark">Bailleur vérifié :</strong> ce bien est contrôlé par l’équipe Kaza.
+<p className="rounded-kaza border border-kaza-peach/50 bg-kaza-peach/15 px-4 py-3 text-xs leading-relaxed text-kaza-muted">
+            <strong className="text-kaza-brand-dark">Bailleur vérifié :</strong> ce bien est contrôlé par l'équipe MARSAL TECHNOLOGIES.
             Jamais de paiement avant visite — signalez tout comportement suspect depuis votre messagerie.
           </p>
         </aside>
