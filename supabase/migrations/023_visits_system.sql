@@ -116,10 +116,27 @@ end;
 $$;
 
 -- pg_cron: quotidien 07:00 UTC (08:00 Bénin)
-select cron.schedule('visit-reminders-daily', '0 7 * * *', $$
-  select net.http_post(
-    url := 'https://' || current_setting('app.settings.supabase_url') || '/functions/v1/visit-reminders',
-    headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')),
-    body := '{}'::jsonb
-  );
-$$);
+-- pg_cron n'est pas disponible partout (CI locale, certains plans).
+-- On tente de créer l'extension, sinon on skip silencieusement.
+do $$
+begin
+  if not exists (select 1 from pg_namespace where nspname = 'cron') then
+    begin
+      create extension if not exists pg_cron;
+    exception when others then
+      raise notice 'pg_cron indisponible — scheduling visit-reminders ignoré';
+    end;
+  end if;
+
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    perform cron.schedule('visit-reminders-daily', '0 7 * * *', $$
+      select net.http_post(
+        url := 'https://' || current_setting('app.settings.supabase_url') || '/functions/v1/visit-reminders',
+        headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')),
+        body := '{}'::jsonb
+      );
+    $$);
+  else
+    raise notice 'cron indisponible — scheduling visit-reminders ignoré';
+  end if;
+end $$;
