@@ -154,7 +154,7 @@ export default function ResidenceDetailPage() {
               {formatXof(residence.price_monthly)}
               <span className="text-sm font-normal text-kaza-muted"> / mois</span>
             </p>
-            {residence.deposit > 0 && (
+            {residence.deposit != null && residence.deposit > 0 && (
               <p className="mt-1 text-xs text-kaza-muted">
                 Caution : {formatXof(residence.deposit)} (max. 3 mois — Loi 2022-30)
               </p>
