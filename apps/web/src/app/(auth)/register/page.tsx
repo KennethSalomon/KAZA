@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signUp, ApiError } from '@/lib/supabase-api';
+import { signUp, signInWithGoogle, ApiError } from '@/lib/supabase-api';
 import { env } from '@/lib/env';
 import { useHcaptcha } from '@/components/ui/hcaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { GoogleIcon } from '@/components/ui/google-icon';
 import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 
@@ -27,6 +28,17 @@ export default function RegisterPage() {
   const router = useRouter();
   const toast = useToast();
   const hcaptcha = useHcaptcha();
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  async function onGoogle() {
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch {
+      toast.error('Connexion Google impossible', 'Réessayez ou utilisez votre email.');
+      setGoogleLoading(false);
+    }
+  }
 
   const set = (key: keyof typeof initial) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     let value: string | boolean = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
@@ -135,6 +147,27 @@ export default function RegisterPage() {
         <p className="mt-1 text-sm text-kaza-muted">Gratuit. Sans commission sur les loyers.</p>
       </div>
 
+      <Button
+        type="button"
+        variant="secondary"
+        className="w-full"
+        size="lg"
+        onClick={onGoogle}
+        loading={googleLoading}
+      >
+        <GoogleIcon className="mr-2 h-5 w-5" />
+        Continuer avec Google
+      </Button>
+
+      <div className="relative my-2">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-kaza-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white px-3 text-kaza-muted">Ou continuer avec email</span>
+        </div>
+      </div>
+
       <Select
         label="Je suis…"
         value={form.role}
@@ -180,6 +213,7 @@ export default function RegisterPage() {
       <Input
         label="Mot de passe"
         type="password"
+        togglePassword
         autoComplete="new-password"
         required
         placeholder="8 caractères min, lettres + chiffres"
