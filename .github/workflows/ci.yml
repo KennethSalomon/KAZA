@@ -98,6 +98,14 @@ jobs:
         run: npm run db:types:check
         id: types-check
 
+      - name: Upload generated types (debug artifact)
+        if: always() && steps.types-check.outcome != 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-types-generated
+          path: apps/web/src/lib/database.types.ts
+          if-no-files-found: warn
+
       - name: Run DB integration tests
         run: npx vitest run -c vitest.config.integration.ts tests/integration
         env:

@@ -50,11 +50,10 @@ test.describe('Residences', () => {
 
   test('residence detail page loads', async ({ page }) => {
     await page.goto('/');
-    const firstCard = page.locator('[class*="card"]').first();
-    if (await firstCard.isVisible()) {
-      await firstCard.click();
-      await expect(page).toHaveURL(/residences\//);
-    }
+    const firstCard = page.locator('a[href^="/residences/"]').first();
+    await expect(firstCard).toBeVisible();
+    await firstCard.click();
+    await expect(page).toHaveURL(/residences\//);
   });
 });
 

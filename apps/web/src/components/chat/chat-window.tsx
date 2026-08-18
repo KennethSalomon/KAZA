@@ -37,7 +37,7 @@ export function ChatWindow() {
   const [sending, setSending] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [visitModal, setVisitModal] = useState(false);
-  const [_proposeModal, setProposeModal] = useState(false);
+  const [proposeModal, setProposeModal] = useState(false);
   const [isLandlord, setIsLandlord] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -365,11 +365,13 @@ export function ChatWindow() {
       </Modal>
 
       {/* Modale proposition de visite (locataire) */}
-      <VisitProposalModal
-        conversationId={id}
-        onClose={() => setProposeModal(false)}
-        onPropose={handlePropose}
-      />
+      {proposeModal && (
+        <VisitProposalModal
+          conversationId={id}
+          onClose={() => setProposeModal(false)}
+          onPropose={handlePropose}
+        />
+      )}
     </div>
   );
 }
