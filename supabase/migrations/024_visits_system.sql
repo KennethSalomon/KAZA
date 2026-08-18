@@ -1,5 +1,5 @@
 -- ============================================================
--- 023_visits_system.sql — Visits scheduling system
+-- 024_visits_system.sql — Visits scheduling system
 -- Creates visits table, visit_status enum, indexes, and RLS
 -- ============================================================
 
