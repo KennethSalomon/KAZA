@@ -118,10 +118,12 @@ export default function RegisterPage() {
           'Vérifiez votre boîte mail',
           `Un lien de confirmation a été envoyé à ${form.email.trim()}.`,
         );
+        router.push('/login');
       } else {
-        toast.success('Compte créé', 'Connectez-vous pour commencer.');
+        toast.success('Bienvenue sur KAZA');
+        router.push('/explorer');
+        router.refresh();
       }
-      router.push('/login');
     } catch (err) {
       console.error('[register] signUp error:', err);
       if (err instanceof ApiError && err.fields) setErrors(err.fields);
