@@ -129,13 +129,13 @@ begin
   end if;
 
   if exists (select 1 from pg_namespace where nspname = 'cron') then
-    perform cron.schedule('visit-reminders-daily', '0 7 * * *', $$
+    perform cron.schedule('visit-reminders-daily', '0 7 * * *', $cronjob$
       select net.http_post(
         url := 'https://' || current_setting('app.settings.supabase_url') || '/functions/v1/visit-reminders',
         headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')),
         body := '{}'::jsonb
       );
-    $$);
+    $cronjob$);
   else
     raise notice 'cron indisponible — scheduling visit-reminders ignoré';
   end if;
