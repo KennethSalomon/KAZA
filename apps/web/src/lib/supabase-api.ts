@@ -14,7 +14,6 @@ import type {
   ResidenceType,
   ReviewsResult,
   Visit,
-  VisitStatus,
 } from './types';
 
 // ============================================================

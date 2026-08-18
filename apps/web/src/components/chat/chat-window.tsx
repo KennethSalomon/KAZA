@@ -11,10 +11,8 @@ import {
   getConversation,
   getSignedStorageUrl,
   proposeVisit,
-  confirmVisit,
 } from '@/lib/supabase-api';
 import { VisitProposalModal } from './VisitProposalModal';
-import { VisitSlot } from './VisitSlot';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase-client';
 import type { ConversationWithRelations, Message } from '@/lib/types';
@@ -39,7 +37,7 @@ export function ChatWindow() {
   const [sending, setSending] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [visitModal, setVisitModal] = useState(false);
-  const [proposeModal, setProposeModal] = useState(false);
+  const [_proposeModal, setProposeModal] = useState(false);
   const [isLandlord, setIsLandlord] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -188,15 +186,6 @@ export function ChatWindow() {
       // The proposeVisit RPC/insert will create a visit_request message
     } catch {
       toast.error('Proposition impossible');
-    }
-  }
-
-  async function handleConfirmVisit(visitId: string) {
-    try {
-      await confirmVisit(visitId, 0); // slotIndex 0 for now
-      toast.success('Créneau confirmé');
-    } catch {
-      toast.error('Confirmation impossible');
     }
   }
 

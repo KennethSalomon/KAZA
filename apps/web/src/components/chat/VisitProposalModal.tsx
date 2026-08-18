@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 interface Slot { start: string; end: string; }
 
 export function VisitProposalModal({
-  conversationId,
+  conversationId: _conversationId,
   onClose,
   onPropose,
 }: {
