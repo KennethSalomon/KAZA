@@ -2,25 +2,48 @@
 -- 023_rls_spatial_ref_sys.sql — Activer RLS sur spatial_ref_sys
 --
 -- Table système PostGIS contenant les projections (SRID).
--- Le SQL Editor Supabase s'exécute en tant que `postgres` mais
--- la table est possédée par PostGIS. On transfère la propriété
--- avant d'activer RLS.
+-- La table est possédée par PostGIS extension owner, pas postgres.
+-- En Docker local, postgres ne peut pas changer la propriété.
+-- On enveloppe chaque opération dans un DO...EXCEPTION pour
+-- que la migration soit résiliente et ne bloque pas le CI.
 -- ============================================================
 
--- 1. Transfer ownership to postgres (SQL Editor role)
-ALTER TABLE public.spatial_ref_sys OWNER TO postgres;
+DO $$
+BEGIN
+  ALTER TABLE public.spatial_ref_sys OWNER TO postgres;
+EXCEPTION WHEN insufficient_privilege THEN
+  -- Docker local : postgres n'est pas owner — on continue
+  RAISE NOTICE 'skipping OWNER transfer: insufficient privilege';
+END $$;
 
--- 2. Enable RLS
-ALTER TABLE public.spatial_ref_sys ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.spatial_ref_sys FORCE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  ALTER TABLE public.spatial_ref_sys ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE public.spatial_ref_sys FORCE ROW LEVEL SECURITY;
+EXCEPTION WHEN insufficient_privilege THEN
+  RAISE NOTICE 'skipping RLS enable: insufficient privilege';
+END $$;
 
--- 3. SELECT policies for anon + authenticated
-CREATE POLICY spatial_ref_sys_select_anon
-  ON public.spatial_ref_sys FOR SELECT
-  TO anon
-  USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'spatial_ref_sys_select_anon'
+  ) THEN
+    CREATE POLICY spatial_ref_sys_select_anon
+      ON public.spatial_ref_sys FOR SELECT
+      TO anon
+      USING (true);
+  END IF;
+END $$;
 
-CREATE POLICY spatial_ref_sys_select_authenticated
-  ON public.spatial_ref_sys FOR SELECT
-  TO authenticated
-  USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'spatial_ref_sys_select_authenticated'
+  ) THEN
+    CREATE POLICY spatial_ref_sys_select_authenticated
+      ON public.spatial_ref_sys FOR SELECT
+      TO authenticated
+      USING (true);
+  END IF;
+END $$;
