@@ -133,28 +133,57 @@ export async function signUp(
   captchaToken: string,
 ): Promise<{ needsEmailConfirmation: boolean }> {
   assertBeninPhone(input.phone);
-  const { data, error } = await supabase.auth.signUp({
-    email: input.email,
-    password: input.password,
-    options: {
-      captchaToken,
-      // Métadonnées lues par le trigger handle_new_user (migration 014) qui
-      // initialise le profil (nom, téléphone, rôle, consentement) AVANT toute
-      // connexion. Aucun appel RLS ici : avec confirmation email active la
-      // session est null juste après signUp et upsert/set_my_role échoueraient.
-      data: {
-        full_name: input.full_name,
-        phone: input.phone,
-        role: input.role,
-        consent_apdp: input.consent_apdp,
-      },
-    },
-  });
-  if (error) throw new ApiError(400, error.message);
-  if (!data.user) throw new ApiError(400, 'Inscription impossible');
+  const MAX_RETRIES = 3;
+  const BASE_DELAY_MS = 2000;
 
-  // data.session === null → la confirmation email est requise (production).
-  return { needsEmailConfirmation: !data.session };
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const { data, error } = await supabase.auth.signUp({
+      email: input.email,
+      password: input.password,
+      options: {
+        captchaToken,
+        // Le lien de confirmation pointe vers /auth/callback qui échange le
+        // code contre une session et redirige vers l'app.
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          full_name: input.full_name,
+          phone: input.phone,
+          role: input.role,
+          consent_apdp: input.consent_apdp,
+        },
+      },
+    });
+
+    if (!error) {
+      if (!data.user) throw new ApiError(400, 'Inscription impossible');
+      return { needsEmailConfirmation: !data.session };
+    }
+
+    const msg = (error.message ?? '').toLowerCase();
+    const isRateLimit =
+      error.status === 429 ||
+      msg.includes('rate limit') ||
+      msg.includes('too many requests') ||
+      msg.includes('email rate') ||
+      msg.includes('database error saving new user');
+
+    if (isRateLimit && attempt < MAX_RETRIES - 1) {
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+      await new Promise((r) => setTimeout(r, delay));
+      continue;
+    }
+
+    if (isRateLimit) {
+      throw new ApiError(
+        429,
+        'Trop de tentatives d\'inscription. Patientez quelques minutes avant de réessayer.',
+      );
+    }
+
+    throw new ApiError(400, error.message);
+  }
+
+  throw new ApiError(400, 'Inscription impossible');
 }
 
 export async function requestOtp(phone: string, captchaToken: string): Promise<void> {

@@ -29,7 +29,15 @@ export default function RegisterPage() {
   const hcaptcha = useHcaptcha();
 
   const set = (key: keyof typeof initial) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+    let value: string | boolean = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+    if (key === 'phone' && typeof value === 'string') {
+      const digits = value.replace(/\D/g, '');
+      if (digits.startsWith('229') && digits.length >= 3) {
+        value = '+' + digits;
+      } else if (digits.length > 0 && !digits.startsWith('229')) {
+        value = '+229' + digits;
+      }
+    }
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((prev) => {
       const next = { ...prev };
@@ -45,16 +53,47 @@ export default function RegisterPage() {
     try {
       if (!form.consent) {
         setErrors({ consent: ['Votre consentement est requis pour créer un compte.'] });
+        setLoading(false);
         return;
       }
-      const captchaToken = env.hcaptchaSitekey
-        ? await hcaptcha.execute({ sitekey: env.hcaptchaSitekey })
-        : '';
+
+      const fieldErrors: Record<string, string[]> = {};
+      if (!form.full_name.trim()) fieldErrors.full_name = ['Le nom complet est requis.'];
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) fieldErrors.email = ['Adresse email invalide.'];
+      const phoneClean = form.phone.replace(/\s+/g, '');
+      if (!/^\+229\d{10}$/.test(phoneClean)) {
+        fieldErrors.phone = ['Format : +229 suivi de 10 chiffres (ex: +229019560880)'];
+      }
+      if (form.password.length < 8) fieldErrors.password = ['8 caractères minimum.'];
+      if (!/[a-zA-Z]/.test(form.password) || !/\d/.test(form.password)) {
+        fieldErrors.password = [...(fieldErrors.password ?? []), 'Lettres et chiffres requis.'];
+      }
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors);
+        setLoading(false);
+        return;
+      }
+
+      let captchaToken = '';
+      try {
+        captchaToken = env.hcaptchaSitekey
+          ? await hcaptcha.execute({ sitekey: env.hcaptchaSitekey })
+          : '';
+      } catch (captchaErr) {
+        console.error('[register] hCaptcha failed:', captchaErr);
+        toast.error(
+          'Vérification anti-robot échouée',
+          'Désactivez votre bloqueur de publicités ou réessayez dans un autre navigateur.',
+        );
+        setLoading(false);
+        return;
+      }
+
       const { needsEmailConfirmation } = await signUp(
         {
-          full_name: form.full_name,
-          email: form.email,
-          phone: form.phone,
+          full_name: form.full_name.trim(),
+          email: form.email.trim().toLowerCase(),
+          phone: phoneClean,
           role: form.role as 'locataire' | 'bailleur',
           password: form.password,
           consent_apdp: form.consent,
@@ -72,9 +111,18 @@ export default function RegisterPage() {
       }
       router.push('/login');
     } catch (err) {
+      console.error('[register] signUp error:', err);
       if (err instanceof ApiError && err.fields) setErrors(err.fields);
-      else if (err instanceof ApiError) toast.error(err.message);
-      else toast.error('Création impossible');
+      else if (err instanceof ApiError && err.status === 429) {
+        toast.error(
+          'Trop de tentatives',
+          'Le service d\'envoi d\'emails est momentanément saturé. Patientez 2-3 minutes puis réessayez.',
+        );
+      } else if (err instanceof ApiError) {
+        toast.error(err.message);
+      } else {
+        toast.error('Erreur inattendue', 'Réessayez ou contactez le support.');
+      }
     } finally {
       setLoading(false);
     }
@@ -122,8 +170,7 @@ export default function RegisterPage() {
           type="tel"
           autoComplete="tel"
           required
-          placeholder="+229 01 00 00 00 00"
-          pattern="\+229[0-9]{10}"
+          placeholder="01 95 60 88 00"
           maxLength={16}
           value={form.phone}
           onChange={set('phone')}
