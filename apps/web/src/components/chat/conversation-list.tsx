@@ -62,11 +62,13 @@ export function ConversationList() {
                 : m.kind === 'document'
                   ? '📎 Document'
                   : m.body?.trim() || 'Nouveau message';
+            const target = prev[idx];
+            if (!target) return prev;
             const updated: ConversationWithRelations = {
-              ...prev[idx],
+              ...target,
               last_message_preview: preview,
               last_message_at: new Date().toISOString(),
-              unread_count: m.sender_id === user.id ? prev[idx].unread_count : prev[idx].unread_count + 1,
+              unread_count: m.sender_id === user.id ? target.unread_count : target.unread_count + 1,
             };
             return [updated, ...prev.filter((_, i) => i !== idx)];
           });

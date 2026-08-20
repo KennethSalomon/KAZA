@@ -21,9 +21,9 @@ interface ToastApi {
 const ToastContext = createContext<ToastApi | null>(null);
 
 const ICONS: Record<ToastKind, React.ReactNode> = {
-  success: <CheckCircle2 className="h-4.5 w-4.5 text-kaza-success" aria-hidden />,
-  error: <XCircle className="h-4.5 w-4.5 text-kaza-danger" aria-hidden />,
-  info: <Info className="h-4.5 w-4.5 text-kaza-brand" aria-hidden />,
+  success: <CheckCircle2 className="h-5 w-5 text-kaza-success" aria-hidden />,
+  error: <XCircle className="h-5 w-5 text-kaza-danger" aria-hidden />,
+  info: <Info className="h-5 w-5 text-kaza-brand" aria-hidden />,
 };
 
 export function ToastProvider({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -108,7 +108,8 @@ export function ChatWindow() {
         );
         if (cancelled) return;
         settled.forEach((signed, j) => {
-          if (signed) pending[batch[j]] = signed;
+          const item = batch[j];
+          if (signed && item) pending[item] = signed;
         });
       }
       setSignedAttachments((prev) => ({ ...prev, ...pending }));
@@ -131,9 +132,10 @@ export function ChatWindow() {
     setSending(true);
     try {
       const attachments = await uploadFiles(files);
+      const firstAttachment = attachments[0];
       await sendMessage(id, {
         body: text || null,
-        kind: attachments.length > 0 && !text ? (attachments[0].includes('.pdf') ? 'document' : 'image') : 'text',
+        kind: attachments.length > 0 && !text ? (firstAttachment?.includes('.pdf') ? 'document' : 'image') : 'text',
         attachments,
       });
       setBody('');
