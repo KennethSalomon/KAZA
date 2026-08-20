@@ -23,9 +23,13 @@
     "db:studio": "supabase studio",
     "functions:serve": "supabase functions serve",
     "db:types": "supabase gen types typescript --local > apps/web/src/lib/database.types.ts",
-    "db:types:check": "npm run db:types && git diff --exit-code apps/web/src/lib/database.types.ts"
+    "db:types:check": "npm run db:types && git diff --exit-code apps/web/src/lib/database.types.ts",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "husky": "^9.1.7",
     "prettier": "^3.3.3",
     "vitest": "^3.2.7"
   },
