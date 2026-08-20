@@ -216,6 +216,50 @@ export async function updateProfile(patch: { full_name?: string; phone?: string 
 }
 
 // ------------------------------------------------------------
+// Onboarding bailleur (Phase 4.2)
+// ------------------------------------------------------------
+export type MomoProvider = 'mtn' | 'moov' | 'celtiis';
+
+export interface LandlordBilling {
+  business_name: string | null;
+  tax_id: string | null;
+  momo_provider: MomoProvider | null;
+  momo_number: string | null;
+  bank_name: string | null;
+  bank_iban: string | null;
+  onboarding_completed: boolean;
+}
+
+export interface LandlordOnboardingInput {
+  business_name: string;
+  tax_id?: string;
+  momo_provider: MomoProvider;
+  momo_number: string;
+  bank_name?: string;
+  bank_iban?: string;
+}
+
+export async function getMyBilling(): Promise<LandlordBilling | null> {
+  const { data, error } = await supabase.rpc('get_my_billing');
+  if (error) throw normalizeError(error, 'Chargement des coordonnées impossible');
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row as LandlordBilling | null) ?? null;
+}
+
+export async function completeLandlordOnboarding(input: LandlordOnboardingInput): Promise<void> {
+  assertBeninPhone(input.momo_number);
+  const { error } = await supabase.rpc('complete_landlord_onboarding', {
+    p_business_name: input.business_name,
+    p_tax_id: input.tax_id ?? null,
+    p_momo_provider: input.momo_provider,
+    p_momo_number: input.momo_number,
+    p_bank_name: input.bank_name ?? null,
+    p_bank_iban: input.bank_iban ?? null,
+  });
+  if (error) throw normalizeError(error, 'Onboarding impossible');
+}
+
+// ------------------------------------------------------------
 // Recherche & biens
 // ------------------------------------------------------------
 export interface SearchParams {
@@ -291,8 +335,9 @@ export async function geocode(city: string, zone: string): Promise<{ lat: number
     );
     if (!res.ok) return null;
     const hits = (await res.json()) as { lat: string; lon: string }[];
-    if (hits.length === 0) return null;
-    return { lat: Number(hits[0].lat), lng: Number(hits[0].lon) };
+    const firstHit = hits[0];
+    if (!firstHit) return null;
+    return { lat: Number(firstHit.lat), lng: Number(firstHit.lon) };
   } catch {
     return null;
   }
@@ -612,7 +657,7 @@ export async function listReviews(residenceId: string): Promise<ReviewsResult> {
 export function storagePathFromUrl(url: string): string | null {
   try {
     const decoded = decodeURIComponent(url);
-    const withoutQuery = decoded.split('?')[0];
+    const withoutQuery = decoded.split('?')[0] ?? '';
     const marker = `/object/`;
     const idx = withoutQuery.lastIndexOf(marker);
     if (idx === -1) return withoutQuery.replace(/^\/+/, '');

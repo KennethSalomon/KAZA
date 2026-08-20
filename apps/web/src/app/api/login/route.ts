@@ -13,7 +13,7 @@ function getClientIp(req: NextRequest): string {
     req.headers.get('x-forwarded-for') ??
     req.headers.get('x-real-ip') ??
     '';
-  const first = fwd.split(',')[0].trim();
+  const first = (fwd.split(',')[0] ?? '').trim();
   return first || 'unknown';
 }
 
