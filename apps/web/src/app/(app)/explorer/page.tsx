@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import dynamic from 'next/dynamic';
 import { LocateFixed, Map as MapIcon, List, SlidersHorizontal, X } from 'lucide-react';
 import { searchResidences } from '@/lib/api/residences';
@@ -48,7 +48,7 @@ export default function ExplorerPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isPending] = useTransition();
   const toast = useToast();
   const debounceRef = useRef<number | null>(null);
 
@@ -68,11 +68,11 @@ export default function ExplorerPage() {
     items: residences,
     loading,
     loadingMore,
-    error: searchError,
+    error: _searchError,
     hasMore,
     loadMore,
     refresh,
-    setItems,
+    setItems: _setItems,
   } = useInfiniteScroll<ResidenceWithRelations>({
     fetchFn: async (page, pageSize) => {
       const results = await searchResidences({

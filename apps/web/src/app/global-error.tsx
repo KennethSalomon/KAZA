@@ -57,7 +57,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               onClick={() => window.location.href = '/'}
               className="w-full sm:w-auto"
             >
-              Retour à l'accueil
+              Retour &agrave; l&apos;accueil
             </Button>
           </div>
         </div>

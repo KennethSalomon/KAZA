@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { env } from './lib/env';
-import { logger, getRequestId } from './lib/logger';
+import { logger } from './lib/logger';
 
 // Routes accessibles sans authentification.
 const PUBLIC_PATHS = [
