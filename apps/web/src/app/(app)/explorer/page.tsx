@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import dynamic from 'next/dynamic';
 import { LocateFixed, Map as MapIcon, List, SlidersHorizontal, X } from 'lucide-react';
-import { searchResidences } from '@/lib/supabase-api';
+import { searchResidences } from '@/lib/api/residences';
 import type { ResidenceWithRelations, ResidenceType } from '@/lib/types';
 import { TYPE_LABELS } from '@/lib/format';
 import { PropertyCard } from '@/components/property/property-card';
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/cn';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 const ResidenceMap = dynamic(
   () => import('@/components/property/residence-map').then((m) => m.ResidenceMap),
@@ -37,13 +38,11 @@ const initialFilters: Filters = { q: '', city: '', zone: '', min_price: '', max_
 const ALL_TYPES = Object.keys(TYPE_LABELS) as ResidenceType[];
 
 export default function ExplorerPage() {
-  const [residences, setResidences] = useState<ResidenceWithRelations[]>([]);
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [selectedTypes, setSelectedTypes] = useState<Set<ResidenceType>>(new Set());
   const [sort, setSort] = useState<SortKey>('recent');
   const [center, setCenter] = useState<Center | undefined>(undefined);
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
-  const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [showFilters, setShowFilters] = useState(false);
@@ -53,6 +52,41 @@ export default function ExplorerPage() {
   const toast = useToast();
   const debounceRef = useRef<number | null>(null);
 
+  // Filtres combinés pour la recherche
+  const searchFilters = useMemo(() => ({
+    q: filters.q || undefined,
+    city: filters.city || undefined,
+    zone: filters.zone || undefined,
+    max_price: filters.max_price ? Number(filters.max_price) : undefined,
+    lat: geo?.lat,
+    lng: geo?.lng,
+    radius_km: geo ? 25 : undefined,
+  }), [filters, geo]);
+
+  // Hook infinite scroll
+  const {
+    items: residences,
+    loading,
+    loadingMore,
+    error: searchError,
+    hasMore,
+    loadMore,
+    refresh,
+    setItems,
+  } = useInfiniteScroll<ResidenceWithRelations>({
+    fetchFn: async (page, pageSize) => {
+      const results = await searchResidences({
+        ...searchFilters,
+        limit: pageSize,
+        offset: page * pageSize,
+      });
+      return results;
+    },
+    pageSize: 20,
+    enabled: true,
+    onError: (err) => toast.error('Recherche impossible', err.message),
+  });
+
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -61,48 +95,14 @@ export default function ExplorerPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const runSearch = useCallback(
-    (f: Filters) => {
-      startTransition(async () => {
-        setLoading(true);
-        try {
-          const results = await searchResidences({
-            q: f.q || undefined,
-            city: f.city || undefined,
-            zone: f.zone || undefined,
-            // note : le tri multi-type et la fourchette basse sont appliqués
-            // côté client (pipeline below) — le serveur limite déjà la
-            // fourchette haute pour réduire le volume transféré.
-            max_price: f.max_price ? Number(f.max_price) : undefined,
-            lat: geo?.lat,
-            lng: geo?.lng,
-            radius_km: geo ? 25 : undefined,
-          });
-          setResidences(results);
-        } catch {
-          toast.error('Recherche impossible', 'Réessayez dans un instant.');
-        } finally {
-          setLoading(false);
-        }
-      });
-    },
-    [geo, toast],
-  );
-
-  // recherche au montage (immédiate) puis debounce sur chaque changement de filtres.
-  const firstRun = useRef(true);
+  // Recherche debouncée quand les filtres changent
   useEffect(() => {
-    if (firstRun.current) {
-      firstRun.current = false;
-      runSearch(initialFilters);
-      return;
-    }
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(() => runSearch(filters), 450);
+    debounceRef.current = window.setTimeout(() => refresh(), 450);
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
-  }, [filters, runSearch]);
+  }, [searchFilters, refresh]);
 
   // ------------------------------------------------------------
   // Pipeline client : fourchette basse, types multi-sélection, tri.
@@ -144,6 +144,7 @@ export default function ExplorerPage() {
     setFilters(initialFilters);
     setSelectedTypes(new Set());
     setSort('recent');
+    refresh();
   };
 
   function useMyLocation() {
@@ -445,6 +446,40 @@ export default function ExplorerPage() {
                   ) : undefined
                 }
               />
+            </div>
+          )}
+          {(hasMore || loadingMore) && (
+            <div className="col-span-full flex justify-center py-4">
+              <div
+                ref={(el) => {
+                  if (el) {
+                    const observer = new IntersectionObserver(
+                      (entries) => {
+                        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+                          loadMore();
+                        }
+                      },
+                      { rootMargin: '100px' }
+                    );
+                    observer.observe(el);
+                    return () => observer.disconnect();
+                  }
+                }}
+              >
+                {loadingMore ? (
+                  <div className="flex items-center justify-center gap-2 text-sm text-kaza-muted">
+                    <svg className="animate-spin h-4 w-4 text-kaza-brand" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Chargement de plus de biens…
+                  </div>
+                ) : (
+                  <Button variant="secondary" onClick={loadMore} className="w-full sm:w-auto">
+                    Voir plus de biens
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -72,7 +72,9 @@ export function ChatWindow() {
           }
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
     return () => {
       void supabase.removeChannel(channel);
     };
@@ -92,6 +94,7 @@ export function ChatWindow() {
   // URLs signées pour les pièces jointes (bucket privé) — mises en cache
   // Résolues en parallèle par lots de 6 (pas de round-trip séquentiel).
   const [signedAttachments, setSignedAttachments] = useState<Record<string, string>>({});
+  const [isConnected, setIsConnected] = useState(true);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -216,6 +219,7 @@ export function ChatWindow() {
           </p>
           <p className="text-xs text-kaza-faint">
             {conversation?.residence?.title ?? 'Chat privé sécurisé'}{conversation?.residence ? ` · ${formatXof(conversation.residence.price_monthly)}/mois` : ' · pièces jointes acceptées'}
+            <span className={`ml-2 inline-block h-1.5 w-1.5 rounded-full ${isConnected ? 'bg-kaza-success' : 'bg-kaza-danger'}`} title={isConnected ? 'Connecté' : 'Déconnecté'} />
           </p>
         </div>
         {isLandlord && (
@@ -329,7 +333,7 @@ export function ChatWindow() {
           <input
             type="file"
             multiple
-            accept="image/*,.pdf"
+            accept="image/jpeg,image/png,image/webp,.pdf"
             className="sr-only"
             aria-label="Joindre un fichier"
             onChange={(e) => setPendingFiles([...pendingFiles, ...Array.from(e.target.files ?? [])])}

@@ -36,7 +36,11 @@ export function PaymentModal({
   const [phone, setPhone] = useState('');
   const [months, setMonths] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const phoneClean = phone.replace(/\s+/g, '');
+  const phoneValid = method === 'cash' || /^\+229\d{10}$/.test(phoneClean);
 
   const amount = Number(lease.monthly_rent) * months;
   const period = monthRange(0);
@@ -61,7 +65,12 @@ export function PaymentModal({
         if (!res.payment_url) {
           throw new ApiError(502, 'Le fournisseur de paiement n\'a pas renvoyé de page de paiement.');
         }
-        window.location.href = res.payment_url;
+        setRedirecting(true);
+        setLoading(false);
+        // Petit délai pour que l'utilisateur voie l'état de redirection
+        setTimeout(() => {
+          window.location.href = res.payment_url;
+        }, 500);
         return;
       }
       onPaid?.();
@@ -155,9 +164,18 @@ export function PaymentModal({
           </p>
         )}
 
-        <Button onClick={() => void submit()} loading={loading} className="w-full" size="lg">
+        <Button onClick={() => void submit()} loading={loading} disabled={!phoneValid || redirecting} className="w-full" size="lg">
           {method === 'cash' ? 'Signaler le paiement en espèces' : `Payer ${formatXof(amount)}`}
         </Button>
+        {redirecting && (
+          <div className="flex items-center justify-center gap-2 text-sm text-kaza-muted">
+            <svg className="animate-spin h-4 w-4 text-kaza-brand" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Redirection vers le paiement…
+          </div>
+        )}
       </div>
     </Modal>
   );

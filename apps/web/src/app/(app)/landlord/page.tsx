@@ -96,6 +96,7 @@ export default function LandlordHomePage() {
   }
 
   async function terminateLease(leaseId: string) {
+    if (!window.confirm('Résilier ce bail ? Cette action est irréversible.')) return;
     setBusyId(leaseId);
     try {
       await terminateLeaseApi(leaseId);

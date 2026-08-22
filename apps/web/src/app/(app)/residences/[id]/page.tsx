@@ -114,7 +114,7 @@ export default function ResidenceDetailPage() {
                     i === photoIndex ? 'border-kaza-brand ring-1 ring-kaza-brand/50' : 'border-kaza-border opacity-60 hover:opacity-100',
                   )}
                 >
-                  <Image src={p} alt="" fill className="object-cover" sizes="96px" />
+                  <Image src={p} alt="" fill loading={i === photoIndex ? 'eager' : 'lazy'} className="object-cover" sizes="96px" />
                 </button>
               ))}
             </div>
