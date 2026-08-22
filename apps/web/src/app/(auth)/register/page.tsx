@@ -1,11 +1,11 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signUp, signInWithGoogle, ApiError } from '@/lib/supabase-api';
 import { env } from '@/lib/env';
-import { useHcaptcha } from '@/components/ui/hcaptcha';
+import { useHcaptcha, useVisibleHcaptcha } from '@/components/ui/hcaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GoogleIcon } from '@/components/ui/google-icon';
@@ -29,6 +29,12 @@ export default function RegisterPage() {
   const toast = useToast();
   const hcaptcha = useHcaptcha();
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [captchaTokenVisible, setCaptchaTokenVisible] = useState('');
+  const visibleHcaptcha = useVisibleHcaptcha('kaza-hcaptcha', env.hcaptchaSitekey, setCaptchaTokenVisible);
+
+  useEffect(() => {
+    if (env.hcaptchaSitekey) visibleHcaptcha.render();
+  }, [visibleHcaptcha]);
 
   async function onGoogle() {
     setGoogleLoading(true);
@@ -86,19 +92,35 @@ export default function RegisterPage() {
         return;
       }
 
-      let captchaToken = '';
-      try {
-        captchaToken = env.hcaptchaSitekey
-          ? await hcaptcha.execute({ sitekey: env.hcaptchaSitekey })
-          : '';
-      } catch (captchaErr) {
-        console.error('[register] hCaptcha failed:', captchaErr);
-        toast.error(
-          'Vérification anti-robot échouée',
-          'Désactivez votre bloqueur de publicités ou réessayez dans un autre navigateur.',
-        );
-        setLoading(false);
-        return;
+      let captchaToken = captchaTokenVisible;
+      if (!captchaToken && env.hcaptchaSitekey) {
+        // Fallback invisible si l'utilisateur n'a pas coché la case visible
+        try {
+          captchaToken = await hcaptcha.execute({ sitekey: env.hcaptchaSitekey });
+        } catch (captchaErr) {
+          console.error('[register] hCaptcha failed:', captchaErr);
+          if (!captchaTokenVisible) {
+            toast.error(
+              'Vérification anti-robot requise',
+              'Cochez la case "Je suis un humain" ci-dessus, ou désactivez votre bloqueur de publicités.',
+            );
+          } else {
+            toast.error(
+              'Vérification anti-robot échouée',
+              'Réessayez ou changez de navigateur.',
+            );
+          }
+          setLoading(false);
+          return;
+        }
+        if (!captchaToken) {
+          toast.error(
+            'Vérification anti-robot requise',
+            'Cochez la case "Je suis un humain" ci-dessus.',
+          );
+          setLoading(false);
+          return;
+        }
       }
 
       const { needsEmailConfirmation } = await signUp(
@@ -113,6 +135,8 @@ export default function RegisterPage() {
         captchaToken,
       );
       hcaptcha.reset();
+      visibleHcaptcha.reset();
+      setCaptchaTokenVisible('');
       if (needsEmailConfirmation) {
         toast.success(
           'Vérifiez votre boîte mail',
@@ -249,6 +273,12 @@ export default function RegisterPage() {
         <p role="alert" className="text-xs text-kaza-danger">
           {errors.consent[0]}
         </p>
+      )}
+
+      {env.hcaptchaSitekey && (
+        <div className="flex justify-center">
+          <div id="kaza-hcaptcha" className="min-h-[78px]" />
+        </div>
       )}
 
       <Button type="submit" loading={loading} className="w-full btn-responsive-lg" size="lg">
