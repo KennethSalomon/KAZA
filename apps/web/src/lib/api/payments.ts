@@ -1,11 +1,9 @@
 import { supabase } from '../supabase-client';
-import { env } from '../env';
 import type {
   PaymentWithRelations,
   ReceiptWithRelations,
-  LeaseWithRelations,
 } from '../types';
-import { ApiError, normalizeError, callFunction } from '../supabase-api';
+import { normalizeError, callFunction } from '../supabase-api';
 
 export interface FedapayInitResult {
   payment_id: string;

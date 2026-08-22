@@ -1,7 +1,6 @@
 import { supabase } from '../supabase-client';
-import { env } from '../env';
 import type { Profile } from '../types';
-import { ApiError, normalizeError, callFunction } from '../supabase-api';
+import { ApiError, normalizeError } from '../supabase-api';
 
 /** Valide un numéro de téléphone bénin : +229 suivi de 10 chiffres. */
 function assertBeninPhone(phone: string): void {
