@@ -1,6 +1,7 @@
 import { supabase } from '../supabase-client';
 import type { Profile } from '../types';
 import { ApiError, normalizeError } from '../supabase-api';
+import { requireUser } from '../require-user';
 
 /** Valide un numéro de téléphone bénin : +229 suivi de 10 chiffres. */
 function assertBeninPhone(phone: string): void {
@@ -147,7 +148,7 @@ export async function updatePassword(newPassword: string): Promise<void> {
 }
 
 export async function getMyProfile(): Promise<Profile | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await requireUser().catch(() => null);
   if (!user) return null;
   const { data, error } = await supabase
     .from('profiles')
@@ -159,7 +160,7 @@ export async function getMyProfile(): Promise<Profile | null> {
 }
 
 export async function updateProfile(patch: { full_name?: string; phone?: string }): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await requireUser().catch(() => null);
   if (!user) return;
   const { error } = await supabase
     .from('profiles')

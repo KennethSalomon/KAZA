@@ -7,6 +7,7 @@ import type {
   ReviewsResult,
 } from '../types';
 import { normalizeError } from '../supabase-api';
+import { requireUser } from '../require-user';
 
 export interface SearchParams {
   q?: string;
@@ -45,7 +46,7 @@ export async function getResidence(id: string): Promise<ResidenceWithRelations> 
 }
 
 export async function listMyResidences(): Promise<ResidenceWithRelations[]> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await requireUser().catch(() => null);
   if (!user) return [];
   const { data, error } = await supabase
     .from('residences')
@@ -89,8 +90,7 @@ export async function geocode(city: string, zone: string): Promise<{ lat: number
 }
 
 export async function createResidence(input: ResidenceCreateInput): Promise<Residence> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Connectez-vous pour créer un bien');
+  const user = await requireUser();
 
   const geo = input.lat != null && input.lng != null
     ? { lat: input.lat, lng: input.lng }

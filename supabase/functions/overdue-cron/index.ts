@@ -7,14 +7,26 @@ import {
 } from '../_shared/brevo.ts';
 import { isJ7, notificationBody, notificationTitle, landlordAlertBody } from '../_shared/overdue-tiers.ts';
 
-const CRON_SECRET = Deno.env.get('CRON_SECRET');
-if (!CRON_SECRET) throw new Error('CRON_SECRET non défini');
+async function getCronSecret(): Promise<string> {
+  const envSecret = Deno.env.get('CRON_SECRET');
+  if (envSecret) return envSecret;
+
+  const supabase = getAdminClient();
+  const { data } = await supabase
+    .from('_cron_secrets')
+    .select('secret')
+    .eq('name', 'overdue-cron')
+    .maybeSingle();
+  if (data?.secret) return data.secret;
+
+  throw new Error('CRON_SECRET non défini (ni dans les variables d\'environnement, ni dans la table _cron_secrets)');
+}
+
 const APP_URL = Deno.env.get('APP_URL');
 if (!APP_URL) throw new Error('APP_URL non défini');
-const cronSecret: string = CRON_SECRET;
 
 // Comparaison à temps constant (pas de fuite de longueur/timing)
-function secretMatches(header: string | null): boolean {
+function secretMatches(header: string | null, cronSecret: string): boolean {
   if (!header || header.length !== cronSecret.length) return false;
   const a = new TextEncoder().encode(header);
   const b = new TextEncoder().encode(cronSecret);
@@ -84,7 +96,8 @@ async function notify(
  * Protégé par l'en-tête x-cron-secret (planification via pg_cron + net.http_post).
  */
 Deno.serve(async (req: Request) => {
-  if (!secretMatches(req.headers.get('x-cron-secret'))) {
+  const cronSecret = await getCronSecret();
+  if (!secretMatches(req.headers.get('x-cron-secret'), cronSecret)) {
     return new Response('Unauthorized', { status: 401 });
   }
 

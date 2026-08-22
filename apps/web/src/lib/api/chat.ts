@@ -5,6 +5,7 @@ import type {
   Visit,
 } from '../types';
 import { normalizeError, getSignedStorageUrl } from '../supabase-api';
+import { requireUser } from '../require-user';
 
 const STORAGE_MAX = 8 * 1024 * 1024;
 
@@ -46,8 +47,7 @@ export async function sendMessage(
   conversationId: string,
   input: { body: string | null; kind?: Message['kind']; attachments?: string[] },
 ): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Connectez-vous pour envoyer un message');
+  const user = await requireUser();
   const { error } = await supabase.from('messages').insert({
     conversation_id: conversationId,
     sender_id: user.id,
@@ -59,7 +59,7 @@ export async function sendMessage(
 }
 
 export async function markConversationRead(conversationId: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await requireUser().catch(() => null);
   if (!user) return;
   await supabase
     .from('messages')
@@ -82,12 +82,27 @@ export async function agreeVisit(
   if (error) throw normalizeError(error, 'Action impossible');
 }
 
+export async function cancelVisit(visitId: string, reason = ''): Promise<void> {
+  const { error } = await supabase.rpc('cancel_visit', {
+    p_visit_id: visitId,
+    p_reason: reason || null,
+  });
+  if (error) throw normalizeError(error, 'Annulation impossible');
+}
+
+export async function declineVisit(visitId: string, reason = ''): Promise<void> {
+  const { error } = await supabase.rpc('decline_visit', {
+    p_visit_id: visitId,
+    p_reason: reason || null,
+  });
+  if (error) throw normalizeError(error, 'Refus impossible');
+}
+
 export async function proposeVisit(
   conversationId: string,
   slots: { start: string; end: string }[]
 ): Promise<string> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Connectez-vous');
+  const user = await requireUser();
   const visitPromises = slots.map(slot =>
     supabase.from('visits').insert({
       conversation_id: conversationId,
@@ -114,7 +129,7 @@ export async function listVisits(conversationId: string): Promise<Visit[]> {
 }
 
 export async function listMyVisits(): Promise<Visit[]> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await requireUser().catch(() => null);
   if (!user) return [];
   const { data, error } = await supabase
     .from('visits')

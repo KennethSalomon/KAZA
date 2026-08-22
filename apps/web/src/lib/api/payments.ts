@@ -4,6 +4,7 @@ import type {
   ReceiptWithRelations,
 } from '../types';
 import { normalizeError, callFunction } from '../supabase-api';
+import { requireUser } from '../require-user';
 
 export interface FedapayInitResult {
   payment_id: string;
@@ -58,7 +59,7 @@ export async function initFedapayPayment(
 }
 
 export async function confirmPayment(paymentId: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await requireUser().catch(() => null);
   if (!user) return;
   const { error } = await supabase
     .from('payments')
