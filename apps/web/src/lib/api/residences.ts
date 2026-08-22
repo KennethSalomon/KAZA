@@ -100,6 +100,7 @@ export async function createResidence(input: ResidenceCreateInput): Promise<Resi
     ...input,
     owner_id: user.id,
     price_monthly: Number(input.price_monthly),
+    charges_monthly: Number(input.charges_monthly ?? 0),
     deposit: Number(input.deposit ?? 0),
     bedrooms: Number(input.bedrooms ?? 1),
     bathrooms: Number(input.bathrooms ?? 1),

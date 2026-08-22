@@ -18,6 +18,7 @@ const initial = {
   description: '',
   type: 'appartement' as ResidenceType,
   price_monthly: '',
+  charges_monthly: '0',
   deposit: '',
   bedrooms: '1',
   bathrooms: '1',
@@ -41,6 +42,11 @@ function validateForm(form: typeof initial): Record<string, string[]> {
 
   if (!form.price_monthly || Number(form.price_monthly) <= 0) {
     errors.price_monthly = ['Le loyer mensuel doit être supérieur à 0'];
+  }
+
+  // note : les charges sont facultatives mais ne peuvent pas être négatives.
+  if (form.charges_monthly && Number(form.charges_monthly) < 0) {
+    errors.charges_monthly = ['Les charges ne peuvent pas être négatives'];
   }
 
   const deposit = Number(form.deposit || 0);
@@ -78,6 +84,7 @@ export function ResidenceForm({ existing }: Readonly<{ existing?: ResidenceWithR
           description: existing.description ?? '',
           type: existing.type,
           price_monthly: String(existing.price_monthly),
+          charges_monthly: String(existing.charges_monthly ?? 0),
           deposit: String(existing.deposit),
           bedrooms: String(existing.bedrooms),
           bathrooms: String(existing.bathrooms),
@@ -162,6 +169,7 @@ export function ResidenceForm({ existing }: Readonly<{ existing?: ResidenceWithR
     const payload = {
       ...form,
       price_monthly: Number(form.price_monthly),
+      charges_monthly: Number(form.charges_monthly || 0),
       deposit: Number(form.deposit || 0),
       bedrooms: Number(form.bedrooms),
       bathrooms: Number(form.bathrooms),
@@ -257,11 +265,52 @@ export function ResidenceForm({ existing }: Readonly<{ existing?: ResidenceWithR
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Input label="Loyer mensuel (FCFA)" type="number" min={1} required placeholder="100000" value={form.price_monthly} onChange={set('price_monthly')} error={errors.price_monthly?.[0]} />
-        <Input label="Caution (FCFA)" type="number" min={0} placeholder="300000" value={form.deposit} onChange={set('deposit')} hint="Max 3 mois (Loi 2022-30)" error={errors.deposit?.[0]} />
-        <Input label="Superficie (m²)" type="number" min={0} placeholder="120" value={form.surface} onChange={set('surface')} />
-      </div>
+      <fieldset className="rounded-kaza border border-kaza-border/70 p-4">
+        <legend className="px-2 text-xs font-semibold uppercase tracking-wide text-kaza-muted">
+          Conditions financières
+        </legend>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Input
+            label="Loyer hors charges (FCFA)"
+            type="number"
+            min={1}
+            required
+            placeholder="100000"
+            value={form.price_monthly}
+            onChange={set('price_monthly')}
+            error={errors.price_monthly?.[0]}
+            hint="Montant du loyer sec, hors charges."
+          />
+          <Input
+            label="Charges (FCFA)"
+            type="number"
+            min={0}
+            placeholder="15000"
+            value={form.charges_monthly}
+            onChange={set('charges_monthly')}
+            error={errors.charges_monthly?.[0]}
+            hint="Eau, électricité, ordures — 0 si aucune."
+          />
+          <Input
+            label="Dépôt de garantie (FCFA)"
+            type="number"
+            min={0}
+            placeholder="300000"
+            value={form.deposit}
+            onChange={set('deposit')}
+            hint="Max 3 mois (Loi 2022-30)"
+            error={errors.deposit?.[0]}
+          />
+          <Input
+            label="Superficie (m²)"
+            type="number"
+            min={0}
+            placeholder="120"
+            value={form.surface}
+            onChange={set('surface')}
+          />
+        </div>
+      </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Chambres" type="number" min={0} value={form.bedrooms} onChange={set('bedrooms')} error={errors.bedrooms?.[0]} />

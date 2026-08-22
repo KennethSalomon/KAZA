@@ -15,7 +15,13 @@ export type NotificationType = Database['public']['Enums']['notification_type'];
 export type VisitStatus = 'proposed' | 'confirmed' | 'cancelled' | 'completed';
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
-export type Residence = Database['public']['Tables']['residences']['Row'];
+// note : la colonne `charges_monthly` (migration 028) n'est pas encore présente
+// dans database.types.ts (généré depuis la base). On l'ajoute manuellement en
+// intersection pour bénéficier de l'auto-complétion et du strict TS. À supprimer
+// après un `npm run db:types` post-migration.
+type ResidenceExtraColumns = { charges_monthly?: number | null };
+
+export type Residence = Database['public']['Tables']['residences']['Row'] & ResidenceExtraColumns;
 export type Conversation = Database['public']['Tables']['conversations']['Row'];
 export type Message = Database['public']['Tables']['messages']['Row'];
 export type Lease = Database['public']['Tables']['leases']['Row'];
@@ -122,6 +128,6 @@ export interface AdminStats {
 }
 
 // Type aliases for backward compatibility (components expecting relations)
-export type ResidenceInput = Database['public']['Tables']['residences']['Insert'];
+export type ResidenceInput = Database['public']['Tables']['residences']['Insert'] & ResidenceExtraColumns;
 export type ResidenceCreateInput = Omit<ResidenceInput, 'owner_id'>;
 export type Status = ResidenceStatus;
