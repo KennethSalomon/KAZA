@@ -16,7 +16,7 @@ const CSP = [
   "script-src 'self' 'unsafe-inline' https://js.hcaptcha.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: http://localhost:54321 https://*.supabase.co https://images.unsplash.com https://*.tile.openstreetmap.org",
-  "connect-src 'self' http://localhost:54321 wss://localhost:54321 https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://api.hcaptcha.com",
+  ""connect-src 'self' http://localhost:54321 wss://localhost:54321 https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://api.hcaptcha.com https://js.hcaptcha.com https://*.hcaptcha.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io",",
   "frame-src https://*.hcaptcha.com",
   "object-src 'none'",
   "frame-ancestors 'none'",
