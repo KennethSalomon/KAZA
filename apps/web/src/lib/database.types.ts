@@ -34,6 +34,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      _cron_secrets: {
+        Row: {
+          name: string
+          secret: string
+        }
+        Insert: {
+          name: string
+          secret: string
+        }
+        Update: {
+          name?: string
+          secret?: string
+        }
+        Relationships: []
+      }
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          new_value: Json | null
+          old_value: Json | null
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_logs_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           key: string
@@ -994,6 +1053,10 @@ export type Database = {
         Args: { p_agreed: boolean; p_conversation_id: string; p_note?: string }
         Returns: undefined
       }
+      cancel_visit: {
+        Args: { p_reason?: string; p_visit_id: string }
+        Returns: undefined
+      }
       confirm_visit: {
         Args: { p_slot_index: number; p_visit_id: string }
         Returns: undefined
@@ -1022,6 +1085,10 @@ export type Database = {
           zone?: string
         }
         Returns: string
+      }
+      decline_visit: {
+        Args: { p_reason?: string; p_visit_id: string }
+        Returns: undefined
       }
       delete_my_account: { Args: { p_user_id: string }; Returns: undefined }
       disablelongtransactions: { Args: never; Returns: string }
@@ -1163,6 +1230,32 @@ export type Database = {
       gettransactionid: { Args: never; Returns: unknown }
       increment_residence_views: { Args: { p_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
+      list_admin_audit_logs: {
+        Args: {
+          p_action?: string
+          p_admin_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_target_type?: string
+        }
+        Returns: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          new_value: Json | null
+          old_value: Json | null
+          target_id: string | null
+          target_type: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "admin_audit_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       list_my_conversations: { Args: never; Returns: Json }
       list_my_favorite_ids: { Args: never; Returns: string[] }
       list_my_favorites: { Args: never; Returns: Json }
@@ -1195,6 +1288,17 @@ export type Database = {
           monthly_rent: number
           tenant_id: string
         }[]
+      }
+      log_admin_action: {
+        Args: {
+          p_action: string
+          p_metadata?: Json
+          p_new_value?: Json
+          p_old_value?: Json
+          p_target_id?: string
+          p_target_type: string
+        }
+        Returns: undefined
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
       open_conversation: { Args: { p_residence_id: string }; Returns: string }
@@ -1238,6 +1342,15 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      report_cash_payment: {
+        Args: {
+          p_amount: number
+          p_lease_id: string
+          p_period_end: string
+          p_period_start: string
+        }
+        Returns: undefined
+      }
       reset_test_database: { Args: never; Returns: undefined }
       search_residences: {
         Args: {

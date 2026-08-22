@@ -45,6 +45,8 @@ begin
     public.receipts,
     public.leases,
     public.residences,
+    public.visits,
+    public.admin_audit_logs,
     public.notifications,
     public.profiles
   restart identity cascade;
