@@ -277,9 +277,19 @@ export default function LandlordHomePage() {
 
       {/* Biens */}
       <section className="mt-8" aria-labelledby="biens">
-        <h2 id="biens" className="font-display text-lg font-semibold text-kaza-text">
-          Mes biens <span className="text-kaza-faint">({residences.length})</span>
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="biens" className="font-display text-lg font-semibold text-kaza-text">
+            Mes biens <span className="text-kaza-faint">({residences.length})</span>
+          </h2>
+          {residences.length > 0 && (
+            <Link
+              href="/landlord/properties"
+              className="text-sm font-medium text-kaza-brand hover:opacity-80"
+            >
+              Voir tout mon parc →
+            </Link>
+          )}
+        </div>
         {residences.length === 0 ? (
           <div className="mt-3">
             <EmptyState
