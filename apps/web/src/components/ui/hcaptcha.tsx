@@ -33,6 +33,7 @@ interface HcaptchaApi {
 declare global {
   interface Window {
     hcaptcha?: HcaptchaApi;
+    kazaHcaptchaOnLoad?: () => void;
   }
 }
 
@@ -40,26 +41,40 @@ let scriptPromise: Promise<void> | null = null;
 
 function loadHcaptchaScript(): Promise<void> {
   if (scriptPromise) return scriptPromise;
+  // Vérifie si déjà chargé et prêt
+  if (window.hcaptcha?.render) return Promise.resolve();
+
   scriptPromise = new Promise<void>((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>('script[data-kaza-hcaptcha]');
     if (existing) {
-      existing.addEventListener('load', () => resolve(), { once: true });
-      existing.addEventListener('error', () => reject(new Error('Échec du chargement hCaptcha')), {
-        once: true,
-      });
+      // Script déjà injecté, attend que l'API soit prête
+      const check = () => {
+        if (window.hcaptcha?.render) resolve();
+        else setTimeout(check, 50);
+      };
+      existing.addEventListener('load', check, { once: true });
+      existing.addEventListener('error', () => reject(new Error('Échec du chargement hCaptcha')), { once: true });
+      // Si déjà load mais pas encore d'API, poll
+      if ((existing as HTMLScriptElement & { dataset: DOMStringMap }).dataset.loaded) check();
       return;
     }
+    // Callback global pour render=explicit&onload
+    window.kazaHcaptchaOnLoad = () => resolve();
     const script = document.createElement('script');
-    script.src = 'https://js.hcaptcha.com/1/api.js?render=explicit';
+    script.src = 'https://js.hcaptcha.com/1/api.js?render=explicit&onload=kazaHcaptchaOnLoad';
     script.async = true;
     script.defer = true;
     script.dataset.kazaHcaptcha = 'true';
-    script.addEventListener('load', () => resolve(), { once: true });
     script.addEventListener('error', () => {
       script.remove();
       scriptPromise = null;
+      delete window.kazaHcaptchaOnLoad;
       reject(new Error('Échec du chargement hCaptcha'));
     }, { once: true });
+    // Fallback si onload ne se déclenche pas (réseau lent)
+    setTimeout(() => {
+      if (window.hcaptcha?.render) resolve();
+    }, 3000);
     document.head.appendChild(script);
   });
   return scriptPromise;
