@@ -199,7 +199,7 @@ jobs:
         run: |
           for f in supabase/functions/*/index.ts; do
             echo "Checking $f..."
-            deno lint "$f" || exit 1
+            deno lint --node-modules-dir=none "$f" || exit 1
           done
         working-directory: .
 
@@ -207,7 +207,7 @@ jobs:
         run: |
           for f in supabase/functions/*/index.ts; do
             echo "Typechecking $f..."
-            deno check "$f" || exit 1
+            deno check --node-modules-dir=none "$f" || exit 1
           done
         working-directory: .
 
