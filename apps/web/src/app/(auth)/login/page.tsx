@@ -33,11 +33,17 @@ function LoginForm() {
   }
 
   function afterLogin() {
-    // Retour au deep-link demandé (défini par le middleware), sinon explorer.
     const redirect = searchParams.get('redirect');
-    const target = redirect && redirect.startsWith('/') && !redirect.startsWith('//')
-      ? redirect
-      : '/explorer';
+    const roleParam = searchParams.get('role');
+    if (roleParam && typeof window !== 'undefined') {
+      window.localStorage.setItem('kaza:selected-role', roleParam);
+    }
+
+    const target =
+      redirect && redirect.startsWith('/') && !redirect.startsWith('//') && redirect !== '/welcome'
+        ? redirect
+        : '/welcome';
+
     router.push(target);
     router.refresh();
   }

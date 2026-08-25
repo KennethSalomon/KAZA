@@ -5,6 +5,7 @@ import { env } from './lib/env';
 // Routes accessibles sans authentification.
 const PUBLIC_PATHS = [
   '/',
+  '/welcome',
   '/auth/callback',
   '/login',
   '/register',

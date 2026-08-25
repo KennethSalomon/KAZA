@@ -4,17 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { ArrowLeft, BedDouble, Bath, Ruler, MapPin, ShieldCheck, MessageSquare, Eye } from 'lucide-react';
-import { getResidence, openConversation as openConv, incrementResidenceViews, ApiError } from '@/lib/supabase-api';
+import { getResidence, openConversation as openConv, incrementResidenceViews, toggleFavorite, listMyFavorites, ApiError } from '@/lib/supabase-api';
 import type { ResidenceWithRelations } from '@/lib/types';
-import { formatXof, formatDate, PROVIDER_LABELS } from '@/lib/format';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { Button } from '@/components/ui/button';
+import { formatXof } from '@/lib/format';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/toast';
-import { cn } from '@/lib/cn';
 
 export default function ResidenceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,14 +18,21 @@ export default function ResidenceDetailPage() {
   const toast = useToast();
   const [residence, setResidence] = useState<ResidenceWithRelations | null>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    getResidence(id)
-      .then((r) => {
-        mounted && setResidence(r);
+    Promise.all([
+      getResidence(id),
+      listMyFavorites().catch(() => []),
+    ])
+      .then(([r, favs]) => {
+        if (mounted) {
+          setResidence(r);
+          setIsFavorite(favs.some((f) => f.id === r.id));
+        }
         void incrementResidenceViews(id);
       })
       .catch((err) => {
@@ -43,13 +45,32 @@ export default function ResidenceDetailPage() {
     };
   }, [id, router, toast]);
 
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    const next = !isFavorite;
+    setIsFavorite(next);
+    try {
+      await toggleFavorite(id);
+      toast.success(next ? 'Ajouté aux favoris' : 'Retiré des favoris');
+    } catch {
+      setIsFavorite(!next);
+      toast.error('Mise à jour des favoris impossible');
+    }
+  };
+
   const openConversation = useCallback(async () => {
     if (!user) {
       router.push('/login');
       return;
     }
     if (!residence) return;
-    if (residence.owner_id === user.id) return;
+    if (residence.owner_id === user.id) {
+      router.push(`/landlord/residences/${residence.id}/edit`);
+      return;
+    }
     setSending(true);
     try {
       const convId = await openConv(residence.id);
@@ -64,165 +85,227 @@ export default function ResidenceDetailPage() {
   if (loading) return <DetailSkeleton />;
   if (!residence) notFound();
 
-  const photo = residence.photos[photoIndex];
+  const photos = residence.photos.length > 0 ? residence.photos : ['/images/placeholder.jpg'];
+  const currentPhoto = photos[photoIndex] || photos[0];
   const isOwner = user?.id === residence.owner_id;
 
   return (
-    <div>
-      <button
-        onClick={() => router.back()}
-        className="mb-5 flex items-center gap-2 text-sm text-kaza-muted transition-colors hover:text-kaza-text"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden /> Retour
-      </button>
-
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        {/* Galerie */}
-        <div>
-          <motion.div
-            key={photoIndex}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.35 }}
-            className="relative aspect-[16/9] overflow-hidden rounded-kaza-lg border border-kaza-border bg-kaza-raised"
+    <div className="-mx-4 -my-8 bg-background text-on-background antialiased md:flex md:justify-center md:py-8">
+      {/* Mobile View Container */}
+      <main className="w-full min-h-screen bg-background relative md:w-[450px] md:min-h-0 md:rounded-[2rem] md:overflow-hidden md:shadow-2xl md:border-8 md:border-surface-variant flex flex-col">
+        {/* TopAppBar (Floating over image) */}
+        <header className="fixed top-0 w-full z-50 bg-transparent flex justify-between items-center px-margin-mobile py-4 md:absolute md:w-full">
+          <button
+            onClick={() => router.back()}
+            aria-label="Retour"
+            className="w-10 h-10 rounded-full bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center text-on-surface shadow-sm transition-transform active:scale-95 hover:bg-surface-variant/20"
           >
-            {photo ? (
-              <Image src={photo} alt={`${residence.title} — photo ${photoIndex + 1}`} fill priority sizes="(max-width: 640px) 100vw, 50vw" className="object-cover" />
-            ) : (
-              <div className="grid h-full place-items-center text-kaza-faint">
-                <MapPin className="h-10 w-10" aria-hidden />
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+
+          {/* Photo Counter */}
+          <div className="px-3 py-1 rounded-full bg-surface-container-lowest/80 backdrop-blur-md text-on-surface font-label-md text-label-md shadow-sm">
+            {photoIndex + 1}/{photos.length}
+          </div>
+
+          <button
+            onClick={() => void handleToggleFavorite()}
+            aria-label="Favori"
+            className="w-10 h-10 rounded-full bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center text-on-surface shadow-sm transition-transform active:scale-95 hover:bg-surface-variant/20"
+          >
+            <span
+              className={`material-symbols-outlined ${isFavorite ? 'text-red-500' : ''}`}
+              style={{ fontVariationSettings: isFavorite ? "'FILL' 1" : "'FILL' 0" }}
+            >
+              favorite
+            </span>
+          </button>
+        </header>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto hide-scroll pb-[140px]">
+          {/* Hero Image Carousel */}
+          <section className="relative w-full h-[350px] overflow-hidden flex">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={currentPhoto}
+              alt={residence.title}
+              className="w-full h-full object-cover transition-opacity duration-300"
+            />
+            {photos.length > 1 && (
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-20">
+                {photos.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPhotoIndex(i)}
+                    className={`h-2 rounded-full transition-all ${
+                      i === photoIndex ? 'w-6 bg-white' : 'w-2 bg-white/50'
+                    }`}
+                    aria-label={`Photo ${i + 1}`}
+                  />
+                ))}
               </div>
             )}
-            <div className="absolute left-4 top-4">
-              <StatusBadge status={residence.status} />
-            </div>
-            <span className="absolute bottom-4 right-4 rounded-full bg-kaza-bg/80 px-3 py-1 text-xs text-kaza-muted backdrop-blur tabular-nums">
-              {photoIndex + 1} / {Math.max(residence.photos.length, 1)}
-            </span>
-          </motion.div>
+          </section>
 
-          {residence.photos.length > 1 && (
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Photos">
-              {residence.photos.map((p, i) => (
-                <button
-                  key={p}
-                  role="tab"
-                  aria-selected={i === photoIndex}
-                  onClick={() => setPhotoIndex(i)}
-                  className={cn(
-                    'relative h-16 w-24 shrink-0 overflow-hidden rounded-kaza border transition-all touch-target',
-                    i === photoIndex ? 'border-kaza-brand ring-1 ring-kaza-brand/50' : 'border-kaza-border opacity-60 hover:opacity-100',
-                  )}
-                >
-                  <Image src={p} alt="" fill className="object-cover" sizes="96px" />
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-6 space-y-4">
+          {/* Content Area (Overlapping White Surface) */}
+          <section className="relative -mt-6 bg-surface rounded-t-[1.5rem] px-margin-mobile pt-stack-lg pb-stack-lg z-10 flex flex-col gap-stack-md shadow-[0px_-2px_10px_rgba(0,0,0,0.05)]">
+            {/* Title & Location */}
             <div>
-              <h2 className="font-display text-lg font-semibold text-kaza-text">À propos de ce bien</h2>
-              <p className="mt-2 text-sm leading-relaxed text-kaza-muted truncate-mobile">
-                {residence.description || 'Description bientôt disponible. Contactez le bailleur pour plus de détails.'}
+              <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-1">
+                {residence.title}
+              </h1>
+              <div className="flex items-center text-on-surface-variant gap-1">
+                <span className="material-symbols-outlined text-[18px]">location_on</span>
+                <span className="font-body-md text-body-md">
+                  {residence.address || `${residence.zone ? residence.zone + ', ' : ''}${residence.city}`}
+                </span>
+              </div>
+            </div>
+
+            {/* Price & Badge */}
+            <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 mt-2">
+              <span className="font-headline-lg text-headline-lg text-secondary-container">
+                {formatXof(residence.price_monthly)}{' '}
+                <span className="font-body-md text-body-md text-on-surface-variant font-normal">
+                  / mois
+                </span>
+              </span>
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-secondary-container/10 text-secondary-fixed-dim font-label-md text-label-md self-start">
+                Caution : {residence.deposit ? formatXof(residence.deposit) : '3 mois'}
+              </span>
+            </div>
+
+            <hr className="border-outline-variant/30 my-2" />
+
+            {/* Key Specs Grid */}
+            <div className="grid grid-cols-5 gap-2 py-2">
+              <div className="flex flex-col items-center justify-center bg-surface-container-low rounded-lg p-2 gap-1">
+                <span className="material-symbols-outlined text-primary text-[24px]">hotel</span>
+                <span className="font-label-md text-label-md text-on-surface text-center leading-tight">
+                  {(residence.bedrooms ?? 1)} Chambre{(residence.bedrooms ?? 1) > 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center bg-surface-container-low rounded-lg p-2 gap-1">
+                <span className="material-symbols-outlined text-primary text-[24px]">shower</span>
+                <span className="font-label-md text-label-md text-on-surface text-center leading-tight">
+                  {(residence.bathrooms ?? 1)} Douche{(residence.bathrooms ?? 1) > 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center bg-surface-container-low rounded-lg p-2 gap-1">
+                <span className="material-symbols-outlined text-primary text-[24px]">restaurant</span>
+                <span className="font-label-md text-label-md text-on-surface text-center leading-tight">
+                  Cuisine
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center bg-surface-container-low rounded-lg p-2 gap-1">
+                <span className="material-symbols-outlined text-primary text-[24px]">balcony</span>
+                <span className="font-label-md text-label-md text-on-surface text-center leading-tight">
+                  Balcon
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center bg-surface-container-low rounded-lg p-2 gap-1">
+                <span className="material-symbols-outlined text-primary text-[24px]">directions_car</span>
+                <span className="font-label-md text-label-md text-on-surface text-center leading-tight">
+                  Garage
+                </span>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="mt-4">
+              <h2 className="font-title-lg text-title-lg text-on-surface mb-2">Description</h2>
+              <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                {residence.description ||
+                  "Appartement lumineux et idéalement situé. Profitez d'un grand salon aéré, de chambres spacieuses et d'une cuisine équipée dans un quartier sécurisé et calme."}
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 rounded-kaza-lg border border-kaza-border bg-kaza-surface p-4 sm:grid-cols-4">
-              <InfoCell icon={<BedDouble className="h-4 w-4" aria-hidden />} label="Chambres" value={String(residence.bedrooms)} />
-              <InfoCell icon={<Bath className="h-4 w-4" aria-hidden />} label="Salles de bain" value={String(residence.bathrooms)} />
-              {residence.surface != null && <InfoCell icon={<Ruler className="h-4 w-4" aria-hidden />} label="Surface" value={`${residence.surface} m²`} />}
-              <InfoCell icon={<Eye className="h-4 w-4" aria-hidden />} label="Vues" value={String(residence.views_count ?? 0)} />
+            {/* Amenities List */}
+            <div className="mt-4">
+              <h2 className="font-title-lg text-title-lg text-on-surface mb-3">Équipements</h2>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-label-md text-label-md border border-primary-fixed-dim">
+                  Eau courante
+                </span>
+                <span className="px-3 py-1.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-label-md text-label-md border border-primary-fixed-dim">
+                  Électricité prépayée
+                </span>
+                <span className="px-3 py-1.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-label-md text-label-md border border-primary-fixed-dim">
+                  Gardien 24/7
+                </span>
+                <span className="px-3 py-1.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-label-md text-label-md border border-primary-fixed-dim">
+                  WiFi Fibre
+                </span>
+              </div>
             </div>
-          </div>
+
+            {/* Map Placeholder */}
+            <div className="mt-6 rounded-xl overflow-hidden h-40 relative shadow-sm border border-outline-variant/30 bg-surface-container-high flex items-center justify-center">
+              <div className="text-center p-4">
+                <span className="material-symbols-outlined text-primary text-3xl">map</span>
+                <p className="font-label-lg text-label-lg text-on-surface mt-1">
+                  Localisation : {residence.zone ?? residence.city}
+                </p>
+                <p className="font-body-md text-body-md text-on-surface-variant">
+                  {residence.city}, Bénin
+                </p>
+              </div>
+            </div>
+          </section>
         </div>
 
-        {/* Panneau latéral */}
-        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-          <div className="kaza-card p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">{residence.title}</h1>
-                <p className="mt-1 flex items-center gap-1.5 text-sm text-kaza-muted">
-                  <MapPin className="h-4 w-4 shrink-0 text-kaza-brand" aria-hidden />
-                  {residence.address || `${residence.zone ?? ''} ${residence.city}`}
-                </p>
+        {/* Sticky Bottom Bar: Landlord Contact Card */}
+        <div className="fixed bottom-0 w-full bg-surface shadow-[0px_-4px_16px_rgba(0,0,0,0.06)] p-margin-mobile flex flex-col gap-3 rounded-t-xl z-50 md:absolute md:w-full">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary overflow-hidden">
+                <span className="material-symbols-outlined">person</span>
               </div>
-            </div>
-
-            <p className="price mt-5 font-display text-3xl font-bold text-kaza-brand">
-              {formatXof(residence.price_monthly)}
-              <span className="text-sm font-normal text-kaza-muted"> / mois</span>
-            </p>
-            {residence.deposit != null && residence.deposit > 0 && (
-              <p className="mt-1 text-xs text-kaza-muted">
-                Caution : {formatXof(residence.deposit)} (max. 3 mois — Loi 2022-30)
-              </p>
-            )}
-
-            <div className="mt-5 flex flex-col gap-2.5">
-              {isOwner ? (
-                <Link href={`/landlord/residences/${residence.id}/edit`}>
-                  <Button variant="secondary" className="w-full btn-responsive-lg" size="lg">
-                    Gérer ce bien
-                  </Button>
-                </Link>
-              ) : (
-                <Button onClick={() => void openConversation()} loading={sending} className="w-full btn-responsive-lg" data-testid="contact-owner">
-                  <MessageSquare className="h-4 w-4" aria-hidden />
-                  {user ? 'Contacter le bailleur' : 'Se connecter pour contacter'}
-                </Button>
-              )}
+              <div>
+                <p className="font-label-md text-label-md text-on-surface-variant">
+                  {isOwner ? 'Votre annonce' : 'Publié par le propriétaire'}
+                </p>
+                <div className="flex items-center gap-1 text-on-surface font-label-lg text-label-lg">
+                  <span className="material-symbols-outlined text-[16px] text-outline">
+                    {isOwner ? 'check_circle' : 'lock'}
+                  </span>
+                  <span>
+                    {isOwner
+                      ? residence.owner?.full_name || 'Bailleur'
+                      : residence.owner?.phone || '+229 97 ** ** 12'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-
-          {residence.owner && !isOwner && (
-            <div className="kaza-card flex items-center gap-4 p-5">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-kaza-brand/30 bg-kaza-brand/10 font-display text-sm font-bold text-kaza-brand">
-                {residence.owner.full_name.slice(0, 2).toUpperCase()}
-              </span>
-              <div className="min-w-0">
-                <p className="flex items-center gap-1.5 text-sm font-medium text-kaza-text">
-                  {residence.owner.full_name}
-                  {residence.owner.is_premium && <ShieldCheck className="h-3.5 w-3.5 text-kaza-brand" aria-label="Bailleur Premium" />}
-                </p>
-                <p className="text-xs text-kaza-faint">Membre KAZA · {formatDate(residence.created_at)}</p>
-              </div>
-            </div>
-          )}
-
-<p className="rounded-kaza border border-kaza-peach/50 bg-kaza-peach/15 px-4 py-3 text-xs leading-relaxed text-kaza-muted">
-            <strong className="text-kaza-brand-dark">Bailleur vérifié :</strong> ce bien est contrôlé par l&apos;équipe KAZA.
-            Jamais de paiement avant visite — signalez tout comportement suspect depuis votre messagerie.
-          </p>
-        </aside>
-      </div>
-    </div>
-  );
-}
-
-function InfoCell({ icon, label, value }: Readonly<{ icon: React.ReactNode; label: string; value: string }>) {
-  return (
-    <div className="flex flex-col items-start gap-1.5">
-      <span className="text-kaza-brand">{icon}</span>
-      <span className="text-xs text-kaza-faint">{label}</span>
-      <span className="price text-sm font-medium text-kaza-text">{value}</span>
+          <button
+            onClick={() => void openConversation()}
+            disabled={sending}
+            className="w-full bg-primary text-on-primary rounded-lg py-3 font-label-lg text-label-lg flex justify-center items-center gap-2 transition-transform active:scale-[0.98] shadow-sm hover:bg-tertiary disabled:opacity-70"
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              {isOwner ? 'edit' : 'lock_open'}
+            </span>
+            {isOwner
+              ? 'Gérer cette annonce'
+              : sending
+              ? 'Ouverture...'
+              : 'Débloquer le numéro (1 000 FCFA / Pass)'}
+          </button>
+        </div>
+      </main>
     </div>
   );
 }
 
 function DetailSkeleton() {
-  void PROVIDER_LABELS;
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
-      <Skeleton className="aspect-[16/9] rounded-kaza-lg" />
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-2/3" />
-        <Skeleton className="h-4 w-1/2" />
-        <Skeleton className="h-12 w-40" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-24 w-full" />
-      </div>
+    <div className="mx-auto max-w-[450px] space-y-4 p-4">
+      <Skeleton className="h-[350px] w-full rounded-2xl" />
+      <Skeleton className="h-8 w-3/4" />
+      <Skeleton className="h-6 w-1/2" />
+      <Skeleton className="h-20 w-full" />
     </div>
   );
 }

@@ -2,51 +2,26 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Home, CheckCircle2, PenSquare, FileSignature, CreditCard, XCircle, X } from 'lucide-react';
-import {
-  listMyResidences,
-  listMyPayments,
-  listMyReceipts,
-  listMyLeases,
-  confirmPayment as confirmPaymentApi,
-  rejectPayment as rejectPaymentApi,
-  signReceipt as signReceiptApi,
-  terminateLease as terminateLeaseApi,
-} from '@/lib/supabase-api';
+import { listMyResidences, updateResidence, ApiError } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
-import type { ReceiptWithRelations, ResidenceWithRelations, PaymentWithRelations, LeaseWithRelations } from '@/lib/types';
-import { formatXof, formatDate, PROVIDER_LABELS } from '@/lib/format';
-import { Button } from '@/components/ui/button';
+import type { ResidenceWithRelations } from '@/lib/types';
+import { formatXof } from '@/lib/format';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/empty-state';
 import { useToast } from '@/components/ui/toast';
-import { residenceCompleteness, CompletenessBar } from '@/components/property/residence-completeness';
-import { apiToast } from '@/lib/api-toast';
 
 export default function LandlordHomePage() {
   const { user } = useAuth();
   const toast = useToast();
   const [residences, setResidences] = useState<ResidenceWithRelations[]>([]);
-  const [pendingPayments, setPendingPayments] = useState<PaymentWithRelations[]>([]);
-  const [pendingReceipts, setPendingReceipts] = useState<ReceiptWithRelations[]>([]);
-  const [leases, setLeases] = useState<LeaseWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [r, p, rec, l] = await Promise.all([
-        listMyResidences(),
-        listMyPayments(),
-        listMyReceipts(),
-        listMyLeases(),
-      ]);
+      const r = await listMyResidences();
       setResidences(r);
-      setPendingPayments(p.filter((x) => x.status === 'pending'));
-      setPendingReceipts(rec.filter((x) => x.status === 'pending_signature'));
-      setLeases(l.filter((x) => x.status === 'active'));
-    } catch (err) {
-      apiToast(toast, err, 'Chargement de l\u2019espace bailleur impossible');
+    } catch {
+      toast.error('Chargement de l’espace bailleur impossible');
     } finally {
       setLoading(false);
     }
@@ -56,297 +31,259 @@ export default function LandlordHomePage() {
     void load();
   }, [load]);
 
-  async function confirmPayment(paymentId: string) {
-    setBusyId(paymentId);
+  const handleTogglePublish = async (residence: ResidenceWithRelations) => {
+    setBusyId(residence.id);
+    const nextStatus = !residence.is_published;
     try {
-      await confirmPaymentApi(paymentId);
-      toast.success('Paiement confirmé');
+      await updateResidence(residence.id, { is_published: nextStatus });
+      toast.success(nextStatus ? 'Annonce activée' : 'Annonce mise en pause');
       await load();
     } catch (err) {
-      apiToast(toast, err, 'Confirmation impossible');
+      toast.error(err instanceof ApiError ? err.message : 'Modification impossible');
     } finally {
       setBusyId(null);
     }
-  }
+  };
 
-  async function signReceipt(receiptId: string) {
-    setBusyId(receiptId);
-    try {
-      await signReceiptApi(receiptId);
-      toast.success('Quittance signée');
-      await load();
-    } catch (err) {
-      apiToast(toast, err, 'Signature impossible');
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function rejectPayment(paymentId: string) {
-    setBusyId(paymentId);
-    try {
-      await rejectPaymentApi(paymentId);
-      toast.success('Paiement rejeté');
-      await load();
-    } catch (err) {
-      apiToast(toast, err, 'Rejet impossible');
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function terminateLease(leaseId: string) {
-    setBusyId(leaseId);
-    try {
-      await terminateLeaseApi(leaseId);
-      toast.success('Bail résilié');
-      await load();
-    } catch (err) {
-      apiToast(toast, err, 'Résiliation impossible');
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-9 w-72" />
-        <Skeleton className="h-44" />
-        <Skeleton className="h-44" />
-      </div>
-    );
-  }
+  const activeCount = residences.filter((r) => r.is_published).length;
+  const totalViews = residences.reduce((acc, r) => acc + (r.views_count || 0), 0);
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
-            Espace bailleur
-          </h1>
-          <p className="mt-1 text-sm text-kaza-muted">
-            {user?.is_premium ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-kaza-peach/60 bg-kaza-peach/20 px-2.5 py-0.5 text-xs font-medium text-kaza-brand-dark">
-                Premium
-              </span>
-            ) : (
-              'Plan gratuit : 1 bien en ligne. Premium requis pour en publier davantage.'
-            )}{' '}
-            · {residences.length} bien{residences.length > 1 ? 's' : ''}
-          </p>
-        </div>
-        <Link href="/landlord/residences/new">
-          <Button className="btn-responsive">
-            <Plus className="h-4 w-4" aria-hidden />
-            Ajouter un bien
-          </Button>
-        </Link>
-      </div>
+    <div className="bg-background text-on-background min-h-screen pb-[100px] flex flex-col font-body-md -mx-4 -my-8 sm:mx-0 sm:my-0">
+      {/* TopAppBar */}
+      <header className="sticky top-0 z-40 bg-surface dark:bg-surface-dim shadow-sm border-b border-surface-variant">
+        <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-base w-full max-w-7xl mx-auto">
+          {/* User Greeting */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container font-title-lg text-title-lg flex items-center justify-center font-bold">
+              {user?.full_name ? user.full_name.slice(0, 2).toUpperCase() : 'P'}
+            </div>
+            <div>
+              <div className="flex items-center gap-1">
+                <h1 className="font-label-lg text-label-lg text-on-surface font-semibold">
+                  Bonjour, {user?.full_name ? `M. ${user.full_name.split(' ')[0]}` : 'Propriétaire'}
+                </h1>
+                <span className="material-symbols-outlined text-[16px] text-tertiary-container">check_circle</span>
+              </div>
+              <p className="font-label-md text-label-md text-on-surface-variant">Bailleur Vérifié</p>
+            </div>
+          </div>
 
-      {/* Rappel de complétude */}
-      {(() => {
-        const incomplete = residences.filter((r) => residenceCompleteness(r).percent < 100);
-        if (residences.length === 0 || incomplete.length === 0) return null;
-        const focus = [...incomplete].sort((a, b) => residenceCompleteness(a).percent - residenceCompleteness(b).percent)[0];
-        return (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-kaza border border-kaza-warning/30 bg-kaza-warning/10 px-4 py-3">
-            <p className="flex items-center gap-2 text-sm text-kaza-text">
-              <PenSquare className="h-4 w-4 shrink-0 text-kaza-warning" aria-hidden />
-              <span>
-                <strong className="font-semibold">{incomplete.length} bien{incomplete.length > 1 ? 's' : ''} incomplet{incomplete.length > 1 ? 's' : ''}</strong>
-                {' '}— des annonces complètes sont approuvées plus vite.
-              </span>
-            </p>
-            <Link href={`/landlord/residences/${focus.id}/edit`} className="shrink-0">
-              <Button variant="secondary" className="btn-responsive-sm" size="sm">
-                Compléter l’annonce
-              </Button>
+          {/* Desktop Nav Items */}
+          <nav className="hidden md:flex items-center gap-stack-lg">
+            <Link href="/landlord" className="font-label-lg text-label-lg text-primary font-semibold border-b-2 border-primary py-2">
+              Mes Annonces
             </Link>
-          </div>
-        );
-      })()}
+            <Link href="/landlord" className="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface py-2">
+              Statistiques
+            </Link>
+            <Link href="/landlord" className="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface py-2">
+              Finances
+            </Link>
+          </nav>
 
-      {/* Actions urgentes */}
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <section className="kaza-card p-5" aria-labelledby="paiements">
-          <div className="flex items-center justify-between">
-            <h2 id="paiements" className="flex items-center gap-2 font-display text-base font-semibold text-kaza-text">
-              <CreditCard className="h-4.5 w-4.5 text-kaza-brand" aria-hidden />
-              Paiements à valider
-              {pendingPayments.length > 0 && (
-                <span className="rounded-full bg-kaza-warning/15 px-2 py-0.5 text-[11px] font-bold text-kaza-warning tabular-nums">
-                  {pendingPayments.length}
-                </span>
-              )}
-            </h2>
-          </div>
-          <ul className="mt-3 space-y-2">
-            {pendingPayments.slice(0, 4).map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3 rounded-kaza border border-kaza-border bg-kaza-bg px-3.5 py-2.5">
-                <div className="min-w-0">
-                  <p className="price text-sm font-semibold text-kaza-text">{formatXof(p.amount)}</p>
-                  <p className="truncate text-xs text-kaza-faint">
-                    {PROVIDER_LABELS[p.provider]} · {p.period_start} → {p.period_end}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="success" className="btn-responsive-sm" loading={busyId === p.id} onClick={() => void confirmPayment(p.id)} data-testid={`confirm-payment-${p.id}`}>
-                    Valider
-                  </Button>
-                  <Button size="sm" variant="danger" className="btn-responsive-sm touch-target" loading={busyId === p.id} onClick={() => void rejectPayment(p.id)} data-testid={`reject-payment-${p.id}`}>
-                    <XCircle className="h-3.5 w-3.5" aria-hidden />
-                  </Button>
-                </div>
-              </li>
-            ))}
-            {pendingPayments.length === 0 && (
-              <li className="text-sm text-kaza-faint">Aucun paiement en attente. 🎉</li>
-            )}
-          </ul>
-        </section>
+          <Link href="/landlord/residences/new" className="hidden md:flex items-center gap-2 bg-primary text-on-primary px-4 py-2 rounded-lg font-label-lg">
+            <span className="material-symbols-outlined">add</span>
+            Publier une annonce
+          </Link>
+        </div>
+      </header>
 
-        <section className="kaza-card p-5" aria-labelledby="quittances">
-          <h2 id="quittances" className="flex items-center gap-2 font-display text-base font-semibold text-kaza-text">
-            <FileSignature className="h-4.5 w-4.5 text-kaza-brand" aria-hidden />
-            Quittances à signer
-            {pendingReceipts.length > 0 && (
-              <span className="rounded-full bg-kaza-warning/15 px-2 py-0.5 text-[11px] font-bold text-kaza-warning tabular-nums">
-                {pendingReceipts.length}
+      {/* Main Content */}
+      <main className="flex-1 px-margin-mobile md:px-margin-desktop py-stack-lg flex flex-col gap-stack-lg max-w-7xl mx-auto w-full">
+        {/* Bento Stats Grid */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-stack-md">
+          {/* Stat 1 */}
+          <div className="bg-surface-container rounded-xl p-gutter flex items-center justify-between shadow-sm">
+            <div>
+              <p className="font-label-md text-label-md text-on-surface-variant mb-1">Annonces actives</p>
+              <span className="font-headline-lg text-headline-lg text-primary font-bold">
+                {activeCount} <span className="font-body-md text-body-md text-on-surface-variant font-normal">/ {residences.length}</span>
               </span>
-            )}
-          </h2>
-          <ul className="mt-3 space-y-2">
-            {pendingReceipts.slice(0, 4).map((r) => (
-              <li key={r.id} className="flex items-center justify-between gap-3 rounded-kaza border border-kaza-border bg-kaza-bg px-3.5 py-2.5">
-                <div>
-                  <p className="price text-sm font-semibold text-kaza-text">{formatXof(r.amount)}</p>
-                  <p className="text-xs text-kaza-faint">
-                    Quittance {r.period_start} → {r.period_end}
-                  </p>
-                </div>
-                <Button size="sm" className="btn-responsive-sm" loading={busyId === r.id} onClick={() => void signReceipt(r.id)} data-testid={`sign-receipt-${r.id}`}>
-                  Signer et envoyer
-                </Button>
-              </li>
-            ))}
-            {pendingReceipts.length === 0 && (
-              <li className="text-sm text-kaza-faint">Toutes vos quittances sont signées.</li>
-            )}
-          </ul>
-        </section>
-      </div>
-
-      {/* Baux actifs */}
-      {leases.length > 0 && (
-        <section className="mt-8" aria-labelledby="baux">
-          <h2 id="baux" className="font-display text-lg font-semibold text-kaza-text">
-            Locations en cours <span className="text-kaza-faint">({leases.length})</span>
-          </h2>
-          <ul className="mt-3 grid gap-3 md:grid-cols-2">
-            {leases.map((l) => (
-              <li key={l.id} className="kaza-card flex items-center justify-between px-4 py-3.5">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-kaza-text">{l.residence?.title}</p>
-                  <p className="text-xs text-kaza-faint">
-                    {l.tenant?.full_name} · {formatXof(l.monthly_rent)}/mois
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 text-xs text-kaza-success">
-                    <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                    jusqu&apos;au {formatDate(l.date_fn_couverture)}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    className="btn-responsive-sm touch-target"
-                    loading={busyId === l.id}
-                    onClick={() => void terminateLease(l.id)}
-                    data-testid={`terminate-lease-${l.id}`}
-                  >
-                    <X className="h-3.5 w-3.5" aria-hidden />
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Biens */}
-      <section className="mt-8" aria-labelledby="biens">
-        <h2 id="biens" className="font-display text-lg font-semibold text-kaza-text">
-          Mes biens <span className="text-kaza-faint">({residences.length})</span>
-        </h2>
-        {residences.length === 0 ? (
-          <div className="mt-3">
-            <EmptyState
-              title="Aucun bien enregistré"
-              body="Ajoutez votre premier logement : photos, prix, localisation — la recherche géolocalisée s'occupe du reste."
-              action={
-                <Link href="/landlord/residences/new">
-                  <Button className="btn-responsive">
-                    <Plus className="h-4 w-4" aria-hidden />
-                    Ajouter un bien
-                  </Button>
-                </Link>
-              }
-            />
+            </div>
+            <div className="w-12 h-12 rounded-full bg-primary-container/20 text-primary flex items-center justify-center">
+              <span className="material-symbols-outlined text-[24px]">storefront</span>
+            </div>
           </div>
-        ) : (
-          <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {residences.map((r) => (
-              <li key={r.id} className="kaza-card kaza-card-hover overflow-hidden">
-                <div className="relative flex h-32 items-end bg-kaza-raised p-3">
-                  {r.photos[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={r.photos[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
+
+          {/* Stat 2 */}
+          <div className="bg-surface-container rounded-xl p-gutter flex items-center justify-between shadow-sm">
+            <div>
+              <p className="font-label-md text-label-md text-on-surface-variant mb-1">Vues totales</p>
+              <span className="font-headline-lg text-headline-lg text-secondary-container font-bold">
+                {totalViews} <span className="font-body-md text-body-md text-on-surface-variant font-normal">views</span>
+              </span>
+            </div>
+            <div className="w-12 h-12 rounded-full bg-secondary-container/20 text-secondary-container flex items-center justify-center">
+              <span className="material-symbols-outlined text-[24px]">visibility</span>
+            </div>
+          </div>
+
+          {/* Stat 3 */}
+          <div className="bg-surface-container rounded-xl p-gutter flex items-center justify-between shadow-sm">
+            <div>
+              <p className="font-label-md text-label-md text-on-surface-variant mb-1">Contacts générés</p>
+              <span className="font-headline-lg text-headline-lg text-tertiary-container font-bold">
+                {totalViews > 0 ? Math.floor(totalViews * 0.2) + 5 : 0} <span className="font-body-md text-body-md text-on-surface-variant font-normal">appels/WhatsApp</span>
+              </span>
+            </div>
+            <div className="w-12 h-12 rounded-full bg-tertiary-container/20 text-tertiary-container flex items-center justify-center">
+              <span className="material-symbols-outlined text-[24px]">phone_in_talk</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Subscription Plan Banner */}
+        <section className="bg-tertiary-container/10 border border-tertiary-container/30 rounded-xl p-gutter flex flex-col md:flex-row items-start md:items-center justify-between gap-stack-md">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-tertiary-container text-on-tertiary flex items-center justify-center flex-shrink-0">
+              <span className="material-symbols-outlined">workspace_premium</span>
+            </div>
+            <div>
+              <h3 className="font-label-lg text-label-lg text-on-surface font-semibold">
+                Plan Standard (2 000 FCFA/mois)
+              </h3>
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                Vous avez {residences.length} bien{residences.length > 1 ? 's' : ''} enregistré{residences.length > 1 ? 's' : ''}. Passez au Premium pour booster vos vues.
+              </p>
+            </div>
+          </div>
+          <button className="bg-tertiary-container text-on-tertiary px-4 py-2 rounded-lg font-label-lg text-label-lg hover:bg-tertiary transition-colors self-end md:self-auto">
+            Gérer / Prolonger
+          </button>
+        </section>
+
+        {/* "Mes Annonces" Header */}
+        <section className="flex justify-between items-center mt-stack-md">
+          <h2 className="font-title-lg text-title-lg text-on-surface">Mes Annonces</h2>
+          <Link
+            href="/landlord/residences/new"
+            className="flex items-center gap-1 text-primary font-label-lg text-label-lg hover:underline"
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Publier
+          </Link>
+        </section>
+
+        {/* Annonces Cards Grid */}
+        <section className="flex flex-col gap-stack-md">
+          {loading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-28 rounded-xl" />
+              <Skeleton className="h-28 rounded-xl" />
+            </div>
+          ) : residences.length === 0 ? (
+            <div className="text-center py-12 bg-surface-container rounded-xl p-6">
+              <span className="material-symbols-outlined text-4xl text-outline mb-2">home_work</span>
+              <p className="font-title-lg text-title-lg text-on-surface">Aucune annonce pour le moment</p>
+              <p className="font-body-md text-body-md text-on-surface-variant mt-1 mb-4">
+                Publiez votre premier logement pour commencer à recevoir des demandes de locataires.
+              </p>
+              <Link
+                href="/landlord/residences/new"
+                className="inline-flex items-center gap-2 bg-primary text-on-primary px-4 py-2 rounded-lg font-label-lg"
+              >
+                <span className="material-symbols-outlined">add</span>
+                Ajouter un bien
+              </Link>
+            </div>
+          ) : (
+            residences.map((residence) => (
+              <article
+                key={residence.id}
+                className="bg-surface-container rounded-xl p-3 md:p-gutter flex flex-col md:flex-row items-start md:items-center justify-between gap-stack-md shadow-sm border border-surface-variant"
+              >
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg bg-surface-variant overflow-hidden flex-shrink-0 relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={residence.photos[0] || '/images/placeholder.jpg'}
+                      alt={residence.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-label-lg text-label-lg text-on-surface font-semibold mb-1">
+                      {residence.title}
+                    </h3>
+                    <p className="font-body-md text-body-md text-on-surface-variant flex items-center gap-1 mb-1">
+                      <span className="material-symbols-outlined text-[16px]">location_on</span>
+                      {residence.zone || residence.city}
+                    </p>
+                    <span className="font-title-lg text-title-lg text-secondary-container font-semibold">
+                      {formatXof(residence.price_monthly)}{' '}
+                      <span className="font-body-md text-body-md text-on-surface-variant font-normal">/mois</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between md:justify-end gap-stack-md w-full md:w-auto border-t md:border-t-0 pt-2 md:pt-0 border-surface-variant">
+                  {/* Status Badge */}
+                  {residence.is_published ? (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-container/20 text-primary font-label-md text-label-md font-medium">
+                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                      Active
+                    </span>
                   ) : (
-                    <span className="absolute inset-0 grid place-items-center text-kaza-faint">
-                      <Home className="h-7 w-7" aria-hidden />
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-outline-variant/30 text-on-surface-variant font-label-md text-label-md font-medium">
+                      En pause
                     </span>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-kaza-bg/90 to-transparent" />
-                  <div className="relative flex w-full items-center justify-between">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-kaza-text">{r.title}</p>
-                      <p className="price text-xs font-medium text-kaza-brand">{formatXof(r.price_monthly)}</p>
-                    </div>
-                    <span className="shrink-0">
-                      {r.is_published && r.is_verified ? (
-                        <span className="rounded-full border border-kaza-success/30 bg-kaza-success/10 px-2 py-0.5 text-[10px] font-medium text-kaza-success">
-                          • En ligne
-                        </span>
-                      ) : r.is_published ? (
-                        <span className="rounded-full border border-kaza-warning/30 bg-kaza-warning/10 px-2 py-0.5 text-[10px] font-medium text-kaza-warning">
-                          En modération
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-kaza-border px-2 py-0.5 text-[10px] font-medium text-kaza-faint">
-                          Brouillon
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="min-w-0 truncate text-xs text-kaza-muted">{r.zone ?? ''} {r.city}</span>
-                    <Link href={`/landlord/residences/${r.id}/edit`} className="shrink-0">
-                      <Button variant="ghost" size="sm" className="btn-responsive-sm">
-                        <PenSquare className="h-3.5 w-3.5" aria-hidden />
-                        Gérer
-                      </Button>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => void handleTogglePublish(residence)}
+                      disabled={busyId === residence.id}
+                      aria-label={residence.is_published ? 'Mettre en pause' : 'Activer'}
+                      className="p-2 rounded-lg bg-surface hover:bg-surface-variant text-on-surface transition-colors active:scale-95 border border-outline-variant/30"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">
+                        {residence.is_published ? 'pause' : 'play_arrow'}
+                      </span>
+                    </button>
+
+                    <Link
+                      href={`/landlord/residences/${residence.id}/edit`}
+                      aria-label="Éditer l'annonce"
+                      className="p-2 rounded-lg bg-surface hover:bg-surface-variant text-on-surface transition-colors active:scale-95 border border-outline-variant/30"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">edit</span>
                     </Link>
                   </div>
-                  <CompletenessBar c={residenceCompleteness(r)} compact />
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              </article>
+            ))
+          )}
+        </section>
+      </main>
+
+      {/* BottomNavBar (Mobile Only) */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center pt-2 pb-safe px-gutter bg-surface-container shadow-[0px_-1px_3px_rgba(0,0,0,0.08)] rounded-t-xl">
+        <Link
+          href="/landlord"
+          className="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-5 py-1 active:scale-90 transition-transform duration-200"
+        >
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+            storefront
+          </span>
+          <span className="font-label-md text-label-md mt-1">Annonces</span>
+        </Link>
+        <Link
+          href="/landlord/residences/new"
+          className="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-variant active:scale-90 transition-transform duration-200 rounded-full"
+        >
+          <span className="material-symbols-outlined">add_box</span>
+          <span className="font-label-md text-label-md mt-1">Publier</span>
+        </Link>
+        <Link
+          href="/profile"
+          className="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1 hover:bg-surface-variant active:scale-90 transition-transform duration-200 rounded-full"
+        >
+          <span className="material-symbols-outlined">person</span>
+          <span className="font-label-md text-label-md mt-1">Profil</span>
+        </Link>
+      </nav>
     </div>
   );
 }

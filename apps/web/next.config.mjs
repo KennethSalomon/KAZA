@@ -11,13 +11,16 @@ const workspaceRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(impor
 // nonce auto — experimental.csp — n'existe qu'à partir de Next 16). La
 // protection XSS reste assurée par l'absence de toute source externe, le
 // middleware d'auth et le React escaping par défaut.
+const isDev = process.env.NODE_ENV !== 'production';
+
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://js.hcaptcha.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: http://localhost:54321 https://*.supabase.co https://images.unsplash.com https://*.tile.openstreetmap.org",
-  "connect-src 'self' http://localhost:54321 wss://localhost:54321 https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://api.hcaptcha.com",
-  "frame-src https://*.hcaptcha.com",
+  `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ''} https://js.hcaptcha.com https://*.hcaptcha.com`.trim(),
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: http://localhost:54321 https://*.supabase.co https://images.unsplash.com https://*.tile.openstreetmap.org",
+  "connect-src 'self' http://localhost:54321 wss://localhost:54321 https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://api.hcaptcha.com https://*.hcaptcha.com",
+  "frame-src 'self' https://*.hcaptcha.com",
   "object-src 'none'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -26,6 +29,7 @@ const CSP = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  devIndicators: false,
   reactStrictMode: true,
   outputFileTracingRoot: workspaceRoot,
   images: {

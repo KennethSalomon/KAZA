@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signUp, signInWithGoogle, ApiError } from '@/lib/supabase-api';
 import { env } from '@/lib/env';
 import { useHcaptcha } from '@/components/ui/hcaptcha';
@@ -26,9 +26,17 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const hcaptcha = useHcaptcha();
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    const presetRole = searchParams.get('role') ?? (typeof window !== 'undefined' ? window.localStorage.getItem('kaza:selected-role') : null);
+    if (presetRole === 'locataire' || presetRole === 'bailleur') {
+      setForm((current) => ({ ...current, role: presetRole }));
+    }
+  }, [searchParams]);
 
   async function onGoogle() {
     setGoogleLoading(true);
@@ -113,15 +121,17 @@ export default function RegisterPage() {
         captchaToken,
       );
       hcaptcha.reset();
+      const target = form.role === 'bailleur' ? '/landlord' : '/explorer';
+
       if (needsEmailConfirmation) {
         toast.success(
           'Vérifiez votre boîte mail',
           `Un lien de confirmation a été envoyé à ${form.email.trim()}.`,
         );
-        router.push('/login');
+        router.push('/login?role=' + form.role);
       } else {
         toast.success('Bienvenue sur KAZA');
-        router.push('/explorer');
+        router.push('/welcome');
         router.refresh();
       }
     } catch (err) {

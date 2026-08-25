@@ -189,6 +189,13 @@ export async function signUp(
       );
     }
 
+    if (msg.includes('failed to fetch') || msg.includes('network')) {
+      throw new ApiError(
+        503,
+        'Impossible de contacter le serveur Supabase. Vérifiez que votre serveur local est démarré (ex: npx supabase start) ou votre connexion internet.',
+      );
+    }
+
     throw new ApiError(400, error.message);
   }
 
