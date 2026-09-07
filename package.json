@@ -3,12 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
     "dev": "npm run dev --workspace apps/web",
     "build": "npm run build --workspace apps/web",
     "typecheck": "npm run typecheck --workspace apps/web",
+    "typecheck:mobile": "npm run typecheck --workspace apps/mobile",
+    "typecheck:all": "npm run typecheck --workspace apps/web && npm run typecheck --workspace apps/mobile",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "npm run test:e2e --workspace apps/web",

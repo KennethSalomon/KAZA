@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "KAZA",
+    "slug": "kaza",
+    "version": "1.0.0",
+    "scheme": "kaza",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0E4728"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "bj.kaza.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "KAZA utilise votre position pour trouver des logements près de vous.",
+        "NSCameraUsageDescription": "KAZA utilise la caméra pour photographier vos biens.",
+        "NSPhotoLibraryUsageDescription": "KAZA accède à vos photos pour les ajouter à vos annonces."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0E4728"
+      },
+      "package": "bj.kaza.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "GOOGLE_MAPS_API_KEY_PLACEHOLDER"
+        }
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-image-picker",
+      "expo-location",
+      "expo-notifications"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "PLACEHOLDER_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
