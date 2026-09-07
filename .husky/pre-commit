@@ -1,0 +1,2 @@
+npm run --workspace apps/web lint
+npm run --workspace apps/web typecheck
