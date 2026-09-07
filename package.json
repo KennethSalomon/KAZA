@@ -27,7 +27,7 @@
     "functions:serve": "supabase functions serve",
     "db:types": "supabase gen types typescript --local > apps/web/src/lib/database.types.ts",
     "db:types:check": "npm run db:types && git diff --exit-code apps/web/src/lib/database.types.ts",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
