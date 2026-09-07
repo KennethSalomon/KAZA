@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { KeyRound } from 'lucide-react';
 import { requestPasswordReset, ApiError } from '@/lib/supabase-api';
 import { env } from '@/lib/env';
 import { useHcaptcha } from '@/components/ui/hcaptcha';
@@ -39,17 +40,23 @@ export default function ForgotPasswordPage() {
   if (sent) {
     return (
       <div className="space-y-5 text-center">
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
-          Vérifiez votre boîte mail
-        </h1>
-        <p className="text-sm text-kaza-muted">
-          Nous avons envoyé un lien de réinitialisation à <span className="font-medium text-kaza-text">{email}</span>.
-          <br />
-          Le lien expire rapidement.
-        </p>
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-kaza-vert/10">
+          <KeyRound className="h-7 w-7 text-kaza-vert" aria-hidden />
+        </div>
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
+            Vérifiez votre boîte mail
+          </h1>
+          <p className="mt-2 text-sm text-kaza-muted">
+            Nous avons envoyé un lien de réinitialisation à{' '}
+            <span className="font-medium text-kaza-text">{email}</span>.
+            <br />
+            Le lien expire rapidement.
+          </p>
+        </div>
         <p className="text-sm text-kaza-muted">
           <Link href="/login" className="font-medium text-kaza-brand hover:opacity-80">
-            Retour à la connexion
+            ← Retour à la connexion
           </Link>
         </p>
       </div>
@@ -58,17 +65,25 @@ export default function ForgotPasswordPage() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
-          Mot de passe oublié
-        </h1>
-        <p className="mt-1 text-sm text-kaza-muted">
-          Saisissez votre email pour recevoir un lien de réinitialisation.
-        </p>
+      <div className="flex flex-col items-center gap-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-kaza-vert/10">
+          <KeyRound className="h-7 w-7 text-kaza-vert" aria-hidden />
+        </div>
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
+            Mot de passe oublié ?
+          </h1>
+          <p className="mt-1 max-w-[280px] text-sm text-kaza-muted">
+            Saisissez votre email. Nous vous enverrons un lien pour créer un nouveau mot de passe.
+          </p>
+        </div>
       </div>
 
       {error && (
-        <p role="alert" className="rounded-kaza border border-kaza-danger/30 bg-kaza-danger/10 px-4 py-2.5 text-sm text-kaza-danger">
+        <p
+          role="alert"
+          className="rounded-kaza border border-kaza-danger/30 bg-kaza-danger/10 px-4 py-2.5 text-sm text-kaza-danger"
+        >
           {error}
         </p>
       )}
@@ -83,13 +98,13 @@ export default function ForgotPasswordPage() {
         onChange={(e) => setEmail(e.target.value)}
       />
 
-      <Button type="submit" loading={loading} className="w-full btn-responsive-lg" size="lg">
+      <Button type="submit" loading={loading} className="w-full" size="lg">
         Envoyer le lien
       </Button>
 
       <p className="text-center text-sm text-kaza-muted">
         <Link href="/login" className="font-medium text-kaza-brand hover:opacity-80">
-          Retour à la connexion
+          ← Retour à la connexion
         </Link>
       </p>
     </form>
