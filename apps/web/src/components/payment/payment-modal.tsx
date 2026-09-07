@@ -47,11 +47,13 @@ export function PaymentModal({
     setLoading(true);
     try {
       if (method === 'cash') {
+        const firstMonth = monthsArray[0] ?? period;
+        const lastMonth = monthsArray[monthsArray.length - 1] ?? period;
         await reportCashPayment({
           lease_id: lease.id,
           amount,
-          period_start: monthsArray[0].start,
-          period_end: monthsArray[monthsArray.length - 1].end,
+          period_start: firstMonth.start,
+          period_end: lastMonth.end,
         });
         toast.success('Paiement signalé', "Le bailleur doit valider la réception — vous recevrez votre quittance ensuite.");
       } else {
