@@ -34,3 +34,6 @@ supabase/.branches/
 # Playwright
 test-results/
 playwright-report/
+# Claude Code local settings
+.claude/
+
