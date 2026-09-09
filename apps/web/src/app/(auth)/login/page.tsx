@@ -1,11 +1,11 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, signInWithGoogle, ApiError } from '@/lib/supabase-api';
 import { env } from '@/lib/env';
-import { useHcaptcha } from '@/components/ui/hcaptcha';
+import { useVisibleHcaptcha } from '@/components/ui/hcaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GoogleIcon } from '@/components/ui/google-icon';
@@ -19,8 +19,13 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
-  const hcaptcha = useHcaptcha();
+  const [captchaTokenVisible, setCaptchaTokenVisible] = useState('');
+  const visibleHcaptcha = useVisibleHcaptcha('kaza-hcaptcha-login', env.hcaptchaSitekey, setCaptchaTokenVisible);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (env.hcaptchaSitekey) visibleHcaptcha.render();
+  }, [visibleHcaptcha]);
 
   async function onGoogle() {
     setGoogleLoading(true);
@@ -50,15 +55,17 @@ function LoginForm() {
       return;
     }
     setError(null);
+    // hCaptcha visible : la case doit être cochée explicitement avant
+    // soumission lorsque la sitekey est configurée (pas de fallback invisible).
+    if (env.hcaptchaSitekey && !captchaTokenVisible) {
+      setError('Vérification anti-robot requise. Cochez la case « Je suis un humain ».');
+      return;
+    }
     setLoading(true);
     try {
-      // En local (sitekey vide) le captcha est sauté ; en prod le token
-      // est obtenu avant tout appel, sinon GoTrue répond 400 captcha_failed.
-      const captchaToken = env.hcaptchaSitekey
-        ? await hcaptcha.execute({ sitekey: env.hcaptchaSitekey })
-        : '';
-      await signIn(trimmed, password, captchaToken);
-      hcaptcha.reset();
+      await signIn(trimmed, password, captchaTokenVisible);
+      visibleHcaptcha.reset();
+      setCaptchaTokenVisible('');
       toast.success('Bienvenue sur KAZA');
       afterLogin();
     } catch (err) {
@@ -70,6 +77,9 @@ function LoginForm() {
       } else {
         setError(msg);
       }
+      // Le token hCaptcha a été consommé par l'appel : relancer un challenge.
+      visibleHcaptcha.reset();
+      setCaptchaTokenVisible('');
     } finally {
       setLoading(false);
     }
@@ -128,6 +138,12 @@ function LoginForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
+
+      {env.hcaptchaSitekey && (
+        <div className="flex justify-center">
+          <div id="kaza-hcaptcha-login" className="min-h-[78px]" />
+        </div>
+      )}
 
       <Button type="submit" loading={loading} className="w-full btn-responsive-lg" size="lg">
         Se connecter

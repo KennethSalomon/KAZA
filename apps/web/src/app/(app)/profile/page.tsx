@@ -60,7 +60,7 @@ export default function ProfilePage() {
 
       <form onSubmit={(e) => void save(e)} className="mt-6 space-y-4">
         <Input label="Nom complet" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
-        <Input label="Téléphone" type="tel" value={phone ?? ''} onChange={(e) => setPhone(e.target.value)} hint="Utilisé pour les alertes de relance et la connexion par code." />
+        <Input label="Téléphone" type="tel" value={phone ?? ''} onChange={(e) => setPhone(e.target.value)} hint="Format attendu : +229 01 00 00 00 00 — laisser vide pour supprimer." />
         <Input label="Email" value={user?.email ?? ''} disabled hint="Immutable — contactez le support en cas de changement." />
         <Button type="submit" loading={saving}>
           Enregistrer

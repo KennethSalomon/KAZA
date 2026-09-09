@@ -159,12 +159,22 @@ export async function getMyProfile(): Promise<Profile | null> {
   return data;
 }
 
-export async function updateProfile(patch: { full_name?: string; phone?: string }): Promise<void> {
+export async function updateProfile(patch: { full_name?: string; phone?: string | null }): Promise<void> {
   const user = await requireUser().catch(() => null);
   if (!user) return;
+  const payload = { ...patch };
+  if (typeof payload.phone === 'string') {
+    const cleaned = payload.phone.replace(/\s+/g, '');
+    if (cleaned === '') {
+      payload.phone = null;
+    } else {
+      assertBeninPhone(cleaned);
+      payload.phone = cleaned;
+    }
+  }
   const { error } = await supabase
     .from('profiles')
-    .update(patch)
+    .update(payload)
     .eq('id', user.id);
   if (error) throw normalizeError(error, 'Mise à jour impossible');
 }

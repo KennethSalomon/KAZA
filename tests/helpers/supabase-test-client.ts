@@ -25,8 +25,10 @@ export const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KE
 
 export async function resetDatabase() {
   const { error } = await supabaseAdmin.rpc('reset_test_database');
+  // Migration 100000 supprime reset_test_database() par sécurité :
+  // son absence est attendue, on passe alors par un reset granulaire.
   if (error && !error.message.includes('does not exist')) {
-    console.warn('reset_test_database RPC not available, manual cleanup may be needed');
+    console.warn('reset_test_database RPC unavailable, manual cleanup may be needed');
   }
 }
 
