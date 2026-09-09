@@ -114,7 +114,7 @@ export default function ResidenceDetailPage() {
                     i === photoIndex ? 'border-kaza-brand ring-1 ring-kaza-brand/50' : 'border-kaza-border opacity-60 hover:opacity-100',
                   )}
                 >
-                  <Image src={p} alt="" fill className="object-cover" sizes="96px" />
+                  <Image src={p} alt="" fill loading={i === photoIndex ? 'eager' : 'lazy'} className="object-cover" sizes="96px" />
                 </button>
               ))}
             </div>
@@ -154,7 +154,7 @@ export default function ResidenceDetailPage() {
               {formatXof(residence.price_monthly)}
               <span className="text-sm font-normal text-kaza-muted"> / mois</span>
             </p>
-            {residence.deposit > 0 && (
+            {residence.deposit != null && residence.deposit > 0 && (
               <p className="mt-1 text-xs text-kaza-muted">
                 Caution : {formatXof(residence.deposit)} (max. 3 mois — Loi 2022-30)
               </p>

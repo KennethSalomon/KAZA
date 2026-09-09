@@ -159,24 +159,24 @@ describe('RLS: notifications & admin tables', () => {
       expect(error).toBeDefined();
     });
 
-    it('admin CAN call admin_list_residences', async () => {
+    it('admin_list_residences RPC removed (migration 999999)', async () => {
       const { data, error } = await getClient(adminUser).rpc('admin_list_residences', { limit: 10 });
-      expect(error).toBeNull();
-      expect(data).toBeDefined();
+      expect(error).toBeDefined();
+      expect(data).toBeNull();
     });
 
-    it('tenant CANNOT call admin_list_residences', async () => {
+    it('tenant cannot call removed admin_list_residences', async () => {
       const { error } = await getClient(tenantA).rpc('admin_list_residences');
       expect(error).toBeDefined();
     });
 
-    it('admin CAN call admin_list_users', async () => {
+    it('admin_list_users RPC removed (migration 999999)', async () => {
       const { data, error } = await getClient(adminUser).rpc('admin_list_users', { limit: 10 });
-      expect(error).toBeNull();
-      expect(data).toBeDefined();
+      expect(error).toBeDefined();
+      expect(data).toBeNull();
     });
 
-    it('tenant CANNOT call admin_list_users', async () => {
+    it('tenant cannot call removed admin_list_users', async () => {
       const { error } = await getClient(tenantA).rpc('admin_list_users');
       expect(error).toBeDefined();
     });

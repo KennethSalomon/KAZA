@@ -6,17 +6,10 @@ import { AuthProvider } from '@/lib/auth-context';
 import { ToastProvider } from '@/components/ui/toast';
 import { env } from '@/lib/env';
 
-// note : Polices officielles KAZA : Sora pour les titres, Geist Sans pour le corps & les tableaux
-const geistSans = Geist({
-  subsets: ['latin'],
-  variable: '--font-geist-sans',
-  display: 'swap',
-});
-
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
 const sora = Sora({
   subsets: ['latin'],
   variable: '--font-sora',
-  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -39,8 +32,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'KAZA — Solutions Immobilières au Bénin',
-    description:
-      'Plateforme de gestion locative innovante : recherche géolocalisée, paiement mobile money, quittances signées.',
+    description: 'Plateforme de gestion locative innovante : recherche géolocalisée, paiement mobile money, quittances signées.',
     type: 'website',
     locale: 'fr_BJ',
     siteName: 'KAZA',
@@ -49,8 +41,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'KAZA — Solutions Immobilières au Bénin',
-    description:
-      'Plateforme de gestion locative innovante : recherche géolocalisée, paiement mobile money, quittances signées.',
+    description: 'Plateforme de gestion locative innovante : recherche géolocalisée, paiement mobile money, quittances signées.',
     images: ['/twitter-image'],
   },
 };
@@ -63,15 +54,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="fr"
-      className={`${geistSans.variable} ${sora.variable}`}
-      style={{
-        ['--font-geist' as string]: 'var(--font-geist-sans)',
-      }}
-      suppressHydrationWarning
-    >
-      <body className="min-h-dvh font-sans">
+    <html lang="fr" className={`${geist.variable} ${sora.variable}`} suppressHydrationWarning>
+      <body className="min-h-dvh">
         <MotionConfig reducedMotion="user">
           <ToastProvider>
             <AuthProvider>{children}</AuthProvider>

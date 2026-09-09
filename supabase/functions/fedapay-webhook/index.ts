@@ -1,6 +1,9 @@
 import { verifyFedapaySignature } from '../_shared/fedapay.ts';
 import { getAdminClient } from '../_shared/db.ts';
 import { rateLimit, clientIp } from '../_shared/rate-limit.ts';
+import { initSentry, captureError } from '../_shared/sentry.ts';
+
+initSentry();
 
 // Mapping EXACT des événements FedaPay (la sous-chaîne `includes()` était
 // fragile : un futur `refund.approved` aurait été traité comme une
@@ -133,6 +136,7 @@ Deno.serve(async (req: Request) => {
     );
     return new Response('OK', { status: 200 });
   } catch (err) {
+    captureError(err, { function: 'fedapay-webhook' });
     console.error('Erreur webhook FedaPay', err);
     return new Response('Internal error', { status: 500 });
   }

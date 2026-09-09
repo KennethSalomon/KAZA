@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Check, CheckCheck, Paperclip, Send, ShieldCheck, X } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, Calendar, Paperclip, Send, ShieldCheck, X } from 'lucide-react';
 import {
   listMessages,
   sendMessage,
@@ -10,7 +10,9 @@ import {
   agreeVisit,
   getConversation,
   getSignedStorageUrl,
+  proposeVisit,
 } from '@/lib/supabase-api';
+import { VisitProposalModal } from './VisitProposalModal';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase-client';
 import type { ConversationWithRelations, Message } from '@/lib/types';
@@ -35,6 +37,7 @@ export function ChatWindow() {
   const [sending, setSending] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [visitModal, setVisitModal] = useState(false);
+  const [proposeModal, setProposeModal] = useState(false);
   const [isLandlord, setIsLandlord] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +72,9 @@ export function ChatWindow() {
           }
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
     return () => {
       void supabase.removeChannel(channel);
     };
@@ -89,6 +94,7 @@ export function ChatWindow() {
   // URLs signées pour les pièces jointes (bucket privé) — mises en cache
   // Résolues en parallèle par lots de 6 (pas de round-trip séquentiel).
   const [signedAttachments, setSignedAttachments] = useState<Record<string, string>>({});
+  const [isConnected, setIsConnected] = useState(true);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -108,8 +114,7 @@ export function ChatWindow() {
         );
         if (cancelled) return;
         settled.forEach((signed, j) => {
-          const item = batch[j];
-          if (signed && item) pending[item] = signed;
+          if (signed) pending[batch[j]] = signed;
         });
       }
       setSignedAttachments((prev) => ({ ...prev, ...pending }));
@@ -132,10 +137,9 @@ export function ChatWindow() {
     setSending(true);
     try {
       const attachments = await uploadFiles(files);
-      const firstAttachment = attachments[0];
       await sendMessage(id, {
         body: text || null,
-        kind: attachments.length > 0 && !text ? (firstAttachment?.includes('.pdf') ? 'document' : 'image') : 'text',
+        kind: attachments.length > 0 && !text ? (attachments[0].includes('.pdf') ? 'document' : 'image') : 'text',
         attachments,
       });
       setBody('');
@@ -177,6 +181,17 @@ export function ChatWindow() {
     }
   }
 
+  async function handlePropose(slots: { start: string; end: string }[]) {
+    setProposeModal(false);
+    try {
+      await proposeVisit(id, slots);
+      toast.success('Visite proposée');
+      // The proposeVisit RPC/insert will create a visit_request message
+    } catch {
+      toast.error('Proposition impossible');
+    }
+  }
+
   const isOwn = (m: Message) => m.sender_id === user?.id;
 
   return (
@@ -204,12 +219,19 @@ export function ChatWindow() {
           </p>
           <p className="text-xs text-kaza-faint">
             {conversation?.residence?.title ?? 'Chat privé sécurisé'}{conversation?.residence ? ` · ${formatXof(conversation.residence.price_monthly)}/mois` : ' · pièces jointes acceptées'}
+            <span className={`ml-2 inline-block h-1.5 w-1.5 rounded-full ${isConnected ? 'bg-kaza-success' : 'bg-kaza-danger'}`} title={isConnected ? 'Connecté' : 'Déconnecté'} />
           </p>
         </div>
         {isLandlord && (
           <Button variant="success" size="sm" className="ml-auto" onClick={() => setVisitModal(true)}>
             <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
             Valider une visite
+          </Button>
+        )}
+        {!isLandlord && (
+          <Button variant="primary" size="sm" className="ml-auto" onClick={() => setProposeModal(true)}>
+            <Calendar className="h-3.5 w-3.5" aria-hidden />
+            Proposer une visite
           </Button>
         )}
       </div>
@@ -229,34 +251,58 @@ export function ChatWindow() {
                 'max-w-[82%] rounded-kaza px-3.5 py-2.5 text-sm leading-relaxed',
                 isOwn(m) ? 'bg-kaza-brand/15 text-kaza-text' : 'bg-kaza-bg text-kaza-text',
                 m.kind === 'visit_agreed' && 'border border-kaza-brand/40 bg-kaza-brand/10',
+                m.kind === 'visit_request' && 'border border-kaza-brand/30 bg-kaza-brand/5',
               )}
             >
-              {m.attachments.map((a, i) => {
-                const url = signedAttachments[a];
-                const isPdf = a.endsWith('.pdf') || a.includes('application/pdf');
-                if (!url) {
-                  return (
-                    <span key={i} className="mb-1.5 flex items-center gap-2 rounded-kaza border border-kaza-border bg-kaza-raised px-3 py-2 text-xs text-kaza-muted">
-                      <Paperclip className="h-3.5 w-3.5" aria-hidden /> {isPdf ? 'Document' : 'Image'} joint
-                    </span>
-                  );
-                }
-                return isPdf ? (
-                  <a
-                    key={i}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mb-1.5 flex items-center gap-2 rounded-kaza border border-kaza-border bg-kaza-raised px-3 py-2 text-xs text-kaza-brand hover:border-kaza-brand/50"
-                  >
-                    <Paperclip className="h-3.5 w-3.5" aria-hidden /> Document joint
-                  </a>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={i} src={url} alt="Pièce jointe" className="mb-1.5 max-h-56 rounded-kaza border border-kaza-border object-cover" />
-                );
-              })}
-              {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
+              {m.kind === 'visit_request' && m.body && (
+                <div className="space-y-2">
+                  <p className="font-medium text-kaza-text">📅 Demande de visite</p>
+                  {m.body.split('\n').map((line, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-kaza-brand" />
+                      <span>{line}</span>
+                    </div>
+                  ))}
+                  {!isLandlord && isOwn(m) && <p className="text-xs text-kaza-faint">En attente de confirmation du bailleur…</p>}
+                  {isLandlord && <p className="text-xs text-kaza-faint">Cliquez sur un créneau pour le confirmer</p>}
+                </div>
+              )}
+              {m.kind === 'visit_agreed' && m.body && (
+                <div className="flex items-center gap-2 text-sm text-kaza-success">
+                  <Check className="h-4 w-4" aria-hidden />
+                  <span>{m.body}</span>
+                </div>
+              )}
+              {m.kind !== 'visit_request' && m.kind !== 'visit_agreed' && (
+                <>
+                  {m.attachments.map((a, i) => {
+                    const url = signedAttachments[a];
+                    const isPdf = a.endsWith('.pdf') || a.includes('application/pdf');
+                    if (!url) {
+                      return (
+                        <span key={i} className="mb-1.5 flex items-center gap-2 rounded-kaza border border-kaza-border bg-kaza-raised px-3 py-2 text-xs text-kaza-muted">
+                          <Paperclip className="h-3.5 w-3.5" aria-hidden /> {isPdf ? 'Document' : 'Image'} joint
+                        </span>
+                      );
+                    }
+                    return isPdf ? (
+                      <a
+                        key={i}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mb-1.5 flex items-center gap-2 rounded-kaza border border-kaza-border bg-kaza-raised px-3 py-2 text-xs text-kaza-brand hover:border-kaza-brand/50"
+                      >
+                        <Paperclip className="h-3.5 w-3.5" aria-hidden /> Document joint
+                      </a>
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={i} src={url} alt="Pièce jointe" className="mb-1.5 max-h-56 rounded-kaza border border-kaza-border object-cover" />
+                    );
+                  })}
+                  {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
+                </>
+              )}
               <p className={cn('mt-1 flex items-center gap-1 text-[10px]', isOwn(m) ? 'justify-end text-kaza-faint' : 'text-kaza-faint')}>
                 {timeAgo(m.created_at)}
                 {isOwn(m) && (m.read_at ? <CheckCheck className="h-3 w-3 text-kaza-brand" aria-label="Lu" /> : <Check className="h-3 w-3" aria-label="Envoyé" />)}
@@ -287,7 +333,7 @@ export function ChatWindow() {
           <input
             type="file"
             multiple
-            accept="image/*,.pdf"
+            accept="image/jpeg,image/png,image/webp,.pdf"
             className="sr-only"
             aria-label="Joindre un fichier"
             onChange={(e) => setPendingFiles([...pendingFiles, ...Array.from(e.target.files ?? [])])}
@@ -321,6 +367,15 @@ export function ChatWindow() {
           </Button>
         </div>
       </Modal>
+
+      {/* Modale proposition de visite (locataire) */}
+      {proposeModal && (
+        <VisitProposalModal
+          conversationId={id}
+          onClose={() => setProposeModal(false)}
+          onPropose={handlePropose}
+        />
+      )}
     </div>
   );
 }

@@ -29,7 +29,7 @@ enable_signup = true
 
 [auth.email]
 enable_signup = true
-enable_confirmations = true
+enable_confirmations = false
 
 [storage]
 enabled = true
@@ -41,12 +41,13 @@ policy = "oneshot"
 inspector_port = 8083
 
 [edge_runtime.secrets]
-FEDAPAY_SECRET_KEY = "sk_dev_fedapay"
+# ⚠️ NE PAS stocker de vrais secrets ici — configure-les dans le Dashboard Supabase > Edge Functions > Secrets.
+FEDAPAY_SECRET_KEY = "CHANGEME_sk_dev_fedapay"
 FEDAPAY_API_BASE = "https://sandbox-api.fedapay.com/v1"
-FEDAPAY_WEBHOOK_SECRET = "wh_dev_secret"
-CRON_SECRET = "dev-cron-secret"
-BREVO_API_KEY = ""
-BREVO_SENDER_EMAIL = "kaza@example.com"
+FEDAPAY_WEBHOOK_SECRET = "CHANGEME_wh_dev_secret"
+CRON_SECRET = "CHANGEME_dev-cron-secret"
+BREVO_API_KEY = "CHANGEME_brevo_api_key"
+BREVO_SENDER_EMAIL = "noreply@kaza.bj"
 BREVO_SENDER_NAME = "KAZA.BJ"
 APP_URL = "http://localhost:3000"
 

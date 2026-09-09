@@ -69,7 +69,7 @@ export default function TenantDashboardPage() {
       <p className="mt-1 text-sm text-kaza-muted">Votre espace locataire — loyers, paiements, quittances.</p>
 
       {/* Alerte impayé */}
-      {overdue.length > 0 && overdue[0] && (
+      {overdue.length > 0 && (
         <div className="mt-6 flex flex-col gap-3 rounded-kaza-lg border border-kaza-danger/30 bg-kaza-danger/10 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-kaza-danger" aria-hidden />
@@ -80,7 +80,7 @@ export default function TenantDashboardPage() {
               </p>
             </div>
           </div>
-          <Button onClick={() => setPayLease(overdue[0] ?? null)} className="shrink-0 btn-responsive-lg">
+          <Button onClick={() => setPayLease(overdue[0])} className="shrink-0 btn-responsive-lg">
             Payer maintenant
           </Button>
         </div>

@@ -1,35 +1,48 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, MessageSquare } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn, ApiError } from '@/lib/supabase-api';
+import { signIn, signInWithGoogle, ApiError } from '@/lib/supabase-api';
 import { env } from '@/lib/env';
-import { useHcaptcha } from '@/components/ui/hcaptcha';
+import { useVisibleHcaptcha } from '@/components/ui/hcaptcha';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { GoogleIcon } from '@/components/ui/google-icon';
 import { useToast } from '@/components/ui/toast';
-import { cn } from '@/lib/utils/cn';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
-  const hcaptcha = useHcaptcha();
+  const [captchaTokenVisible, setCaptchaTokenVisible] = useState('');
+  const visibleHcaptcha = useVisibleHcaptcha('kaza-hcaptcha-login', env.hcaptchaSitekey, setCaptchaTokenVisible);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (env.hcaptchaSitekey) visibleHcaptcha.render();
+  }, [visibleHcaptcha]);
+
+  async function onGoogle() {
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch {
+      toast.error('Connexion Google impossible', 'Réessayez ou utilisez votre email.');
+      setGoogleLoading(false);
+    }
+  }
 
   function afterLogin() {
-    // note : deep-link demandé par le middleware (ex: /bail/:id) sinon explorer
+    // Retour au deep-link demandé (défini par le middleware), sinon explorer.
     const redirect = searchParams.get('redirect');
-    const target =
-      redirect && redirect.startsWith('/') && !redirect.startsWith('//')
-        ? redirect
-        : '/explorer';
+    const target = redirect && redirect.startsWith('/') && !redirect.startsWith('//')
+      ? redirect
+      : '/explorer';
     router.push(target);
     router.refresh();
   }
@@ -42,15 +55,17 @@ function LoginForm() {
       return;
     }
     setError(null);
+    // hCaptcha visible : la case doit être cochée explicitement avant
+    // soumission lorsque la sitekey est configurée (pas de fallback invisible).
+    if (env.hcaptchaSitekey && !captchaTokenVisible) {
+      setError('Vérification anti-robot requise. Cochez la case « Je suis un humain ».');
+      return;
+    }
     setLoading(true);
     try {
-      // note : en local (sitekey vide) le captcha est sauté ; en prod le token
-      // est obtenu avant tout appel Supabase, sinon GoTrue répond 400 captcha_failed.
-      const captchaToken = env.hcaptchaSitekey
-        ? await hcaptcha.execute({ sitekey: env.hcaptchaSitekey })
-        : '';
-      await signIn(trimmed, password, captchaToken);
-      hcaptcha.reset();
+      await signIn(trimmed, password, captchaTokenVisible);
+      visibleHcaptcha.reset();
+      setCaptchaTokenVisible('');
       toast.success('Bienvenue sur KAZA');
       afterLogin();
     } catch (err) {
@@ -62,6 +77,9 @@ function LoginForm() {
       } else {
         setError(msg);
       }
+      // Le token hCaptcha a été consommé par l'appel : relancer un challenge.
+      visibleHcaptcha.reset();
+      setCaptchaTokenVisible('');
     } finally {
       setLoading(false);
     }
@@ -69,23 +87,37 @@ function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
-      <div className="space-y-1">
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">
-          Bon retour sur KAZA !
-        </h1>
-        <p className="text-sm text-kaza-muted">
-          Connectez-vous pour accéder à vos annonces et vos contacts.
-        </p>
+      <div>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-kaza-text">Connexion</h1>
+        <p className="mt-1 text-sm text-kaza-muted">Retrouvez votre espace KAZA.</p>
       </div>
 
       {error && (
-        <p
-          role="alert"
-          className="rounded-kaza border border-kaza-danger/30 bg-kaza-danger/10 px-4 py-2.5 text-sm text-kaza-danger"
-        >
+        <p role="alert" className="rounded-kaza border border-kaza-danger/30 bg-kaza-danger/10 px-4 py-2.5 text-sm text-kaza-danger">
           {error}
         </p>
       )}
+
+      <Button
+        type="button"
+        variant="secondary"
+        className="w-full"
+        size="lg"
+        onClick={onGoogle}
+        loading={googleLoading}
+      >
+        <GoogleIcon className="mr-2 h-5 w-5" />
+        Continuer avec Google
+      </Button>
+
+      <div className="relative my-2">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-kaza-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white px-3 text-kaza-muted">Ou continuer avec email</span>
+        </div>
+      </div>
 
       <Input
         label="Email"
@@ -96,59 +128,40 @@ function LoginForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
+      <Input
+        label="Mot de passe"
+        type="password"
+        togglePassword
+        autoComplete="current-password"
+        required
+        placeholder="••••••••"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-      <div className="space-y-1.5">
-        <div className="relative">
-          <Input
-            label="Mot de passe"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="current-password"
-            required
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3 top-[34px] text-kaza-faint transition-colors hover:text-kaza-text"
-            aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
+      {env.hcaptchaSitekey && (
+        <div className="flex justify-center">
+          <div id="kaza-hcaptcha-login" className="min-h-[78px]" />
         </div>
-        <div className="flex justify-end">
-          <Link
-            href="/forgot-password"
-            className="text-xs font-medium text-kaza-brand transition-opacity hover:opacity-80"
-          >
+      )}
+
+      <Button type="submit" loading={loading} className="w-full btn-responsive-lg" size="lg">
+        Se connecter
+      </Button>
+
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-4">
+          <Link href="/verify-otp" className="font-medium text-kaza-brand transition-opacity hover:opacity-80">
+            Connexion par SMS
+          </Link>
+          <Link href="/forgot-password" className="font-medium text-kaza-brand transition-opacity hover:opacity-80">
             Mot de passe oublié ?
           </Link>
         </div>
-      </div>
-
-      <div className="space-y-3 pt-1">
-        <Button type="submit" loading={loading} className="w-full" size="lg">
-          Se connecter
-        </Button>
-        <Link
-          href="/verify-otp"
-          className={cn(
-            'flex w-full items-center justify-center gap-2 rounded-kaza border border-kaza-vert px-6 py-3',
-            'text-sm font-medium text-kaza-vert transition-colors hover:bg-kaza-raised',
-          )}
-        >
-          <MessageSquare className="h-4 w-4" aria-hidden />
-          Connexion rapide par SMS
+        <Link href="/register" className="font-medium text-kaza-brand transition-opacity hover:opacity-80">
+          Créer un compte
         </Link>
       </div>
-
-      <p className="text-center text-sm text-kaza-muted">
-        Pas encore de compte ?{' '}
-        <Link href="/register" className="font-medium text-kaza-brand hover:opacity-80">
-          S&apos;inscrire
-        </Link>
-      </p>
     </form>
   );
 }

@@ -20,8 +20,9 @@ export interface HcaptchaExecuteOptions {
 
 interface HcaptchaRenderOptions {
   sitekey: string;
-  size: 'invisible';
+  size: 'invisible' | 'normal';
   'error-callback'?: () => void;
+  callback?: (token: string) => void;
 }
 
 interface HcaptchaApi {
@@ -33,6 +34,7 @@ interface HcaptchaApi {
 declare global {
   interface Window {
     hcaptcha?: HcaptchaApi;
+    kazaHcaptchaOnLoad?: () => void;
   }
 }
 
@@ -40,26 +42,40 @@ let scriptPromise: Promise<void> | null = null;
 
 function loadHcaptchaScript(): Promise<void> {
   if (scriptPromise) return scriptPromise;
+  // Vérifie si déjà chargé et prêt
+  if (window.hcaptcha?.render) return Promise.resolve();
+
   scriptPromise = new Promise<void>((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>('script[data-kaza-hcaptcha]');
     if (existing) {
-      existing.addEventListener('load', () => resolve(), { once: true });
-      existing.addEventListener('error', () => reject(new Error('Échec du chargement hCaptcha')), {
-        once: true,
-      });
+      // Script déjà injecté, attend que l'API soit prête
+      const check = () => {
+        if (window.hcaptcha?.render) resolve();
+        else setTimeout(check, 50);
+      };
+      existing.addEventListener('load', check, { once: true });
+      existing.addEventListener('error', () => reject(new Error('Échec du chargement hCaptcha')), { once: true });
+      // Si déjà load mais pas encore d'API, poll
+      if ((existing as HTMLScriptElement & { dataset: DOMStringMap }).dataset.loaded) check();
       return;
     }
+    // Callback global pour render=explicit&onload
+    window.kazaHcaptchaOnLoad = () => resolve();
     const script = document.createElement('script');
-    script.src = 'https://js.hcaptcha.com/1/api.js?render=explicit';
+    script.src = 'https://js.hcaptcha.com/1/api.js?render=explicit&onload=kazaHcaptchaOnLoad';
     script.async = true;
     script.defer = true;
     script.dataset.kazaHcaptcha = 'true';
-    script.addEventListener('load', () => resolve(), { once: true });
     script.addEventListener('error', () => {
       script.remove();
       scriptPromise = null;
+      delete window.kazaHcaptchaOnLoad;
       reject(new Error('Échec du chargement hCaptcha'));
     }, { once: true });
+    // Fallback si onload ne se déclenche pas (réseau lent)
+    setTimeout(() => {
+      if (window.hcaptcha?.render) resolve();
+    }, 3000);
     document.head.appendChild(script);
   });
   return scriptPromise;
@@ -81,7 +97,12 @@ export function useHcaptcha() {
     if (!widgetId.current) {
       if (!containerRef.current) {
         const host = document.createElement('div');
-        host.style.display = 'none';
+        host.style.position = 'absolute';
+        host.style.left = '-10000px';
+        host.style.top = 'auto';
+        host.style.width = '1px';
+        host.style.height = '1px';
+        host.style.overflow = 'hidden';
         document.body.appendChild(host);
         containerRef.current = host;
       }
@@ -106,4 +127,42 @@ export function useHcaptcha() {
   }, []);
 
   return { execute, reset };
+}
+
+/** Widget visible "Je suis un humain" — pour la page register */
+export function useVisibleHcaptcha(
+  containerId: string,
+  sitekey: string,
+  onToken: (token: string) => void,
+) {
+  const widgetId = useRef<string | null>(null);
+
+  const render = useCallback(async () => {
+    if (!sitekey) return;
+    await loadHcaptchaScript();
+    const api = window.hcaptcha;
+    if (!api) return;
+    const el = document.getElementById(containerId);
+    if (!el || widgetId.current) return;
+    // Évite double render React 18 StrictMode
+    if (el.hasAttribute('data-hcaptcha-rendered')) return;
+    el.setAttribute('data-hcaptcha-rendered', 'true');
+    widgetId.current = api.render(el, {
+      sitekey,
+      size: 'normal',
+      callback: onToken,
+      'error-callback': () => {
+        widgetId.current = null;
+        el.removeAttribute('data-hcaptcha-rendered');
+      },
+    });
+  }, [containerId, sitekey, onToken]);
+
+  const reset = useCallback(() => {
+    if (widgetId.current && window.hcaptcha) {
+      window.hcaptcha.reset(widgetId.current);
+    }
+  }, []);
+
+  return { render, reset };
 }

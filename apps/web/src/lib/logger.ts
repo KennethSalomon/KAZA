@@ -1,4 +1,6 @@
+/* eslint-disable no-console */
 import { type SupabaseClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -40,29 +42,39 @@ function writeLog(level: LogLevel, action: string, options: {
   const output = formatEntry(entry);
 
   if (isProduction) {
+    // Send to Sentry for errors and warnings
+    if (level === 'error' || level === 'warn') {
+      Sentry.addBreadcrumb({
+        category: 'log',
+        message: action,
+        level: level === 'error' ? 'error' : 'warning',
+        data: {
+          ...entry,
+          metadata: undefined, // Don't duplicate in breadcrumb
+        },
+      });
+      Sentry.captureMessage(action, {
+        level: level === 'error' ? 'error' : 'warning',
+        extra: entry.metadata,
+      });
+    }
+
     switch (level) {
       case 'error':
-        // eslint-disable-next-line no-console
         console.error(output);
         break;
       case 'warn':
-        // eslint-disable-next-line no-console
         console.warn(output);
         break;
       case 'debug':
-        if (process.env.NODE_ENV === 'development') {
-          // eslint-disable-next-line no-console
-          console.debug(output);
-        }
+        console.debug(output);
         break;
       default:
-        // eslint-disable-next-line no-console
         console.log(output);
     }
   } else {
     const color = level === 'error' ? '\x1b[31m' : level === 'warn' ? '\x1b[33m' : level === 'debug' ? '\x1b[36m' : '\x1b[32m';
     const reset = '\x1b[0m';
-    // eslint-disable-next-line no-console
     console.log(`${color}[${level.toUpperCase()}]${reset} ${action}`, options.message ? `- ${options.message}` : '', output);
   }
 }

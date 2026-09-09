@@ -45,10 +45,10 @@ export function Modal({ open, onClose, title, children, wide }: Readonly<ModalPr
       }
       const first = els[0];
       const last = els[els.length - 1];
-      if (e.shiftKey && document.activeElement === first && last) {
+      if (e.shiftKey && document.activeElement === first) {
         e.preventDefault();
         last.focus();
-      } else if (!e.shiftKey && document.activeElement === last && first) {
+      } else if (!e.shiftKey && document.activeElement === last) {
         e.preventDefault();
         first.focus();
       }
@@ -57,9 +57,9 @@ export function Modal({ open, onClose, title, children, wide }: Readonly<ModalPr
     document.body.style.overflow = 'hidden';
 
     // focus initial dans la modale (si aucun focusable, le panneau lui-même)
-    const firstEl = focusable()[0];
-    if (firstEl) {
-      firstEl.focus();
+    const first = focusable()[0];
+    if (first) {
+      first.focus();
     } else {
       panelRef.current?.focus();
     }

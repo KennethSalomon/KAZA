@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { checkLoginAttempts } from '@/lib/login-rate-limit';
+import { checkLoginAttempts } from '@/lib/rate-limit';
 import { env } from '@/lib/env';
 import { logger, getRequestId } from '@/lib/logger';
 
@@ -13,7 +13,7 @@ function getClientIp(req: NextRequest): string {
     req.headers.get('x-forwarded-for') ??
     req.headers.get('x-real-ip') ??
     '';
-  const first = (fwd.split(',')[0] ?? '').trim();
+  const first = fwd.split(',')[0].trim();
   return first || 'unknown';
 }
 
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const limit = checkLoginAttempts({ email, ip: getClientIp(req) });
+  const limit = await checkLoginAttempts({ email, ip: getClientIp(req) });
   if (!limit.allowed) {
     logger.warn('login_rate_limited', { requestId, message: 'Rate limit exceeded', metadata: { email, retry_after: limit.retryAfterSeconds } });
     return NextResponse.json(
