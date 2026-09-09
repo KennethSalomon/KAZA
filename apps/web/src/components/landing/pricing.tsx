@@ -116,7 +116,7 @@ export function Pricing() {
               <Link href={p.href} className="mt-7 block">
                 <Button
                   className="w-full"
-                  variant={p.highlight ? 'cta' : 'secondary'}
+                  variant={p.highlight ? 'primary' : 'secondary'}
                   size="lg"
                 >
                   {p.cta}
@@ -129,3 +129,4 @@ export function Pricing() {
     </section>
   );
 }
+

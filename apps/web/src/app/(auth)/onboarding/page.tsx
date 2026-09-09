@@ -267,7 +267,7 @@ export default function LandlordOnboardingPage() {
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Button>
         ) : (
-          <Button type="button" onClick={() => void submit()} loading={saving} variant="cta">
+          <Button type="button" onClick={() => void submit()} loading={saving} variant="primary">
             Terminer l&apos;inscription
           </Button>
         )}

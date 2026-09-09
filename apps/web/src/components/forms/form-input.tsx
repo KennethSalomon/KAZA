@@ -16,7 +16,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
     return (
       <FormField
         label={label}
-        error={error}
+        error={error ?? undefined}
         helperText={helperText}
         required={required}
         htmlFor={fieldId}
@@ -24,7 +24,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
         <Input
           ref={ref}
           id={fieldId}
-          error={Boolean(error)}
+          error={error ?? undefined}
           className={className}
           aria-invalid={Boolean(error)}
           {...props}
@@ -35,3 +35,4 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
 );
 
 FormInput.displayName = 'FormInput';
+

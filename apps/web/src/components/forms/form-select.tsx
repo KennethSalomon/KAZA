@@ -9,9 +9,8 @@ export interface FormSelectProps extends SelectHTMLAttributes<HTMLSelectElement>
   options?: ReadonlyArray<{ value: string; label: string }>;
 }
 
-// note : Composant Select intégré pour formulaires KAZA
 export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
-  ({ label, error, helperText, required, id, options, children, className, ...props }, ref) => {
+  ({ label, error, helperText, required, id, options = [], className, ...props }, ref) => {
     const fieldId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
     return (
@@ -25,19 +24,12 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
         <Select
           ref={ref}
           id={fieldId}
-          error={Boolean(error)}
+          error={error ?? undefined}
+          options={[...options]}
           className={className}
           aria-invalid={Boolean(error)}
           {...props}
-        >
-          {options
-            ? options.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))
-            : children}
-        </Select>
+        />
       </FormField>
     );
   },

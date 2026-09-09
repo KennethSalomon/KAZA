@@ -36,7 +36,7 @@ export function Hero() {
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link href="/register">
-              <Button size="lg" variant="cta" className="gap-2">
+              <Button size="lg" variant="primary" className="gap-2">
                 Créer un compte gratuit
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Button>
@@ -119,3 +119,4 @@ export function Hero() {
     </section>
   );
 }
+
