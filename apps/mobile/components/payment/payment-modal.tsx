@@ -65,13 +65,13 @@ export function PaymentModal({ visible, lease, onClose, onSuccess }: PaymentModa
           setFedapayUrl(data.payment_url);
         }
       } else {
-        const { error } = await supabase.from('payments').insert({
-          lease_id: lease.id,
-          amount: lease.monthly_rent,
-          month_label: selectedMonth,
-          method: 'cash',
-          provider: 'cash',
-          status: 'pending',
+        const [year, month] = selectedMonth.split('-').map(Number);
+        const lastDay = new Date(year, month, 0).getDate();
+        const { error } = await supabase.rpc('report_cash_payment', {
+          p_lease_id: lease.id,
+          p_amount: lease.monthly_rent,
+          p_period_start: `${selectedMonth}-01`,
+          p_period_end: `${selectedMonth}-${String(lastDay).padStart(2, '0')}`,
         });
         if (error) throw error;
         Alert.alert('Paiement déclaré', 'Le bailleur doit confirmer la réception.', [
