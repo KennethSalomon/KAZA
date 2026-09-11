@@ -1,4 +1,5 @@
--- Migration 024: RPCs manquantes appelées par le mobile
+-- Migration 029: RPCs manquantes appelées par le mobile
+-- (ex-024, renumérotée pour lever le doublon de version avec 024_visits_system)
 -- mark_conversation_read + mark_all_notifications_read
 
 -- 1. Marquer tous les messages non lus d'une conversation comme lus
