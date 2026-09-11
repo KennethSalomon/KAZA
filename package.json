@@ -26,6 +26,9 @@
     "db:types": "supabase gen types typescript --local > apps/web/src/lib/database.types.ts",
     "db:types:check": "npm run db:types && git diff --exit-code apps/web/src/lib/database.types.ts"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "2.116.0"
+  },
   "devDependencies": {
     "prettier": "^3.3.3",
     "vitest": "^3.2.7"

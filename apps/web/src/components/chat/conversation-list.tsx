@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { listMyConversations } from '@/lib/supabase-api';
 import { supabase } from '@/lib/supabase-client';
-import type { ConversationWithRelations } from '@/lib/types';
+import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js';
+import type { ConversationWithRelations, Message } from '@/lib/types';
 import { timeAgo, formatXof } from '@/lib/format';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,7 +43,7 @@ export function ConversationList() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
+        (payload: RealtimePostgresInsertPayload<Message>) => {
           const m = payload.new as {
             conversation_id: string;
             sender_id: string;

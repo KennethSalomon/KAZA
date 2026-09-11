@@ -15,6 +15,7 @@ import {
 import { VisitProposalModal } from './VisitProposalModal';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase-client';
+import type { RealtimePostgresInsertPayload, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
 import type { ConversationWithRelations, Message } from '@/lib/types';
 import { timeAgo, formatXof } from '@/lib/format';
 import { apiToast } from '@/lib/api-toast';
@@ -64,7 +65,7 @@ export function ChatWindow() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${id}` },
-        (payload) => {
+        (payload: RealtimePostgresInsertPayload<Message>) => {
           const m = payload.new as Message;
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
           if (m.sender_id !== user?.id) {
@@ -72,7 +73,7 @@ export function ChatWindow() {
           }
         },
       )
-      .subscribe((status) => {
+      .subscribe((status: REALTIME_SUBSCRIBE_STATES) => {
         setIsConnected(status === 'SUBSCRIBED');
       });
     return () => {

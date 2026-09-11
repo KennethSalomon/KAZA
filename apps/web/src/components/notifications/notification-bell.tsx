@@ -11,6 +11,7 @@ import {
   markNotificationRead,
 } from '@/lib/supabase-api';
 import { supabase } from '@/lib/supabase-client';
+import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js';
 import { timeAgo } from '@/lib/format';
 import type { AppNotification } from '@/lib/types';
 import { cn } from '@/lib/cn';
@@ -62,7 +63,7 @@ export function NotificationBell() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        (payload) => {
+        (payload: RealtimePostgresInsertPayload<AppNotification>) => {
           const n = payload.new as AppNotification;
           setItems((prev) => [n, ...prev].slice(0, 30));
           setUnread((u) => u + 1);
