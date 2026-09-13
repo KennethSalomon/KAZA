@@ -90,7 +90,7 @@ jobs:
           echo "SERVICE_ROLE_KEY=$service_role_key" >> "$GITHUB_OUTPUT"
         working-directory: .
 
-      - name: Apply test helpers migration
+      - name: Reset database
         run: supabase db reset
         working-directory: .
 
@@ -105,6 +105,66 @@ jobs:
           name: database-types-generated
           path: apps/web/src/lib/database.types.ts
           if-no-files-found: warn
+
+      - name: Install CI-only test helpers
+        run: |
+          cat >/tmp/kaza-ci-test-helpers.sql <<'SQL'
+          create or replace function public.get_function_source(p_function_name text)
+          returns text
+          language plpgsql
+          security definer
+          set search_path = public
+          as $
+          declare
+            v_source text;
+          begin
+            if auth.role() <> 'service_role' then
+              raise exception 'Test-only helper';
+            end if;
+            select pg_get_functiondef(oid) into v_source
+              from pg_proc
+             where proname = p_function_name
+               and pronamespace = 'public'::regnamespace
+             limit 1;
+            if v_source is null then
+              raise exception 'Function % not found', p_function_name;
+            end if;
+            return v_source;
+          end;
+          $;
+
+          revoke all on function public.get_function_source(text) from public, anon, authenticated;
+          grant execute on function public.get_function_source(text) to service_role;
+
+          create or replace function public.reset_test_database()
+          returns void
+          language plpgsql
+          security definer
+          set search_path = public
+          as $
+          begin
+            if auth.role() <> 'service_role' then
+              raise exception 'Test-only helper';
+            end if;
+
+            delete from public.favorites;
+            delete from public.messages;
+            delete from public.receipts;
+            delete from public.payments;
+            delete from public.visits;
+            delete from public.conversations;
+            delete from public.leases;
+            delete from public.notifications;
+            delete from public.admin_audit_logs;
+            delete from public.residences;
+          end;
+          $;
+
+          revoke all on function public.reset_test_database() from public, anon, authenticated;
+          grant execute on function public.reset_test_database() to service_role;
+          SQL
+          supabase db query --local "$(< /tmp/kaza-ci-test-helpers.sql)"
+        working-directory: .
 
       - name: Run DB integration tests
         run: npx vitest run -c vitest.config.integration.ts tests/integration
@@ -207,7 +267,7 @@ jobs:
         run: |
           for f in supabase/functions/*/index.ts; do
             echo "Checking $f..."
-            deno lint --node-modules-dir=none "$f" || exit 1
+            deno lint "$f" || exit 1
           done
         working-directory: .
 
@@ -215,7 +275,7 @@ jobs:
         run: |
           for f in supabase/functions/*/index.ts; do
             echo "Typechecking $f..."
-            deno check --node-modules-dir=none "$f" || exit 1
+            deno check "$f" || exit 1
           done
         working-directory: .
 
