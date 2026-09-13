@@ -7,7 +7,7 @@
 --   022_test_infrastructure.sql exposent SECURITY DEFINER sans
 --   garde is_admin() : reset_test_database() (destruction totale),
 --   admin_list_users() (fuite PII), admin_list_residences()
---   (exposition des biens internes). L'application web ne les
+--   (exposition des biens internes), get_function_source() (helper de test). L'application web ne les
 --   appelle JAMAIS (vérifié : apps/web ne contient aucune
 --   référence, seuls les tests d'intégration les utilisent).
 --   La policy payments_insert_tenant laissée par
@@ -40,6 +40,15 @@ exception when undefined_function then null;
 end $$;
 
 drop function if exists public.reset_test_database();
+
+-- C3 — get_function_source(text) : helper de test
+do $
+begin
+  revoke execute on function public.get_function_source(text) from public, anon, authenticated;
+exception when undefined_function then null;
+end $;
+
+drop function if exists public.get_function_source(text);
 
 -- ------------------------------------------------------------
 -- C2 — admin_list_users(integer) : fuite de tous les profils (PII)
@@ -83,6 +92,11 @@ begin
   -- C1 : reset_test_database() inexistante
   if to_regprocedure('public.reset_test_database()') is not null then
     raise exception 'ECHEC C1 : reset_test_database() existe encore';
+  end if;
+
+  -- C3 : get_function_source(text) inexistante
+  if to_regprocedure('public.get_function_source(text)') is not null then
+    raise exception 'ECHEC C3 : get_function_source(text) existe encore';
   end if;
 
   -- C2 : admin_list_users(integer) inexistante
