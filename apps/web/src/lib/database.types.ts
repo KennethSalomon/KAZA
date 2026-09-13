@@ -964,63 +964,6 @@ export type Database = {
             }
             Returns: string
           }
-      admin_list_residences: {
-        Args: { p_limit?: number }
-        Returns: {
-          address: string | null
-          bathrooms: number | null
-          bedrooms: number | null
-          city: string | null
-          created_at: string
-          deposit: number | null
-          description: string | null
-          geom: unknown
-          id: string
-          is_published: boolean
-          is_verified: boolean
-          lat: number | null
-          lng: number | null
-          owner_id: string
-          photos: string[]
-          price_monthly: number
-          status: Database["public"]["Enums"]["residence_status"]
-          surface: number | null
-          title: string
-          type: Database["public"]["Enums"]["residence_type"]
-          updated_at: string
-          views_count: number
-          zone: string | null
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "residences"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
-      admin_list_users: {
-        Args: { p_limit?: number }
-        Returns: {
-          avatar_url: string | null
-          consent_apdp: boolean
-          country: string | null
-          created_at: string
-          email: string | null
-          full_name: string
-          id: string
-          is_premium: boolean
-          is_verified_landlord: boolean
-          phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "profiles"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
       admin_moderate_residence: {
         Args: { p_action: string; p_reason?: string; p_residence_id: string }
         Returns: undefined
@@ -1222,10 +1165,6 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
-      get_function_source: {
-        Args: { p_function_name: string }
-        Returns: string
-      }
       get_residence: { Args: { p_residence_id: string }; Returns: Json }
       gettransactionid: { Args: never; Returns: unknown }
       increment_residence_views: { Args: { p_id: string }; Returns: undefined }
@@ -1351,7 +1290,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      reset_test_database: { Args: never; Returns: undefined }
       search_residences: {
         Args: {
           p_city?: string
