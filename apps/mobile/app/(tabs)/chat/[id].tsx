@@ -111,7 +111,7 @@ export default function ChatScreen() {
 
     const asset = result.assets[0];
     const ext = asset.uri.split('.').pop() ?? 'jpg';
-    const path = `${id}/${Date.now()}.${ext}`;
+    const path = `${user.id}/${Date.now()}.${ext}`;
 
     try {
       const response = await fetch(asset.uri);
@@ -119,12 +119,16 @@ export default function ChatScreen() {
       const { error: uploadError } = await supabase.storage.from('chat-files').upload(path, blob);
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from('chat-files').getPublicUrl(path);
+      const { data: urlData } = await supabase.storage
+        .from('chat-files')
+        .createSignedUrl(path, 3600);
+      const signedUrl = urlData?.signedUrl;
+      if (!signedUrl) throw new Error('URL signée indisponible');
 
       await supabase.from('messages').insert({
         conversation_id: id,
         sender_id: user.id,
-        body: urlData.publicUrl,
+        body: signedUrl,
         kind: 'image',
       });
     } catch {

@@ -28,7 +28,7 @@ import MapView, { Marker } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { formatFCFA } from '@kaza/shared';
-import type { Residence, Review } from '@kaza/shared';
+import type { Residence, Review, ReviewsResult } from '@kaza/shared';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -62,9 +62,12 @@ export default function ResidenceDetailScreen() {
 
       if (resRes.data) setResidence(resRes.data as unknown as Residence);
       if (favRes.data) setIsFavorite((favRes.data as string[]).includes(id));
-      if (reviewsRes.data) setReviews((reviewsRes.data as unknown as Review[]) ?? []);
+      if (reviewsRes.data) {
+        const result = reviewsRes.data as unknown as ReviewsResult;
+        setReviews(result.reviews ?? []);
+      }
 
-      supabase.rpc('increment_residence_views', { p_id: id });
+      if (user) supabase.rpc('increment_residence_views', { p_id: id });
     } catch {} finally {
       setLoading(false);
     }
@@ -106,8 +109,10 @@ export default function ResidenceDetailScreen() {
   }
 
   const photos = residence.photos ?? [];
-  const ownerPhone = (residence as any).owner_phone ?? '+229 97 00 00 00';
-  const maskedPhone = ownerPhone.replace(/(\+\d{3}\s?\d{2})\s?.*/, '$1 ** ** **');
+  const ownerPhone = (residence as any).owner_phone as string | undefined;
+  const maskedPhone = ownerPhone
+    ? ownerPhone.replace(/(\+\d{3}\s?\d{2})\s?.*/, '$1 ** ** **')
+    : null;
   const cautionMonths =
     residence.deposit && residence.price_monthly
       ? Math.round(Number(residence.deposit) / Number(residence.price_monthly))
@@ -254,35 +259,43 @@ export default function ResidenceDetailScreen() {
             <Text className="text-base font-bold text-slate-900 mb-3">
               Coordonnées du propriétaire
             </Text>
-            <View className="flex-row items-center mb-3">
-              <Lock size={16} color="#F59E0B" />
-              <Text className="text-lg font-bold text-slate-900 ml-2 tracking-wider">
-                {numberUnlocked ? ownerPhone : maskedPhone}
-              </Text>
-            </View>
-            {!numberUnlocked && (
+            {ownerPhone ? (
               <>
-                <Text className="text-xs text-slate-500 mb-3">
-                  Débloquez l'accès direct aux propriétaires sans commission de démarcheur.
-                </Text>
-                <TouchableOpacity
-                  onPress={handleUnlockNumber}
-                  className="bg-kaza-amber h-11 rounded-xl items-center justify-center"
-                  activeOpacity={0.8}
-                >
-                  <Text className="text-white font-semibold text-sm">
-                    Débloquer le numéro (1 000 FCFA / Pass)
+                <View className="flex-row items-center mb-3">
+                  <Lock size={16} color="#F59E0B" />
+                  <Text className="text-lg font-bold text-slate-900 ml-2 tracking-wider">
+                    {numberUnlocked ? ownerPhone : maskedPhone}
                   </Text>
-                </TouchableOpacity>
+                </View>
+                {!numberUnlocked && (
+                  <>
+                    <Text className="text-xs text-slate-500 mb-3">
+                      Débloquez l'accès direct aux propriétaires sans commission de démarcheur.
+                    </Text>
+                    <TouchableOpacity
+                      onPress={handleUnlockNumber}
+                      className="bg-kaza-amber h-11 rounded-xl items-center justify-center"
+                      activeOpacity={0.8}
+                    >
+                      <Text className="text-white font-semibold text-sm">
+                        Débloquer le numéro (1 000 FCFA / Pass)
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+                {numberUnlocked && (
+                  <TouchableOpacity
+                    onPress={() => Linking.openURL(`tel:${ownerPhone}`)}
+                    className="bg-kaza-vert h-11 rounded-xl items-center justify-center"
+                  >
+                    <Text className="text-white font-semibold text-sm">Appeler le propriétaire</Text>
+                  </TouchableOpacity>
+                )}
               </>
-            )}
-            {numberUnlocked && (
-              <TouchableOpacity
-                onPress={() => Linking.openURL(`tel:${ownerPhone}`)}
-                className="bg-kaza-vert h-11 rounded-xl items-center justify-center"
-              >
-                <Text className="text-white font-semibold text-sm">Appeler le propriétaire</Text>
-              </TouchableOpacity>
+            ) : (
+              <Text className="text-xs text-slate-500">
+                Numéro non disponible pour ce bien.
+              </Text>
             )}
           </View>
 

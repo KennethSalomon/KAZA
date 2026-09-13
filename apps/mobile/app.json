@@ -28,6 +28,7 @@
         "backgroundColor": "#0E4728"
       },
       "package": "bj.kaza.app",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -35,9 +36,7 @@
         "READ_EXTERNAL_STORAGE"
       ],
       "config": {
-        "googleMaps": {
-          "apiKey": "GOOGLE_MAPS_API_KEY_PLACEHOLDER"
-        }
+        "googleMaps": {}
       }
     },
     "plugins": [

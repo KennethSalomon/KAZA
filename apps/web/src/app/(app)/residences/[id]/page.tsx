@@ -31,7 +31,7 @@ export default function ResidenceDetailPage() {
     getResidence(id)
       .then((r) => {
         mounted && setResidence(r);
-        void incrementResidenceViews(id);
+        if (user) void incrementResidenceViews(id);
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 404) router.replace('/explorer');
@@ -41,7 +41,7 @@ export default function ResidenceDetailPage() {
     return () => {
       mounted = false;
     };
-  }, [id, router, toast]);
+  }, [id, router, toast, user]);
 
   const openConversation = useCallback(async () => {
     if (!user) {

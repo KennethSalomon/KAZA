@@ -36,6 +36,7 @@ export function useInfiniteScroll<T>(options: UseInfiniteScrollOptions<T>): UseI
   const loadPage = useCallback(
     async (pageNum: number, isRefresh = false) => {
       if (loadingRef.current) return;
+      loadingRef.current = true;
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -69,6 +70,7 @@ export function useInfiniteScroll<T>(options: UseInfiniteScrollOptions<T>): UseI
           setLoading(false);
           setLoadingMore(false);
         }
+        loadingRef.current = false;
       }
     },
     [fetchFn, pageSize, onError]
@@ -76,17 +78,13 @@ export function useInfiniteScroll<T>(options: UseInfiniteScrollOptions<T>): UseI
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMore) return;
-    loadingRef.current = true;
     await loadPage(page + 1);
-    loadingRef.current = false;
   }, [loadPage, page, hasMore]);
 
   const refresh = useCallback(async () => {
     if (loadingRef.current) return;
-    loadingRef.current = true;
     setPage(0);
     await loadPage(0, true);
-    loadingRef.current = false;
   }, [loadPage]);
 
   // Initial load

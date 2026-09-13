@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
@@ -34,11 +35,19 @@ export async function registerForPushNotifications(): Promise<string | null> {
     });
   }
 
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: 'kaza-mobile',
-  });
+  try {
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId) {
+      console.warn('EAS projectId manquant : notifications push désactivées.');
+      return null;
+    }
 
-  return tokenData.data;
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+    return tokenData.data;
+  } catch {
+    console.warn("Échec de l'enregistrement push Expo.");
+    return null;
+  }
 }
 
 export async function savePushToken(userId: string, token: string) {

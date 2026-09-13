@@ -47,7 +47,7 @@ export default function AdminScreen() {
       const [statsRes, resRes, usersRes] = await Promise.all([
         supabase.rpc('admin_stats'),
         supabase.from('residences').select('id, title, city, status, owner_id, is_published, is_verified, created_at').eq('is_published', true).eq('is_verified', false).order('created_at', { ascending: false }).limit(20),
-        supabase.from('profiles').select('id, full_name, email, phone, role, is_premium, is_verified, created_at').order('created_at', { ascending: false }).limit(50),
+        supabase.from('profiles').select('id, full_name, email, phone, role, is_premium, is_verified_landlord, created_at').order('created_at', { ascending: false }).limit(50),
       ]);
       if (statsRes.data) setStats(statsRes.data as unknown as AdminStats);
       if (resRes.data) setPendingResidences(resRes.data);
@@ -231,7 +231,7 @@ export default function AdminScreen() {
                     >
                       <Shield size={12} color="#0E4728" />
                       <Text className="text-[10px] font-semibold text-kaza-vert">
-                        {u.is_verified ? 'Vérifié' : 'Vérifier'}
+                        {u.is_verified_landlord ? 'Vérifié' : 'Vérifier'}
                       </Text>
                     </TouchableOpacity>
                   )}

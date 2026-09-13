@@ -15,6 +15,9 @@ coverage/
 .env.*
 !.env.example
 
+# Firebase Google services (fourni au build, jamais committé)
+apps/mobile/google-services.json
+
 # Logs
 *.log
 npm-debug.log*
