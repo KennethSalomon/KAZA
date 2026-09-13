@@ -8,11 +8,10 @@
 --   B) après un supabase db reset (tout doit être recréé).
 --
 -- Règles :
---   - 019/020/021/022/023/99999 ne sont PAS inclus (test-only
---     ou hors périmètre).
---   - Les RPC test (reset_test_database, get_function_source,
---     admin_list_users, admin_list_residences, create_residence)
---     ne sont JAMAIS recréés.
+--   - Les migrations historiques sont appliquées séparément.
+--   - Cette migration ne crée ni ne dépend des helpers de test.
+--   - Les helpers temporaires nécessaires aux tests CI sont injectés
+--     après le reset de la base, hors migrations de production.
 --   - is_admin() existe déjà (012/999) — non recréé ici.
 --   - Les grants 9998 ne sont PAS inclus (déjà sur le remote
 --     et abandonnés).
@@ -936,32 +935,12 @@ revoke execute on function public.admin_toggle_role(uuid, public.user_role) from
 grant execute on function public.admin_toggle_role(uuid, public.user_role) to authenticated;
 
 -- ============================================================
--- SECTION 10 : TEST DE NON-RECAPTURE
--- Les fonctions test doivent rester ABSENTES.
+-- SECTION 10 : TEST HELPERS — HORS MIGRATION DE PRODUCTION
+-- Les helpers de test ne sont pas recréés ni validés ici.
+-- Leur présence éventuelle pendant un supabase db reset local est
+-- nettoyée par 999999, puis les tests CI injectent leurs helpers
+-- temporaires avec un accès service_role uniquement.
 -- ============================================================
-
-do $$
-begin
-  if to_regprocedure('public.reset_test_database()') is not null then
-    raise exception 'ECHEC 20260908232309 : reset_test_database() existe encore';
-  end if;
-
-  if to_regprocedure('public.get_function_source(text)') is not null then
-    raise exception 'ECHEC 20260908232309 : get_function_source(text) existe encore';
-  end if;
-
-  if to_regprocedure('public.admin_list_users(integer)') is not null then
-    raise exception 'ECHEC 20260908232309 : admin_list_users(integer) existe encore';
-  end if;
-
-  if to_regprocedure('public.admin_list_residences(integer)') is not null then
-    raise exception 'ECHEC 20260908232309 : admin_list_residences(integer) existe encore';
-  end if;
-
-  if to_regprocedure('public.create_residence(text, public.residence_type, numeric, text, text, text, numeric, int, int)') is not null then
-    raise exception 'ECHEC 20260908232309 : create_residence(test helper) existe encore';
-  end if;
-end $$;
 
 -- ============================================================
 -- SECTION 11 : GRANTS REST MINIMAUX (remplace 9998, par-privilège)
