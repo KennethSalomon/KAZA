@@ -163,7 +163,7 @@ jobs:
           revoke all on function public.reset_test_database() from public, anon, authenticated;
           grant execute on function public.reset_test_database() to service_role;
           SQL
-          supabase db query --local "$(< /tmp/kaza-ci-test-helpers.sql)"
+          docker exec -i supabase_db_kaza psql -U postgres -d postgres -v ON_ERROR_STOP=1 < /tmp/kaza-ci-test-helpers.sql
         working-directory: .
 
       - name: Run DB integration tests

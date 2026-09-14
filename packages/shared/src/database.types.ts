@@ -317,6 +317,8 @@ export type Database = {
           created_at: string
           data: Json | null
           id: string
+          push_claimed_at: string | null
+          push_sent_at: string | null
           read_at: string | null
           title: string
           type: Database["public"]["Enums"]["notification_type"]
@@ -327,6 +329,8 @@ export type Database = {
           created_at?: string
           data?: Json | null
           id?: string
+          push_claimed_at?: string | null
+          push_sent_at?: string | null
           read_at?: string | null
           title: string
           type?: Database["public"]["Enums"]["notification_type"]
@@ -337,6 +341,8 @@ export type Database = {
           created_at?: string
           data?: Json | null
           id?: string
+          push_claimed_at?: string | null
+          push_sent_at?: string | null
           read_at?: string | null
           title?: string
           type?: Database["public"]["Enums"]["notification_type"]
@@ -1002,6 +1008,17 @@ export type Database = {
       cancel_visit: {
         Args: { p_reason?: string; p_visit_id: string }
         Returns: undefined
+      }
+      claim_push_batch: {
+        Args: { p_batch_size?: number; p_lease_seconds?: number }
+        Returns: {
+          body: string | null
+          data: Json | null
+          id: string
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }[]
       }
       confirm_visit: {
         Args: { p_slot_index: number; p_visit_id: string }
