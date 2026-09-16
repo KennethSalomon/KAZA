@@ -198,15 +198,15 @@ export function ChatWindow() {
   return (
     <div className="flex flex-col h-full min-h-0 max-h-[calc(100dvh-4rem)] rounded-kaza-lg border border-kaza-border bg-kaza-surface shadow-card md:max-h-[calc(100dvh-5rem)]">
       {/* En-tête */}
-      <div className="flex items-center gap-3 border-b border-kaza-border px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3 border-b border-kaza-border px-4 py-3">
         <button
           onClick={() => router.push('/chat')}
-          className="rounded-lg p-1.5 text-kaza-muted transition-colors hover:bg-kaza-bg hover:text-kaza-text md:hidden"
+          className="shrink-0 rounded-lg p-1.5 text-kaza-muted transition-colors hover:bg-kaza-bg hover:text-kaza-text md:hidden"
           aria-label="Retour à la liste"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
         </button>
-        <span className="grid h-9 w-9 place-items-center rounded-full border border-kaza-brand/25 bg-kaza-brand/10 text-xs font-bold text-kaza-brand">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-kaza-brand/25 bg-kaza-brand/10 text-xs font-bold text-kaza-brand">
           {conversation?.peer?.full_name
             ?.split(' ')
             .map((w) => w[0])
@@ -214,11 +214,11 @@ export function ChatWindow() {
             .slice(0, 2)
             .toUpperCase() ?? 'KZ'}
         </span>
-        <div>
-          <p className="text-sm font-semibold text-kaza-text">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-kaza-text">
             {conversation?.peer?.full_name ?? 'Conversation'}
           </p>
-          <p className="text-xs text-kaza-faint">
+          <p className="truncate text-xs text-kaza-faint">
             {conversation?.residence?.title ?? 'Chat privé sécurisé'}{conversation?.residence ? ` · ${formatXof(conversation.residence.price_monthly)}/mois` : ' · pièces jointes acceptées'}
             <span className={`ml-2 inline-block h-1.5 w-1.5 rounded-full ${isConnected ? 'bg-kaza-success' : 'bg-kaza-danger'}`} title={isConnected ? 'Connecté' : 'Déconnecté'} />
           </p>

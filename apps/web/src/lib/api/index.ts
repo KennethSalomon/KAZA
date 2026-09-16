@@ -10,6 +10,8 @@ export * from './notifications';
 export * from './storage';
 export * from './leases';
 export * from './account';
+export * from './dashboard';
+export * from './expenses';
 
 // Types ré-exportés pour compatibilité
 export type {

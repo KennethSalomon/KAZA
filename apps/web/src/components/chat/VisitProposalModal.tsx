@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { X, Calendar, Clock } from 'lucide-react';
+import { Calendar, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Modal } from '@/components/ui/modal';
 
 interface Slot { start: string; end: string; }
 
@@ -32,32 +33,69 @@ export function VisitProposalModal({
     }
   };
 
+  const updateSlot = (i: number, key: 'start' | 'end', value: string) =>
+    setSlots(slots.map((s, idx) => (idx === i ? { ...s, [key]: value } : s)));
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="font-sora text-lg font-semibold">Proposer une visite</h3>
-          <button onClick={onClose} className="text-muted hover:text-text"><X className="h-5 w-5" /></button>
-        </div>
-        <p className="text-sm text-muted">Choisissez 1 à 3 créneaux</p>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {slots.map((slot, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted" />
-              <Input type="datetime-local" value={slot.start} onChange={e => setSlots(slots.map((s, idx) => idx === i ? { ...s, start: e.target.value } : s))} required />
-              <span className="text-muted">→</span>
-              <Clock className="h-4 w-4 text-muted" />
-              <Input type="datetime-local" value={slot.end} onChange={e => setSlots(slots.map((s, idx) => idx === i ? { ...s, end: e.target.value } : s))} required />
-              {slots.length > 1 && <button type="button" onClick={() => removeSlot(i)} className="text-red-500 hover:text-red-700">×</button>}
+    <Modal open onClose={onClose} title="Proposer une visite">
+      <p className="text-sm text-kaza-muted">Choisissez 1 à 3 créneaux</p>
+      <form onSubmit={(e) => void handleSubmit(e)} className="mt-3 space-y-4">
+        {slots.map((slot, i) => (
+          <div key={i} className="space-y-2 rounded-kaza border border-kaza-border bg-kaza-surface p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-sm font-medium text-kaza-text">
+                <Calendar className="h-4 w-4 text-kaza-muted" aria-hidden />
+                Créneau {i + 1}
+              </span>
+              {slots.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeSlot(i)}
+                  className="rounded-md p-1 text-kaza-faint transition-colors hover:text-kaza-danger"
+                  aria-label={`Supprimer le créneau ${i + 1}`}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
-          ))}
-          {slots.length < 3 && <button type="button" onClick={addSlot} className="text-sm text-brand hover:underline">+ Ajouter un créneau</button>}
-          <div className="flex gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">Annuler</Button>
-            <Button type="submit" disabled={loading} className="flex-1">{loading ? 'Envoi...' : 'Proposer'}</Button>
+            <div className="grid grid-cols-1 gap-3 min-w-0 sm:grid-cols-2">
+              <label className="block min-w-0">
+                <span className="kaza-label">Début</span>
+                <Input
+                  type="datetime-local"
+                  value={slot.start}
+                  onChange={(e) => updateSlot(i, 'start', e.target.value)}
+                  className="w-full min-w-0"
+                  required
+                />
+              </label>
+              <label className="block min-w-0">
+                <span className="kaza-label">Fin</span>
+                <Input
+                  type="datetime-local"
+                  value={slot.end}
+                  onChange={(e) => updateSlot(i, 'end', e.target.value)}
+                  className="w-full min-w-0"
+                  required
+                />
+              </label>
+            </div>
           </div>
-        </form>
-      </div>
-    </div>
+        ))}
+        {slots.length < 3 && (
+          <button type="button" onClick={addSlot} className="text-sm font-medium text-kaza-brand hover:underline">
+            + Ajouter un créneau
+          </button>
+        )}
+        <div className="flex gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+            Annuler
+          </Button>
+          <Button type="submit" disabled={loading} className="flex-1">
+            {loading ? 'Envoi…' : 'Proposer'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

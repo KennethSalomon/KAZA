@@ -344,7 +344,7 @@ export default function ExplorerPage() {
             )}
           </p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Select
               aria-label="Trier les résultats"
               value={sort}
@@ -356,7 +356,7 @@ export default function ExplorerPage() {
               ]}
               className="h-9 w-44 !py-1.5 text-xs"
             />
-            <div role="tablist" aria-label="Vue" className="flex rounded-kaza border border-kaza-border bg-kaza-surface p-1">
+            <div role="tablist" aria-label="Vue" className="hidden sm:flex rounded-kaza border border-kaza-border bg-kaza-surface p-1">
               <button
                 role="tab"
                 aria-selected={view === 'list'}
@@ -387,7 +387,7 @@ export default function ExplorerPage() {
       {/* Résultats : grille + carte */}
       <div className="mt-4">
         {/* Mobile: toggle between list and map */}
-        <div className="lg:hidden">
+        <div className="sm:hidden">
           <div role="tablist" aria-label="Vue" className="flex rounded-kaza border border-kaza-border bg-kaza-surface p-1 mb-4">
             <button
               role="tab"

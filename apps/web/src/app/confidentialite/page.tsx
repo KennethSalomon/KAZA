@@ -9,12 +9,12 @@ export const metadata: Metadata = {
 export default function ConfidentialitePage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-16 text-sm leading-relaxed text-kaza-text">
-      <h1 className="mb-6 font-sora text-2xl font-bold">Politique de confidentialité</h1>
+      <h1 className="mb-6 font-display text-2xl font-bold">Politique de confidentialité</h1>
       <p className="mb-4 text-xs text-kaza-muted">Dernière mise à jour : 15 août 2026</p>
 
       <section className="space-y-6">
         <div>
-          <h2 className="mb-2 font-sora text-lg font-semibold">1. Responsable du traitement</h2>
+          <h2 className="mb-2 font-display text-lg font-semibold">1. Responsable du traitement</h2>
           <p>
             KAZA (« nous »), plateforme de gestion locative et de mise en relation entre locataires
             et bailleurs au Bénin. Contact :{' '}
@@ -25,7 +25,7 @@ export default function ConfidentialitePage() {
         </div>
 
         <div>
-          <h2 className="mb-2 font-sora text-lg font-semibold">2. Données collectées</h2>
+          <h2 className="mb-2 font-display text-lg font-semibold">2. Données collectées</h2>
           <ul className="list-inside list-disc space-y-1">
             <li>
               <strong>Inscription :</strong> nom complet, adresse e-mail, numéro de téléphone, rôle
@@ -52,7 +52,7 @@ export default function ConfidentialitePage() {
         </div>
 
         <div>
-          <h2 className="mb-2 font-sora text-lg font-semibold">3. Finalités du traitement</h2>
+          <h2 className="mb-2 font-display text-lg font-semibold">3. Finalités du traitement</h2>
           <ul className="list-inside list-disc space-y-1">
             <li>Gestion des comptes et authentification.</li>
             <li>Mise en relation locataire-bailleur et gestion des conversations.</li>
@@ -64,7 +64,7 @@ export default function ConfidentialitePage() {
         </div>
 
         <div>
-          <h2 className="mb-2 font-sora text-lg font-semibold">4. Base légale</h2>
+          <h2 className="mb-2 font-display text-lg font-semibold">4. Base légale</h2>
           <p>
             Le traitement repose sur votre <strong>consentement</strong> (inscription et acceptation
             de la présente politique) et sur l’<strong>exécution du contrat</strong> de service
@@ -73,7 +73,7 @@ export default function ConfidentialitePage() {
         </div>
 
         <div>
-          <h2 className="mb-2 font-sora text-lg font-semibold">5. Durée de conservation</h2>
+          <h2 className="mb-2 font-display text-lg font-semibold">5. Durée de conservation</h2>
           <ul className="list-inside list-disc space-y-1">
             <li>Compte actif : données conservées pendant la durée d&apos;utilisation.</li>
             <li>
@@ -88,7 +88,7 @@ export default function ConfidentialitePage() {
         </div>
 
         <div>
-          <h2 className="mb-2 font-sora text-lg font-semibold">6. Partage des données</h2>
+          <h2 className="mb-2 font-display text-lg font-semibold">6. Partage des données</h2>
           <p>Vos données ne sont partagées qu&apos;avec :</p>
           <ul className="list-inside list-disc space-y-1">
             <li>
@@ -109,7 +109,7 @@ export default function ConfidentialitePage() {
         </div>
 
         <div>
-          <h2 className="mb-2 font-sora text-lg font-semibold">7. Vos droits</h2>
+          <h2 className="mb-2 font-display text-lg font-semibold">7. Vos droits</h2>
           <p>Conformément à la loi APDP du Bénin, vous disposez des droits suivants :</p>
           <ul className="list-inside list-disc space-y-1">
             <li>
@@ -135,7 +135,7 @@ export default function ConfidentialitePage() {
         </div>
 
         <div>
-          <h2 className="mb-2 font-sora text-lg font-semibold">8. Sécurité</h2>
+          <h2 className="mb-2 font-display text-lg font-semibold">8. Sécurité</h2>
           <p>
             Nous mettons en œuvre des mesures techniques et organisationnelles appropriées :
             chiffrement des données en transit (TLS), politiques d&apos;accès strictes (RLS),
@@ -144,7 +144,7 @@ export default function ConfidentialitePage() {
         </div>
 
         <div>
-          <h2 className="mb-2 font-sora text-lg font-semibold">9. Cookies</h2>
+          <h2 className="mb-2 font-display text-lg font-semibold">9. Cookies</h2>
           <p>
             KAZA utilise uniquement des cookies strictement nécessaires au fonctionnement
             (authentification de session). Aucun cookie publicitaire ou de tracking n&apos;est
@@ -153,7 +153,7 @@ export default function ConfidentialitePage() {
         </div>
 
         <div>
-          <h2 className="mb-2 font-sora text-lg font-semibold">10. Modifications</h2>
+          <h2 className="mb-2 font-display text-lg font-semibold">10. Modifications</h2>
           <p>
             Cette politique peut être mise à jour. En cas de changement substantiel, vous serez
             notifié par e-mail.
