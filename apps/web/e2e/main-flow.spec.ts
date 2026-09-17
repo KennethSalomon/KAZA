@@ -46,9 +46,15 @@ test.describe('Parcours principal locataire', () => {
     await page.getByRole('textbox', { name: 'Mot de passe' }).fill(LANDLORD_PW);
     await page.getByRole('button', { name: 'Se connecter' }).click();
     await page.goto('/landlord');
-    await page.getByRole('button', { name: /Valider/ }).first().click();
+    await expect(page.getByTestId('validate-payment').first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByTestId('validate-payment').first().click();
     await expect(page.getByText('Paiement confirmé')).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('button', { name: /Signer et envoyer/ }).first().click();
+    await expect(page.getByTestId('sign-receipt').first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByTestId('sign-receipt').first().click();
     await expect(page.getByText('Quittance signée')).toBeVisible({ timeout: 10_000 });
 
     // 7. Reconnexion locataire : quittance signée visible dans "Mes quittances"

@@ -228,6 +228,27 @@ jobs:
 
           revoke all on function public.reset_test_database() from public, anon, authenticated;
           grant execute on function public.reset_test_database() to service_role;
+
+          -- CI-only : le client service_role des tests passe par PostgREST et
+          -- nécessite les privileges SQL correspondants sur le schema public.
+          -- Aucun effet en production (injecte uniquement ici, apres db reset).
+          grant usage on schema public to service_role;
+          grant select, insert, update, delete on all tables in schema public to service_role;
+          grant usage, select on all sequences in schema public to service_role;
+
+          -- Verification non sensible des privileges (echec explicite si absents).
+          do $$
+          begin
+            if not has_schema_privilege('service_role', 'public', 'USAGE')
+               or not has_table_privilege('service_role', 'public.profiles', 'UPDATE') then
+              raise exception 'CI precondition failed: service_role privileges missing';
+            end if;
+          end;
+          $$;
+
+          -- Rechargement du cache de schema PostgREST pour prendre en compte
+          -- les privileges fraichement accordes.
+          notify pgrst, 'reload schema';
           SQL
           docker exec -i supabase_db_kaza psql -U postgres -d postgres -v ON_ERROR_STOP=1 < /tmp/kaza-ci-test-helpers.sql
         working-directory: .

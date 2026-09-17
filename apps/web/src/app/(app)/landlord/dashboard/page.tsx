@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Home, Building2, CreditCard, FileSignature, AlertCircle, Calendar, TrendingUp, DollarSign, KeyRound, Plus, Minus } from 'lucide-react';
-import { getLandlordDashboardStats, listMyPayments, listMyReceipts, listMyLeases, listMyResidences } from '@/lib/supabase-api';
+import { confirmPayment, getLandlordDashboardStats, listMyPayments, listMyReceipts, listMyLeases, listMyResidences, signReceipt } from '@/lib/supabase-api';
 import { useAuth } from '@/lib/auth-context';
 import type { PaymentWithRelations, ReceiptWithRelations, LeaseWithRelations, ResidenceWithRelations } from '@/lib/types';
 import { formatXof, formatDate } from '@/lib/format';
@@ -153,6 +153,43 @@ export default function LandlordDashboardPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Actions métier : un seul bouton occupé à la fois (anti-double-clic),
+  // erreurs via toast, rechargement des données après succès. La logique
+  // métier (statut, quittance, notification) reste côté SQL/RLS existants.
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const handleConfirmPayment = useCallback(
+    async (paymentId: string) => {
+      setBusyId(paymentId);
+      try {
+        await confirmPayment(paymentId);
+        toast.success('Paiement confirmé', 'La quittance à signer a été générée.');
+        await load();
+      } catch (err) {
+        apiToast(toast, err, 'Validation du paiement impossible');
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [toast, load],
+  );
+
+  const handleSignReceipt = useCallback(
+    async (receiptId: string) => {
+      setBusyId(receiptId);
+      try {
+        await signReceipt(receiptId);
+        toast.success('Quittance signée', 'La quittance signée a été envoyée au locataire.');
+        await load();
+      } catch (err) {
+        apiToast(toast, err, 'Signature de la quittance impossible');
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [toast, load],
+  );
 
   if (loading) {
     return (
@@ -396,7 +433,19 @@ export default function LandlordDashboardPage() {
                 icon: <CreditCard className="h-4 w-4 text-kaza-brand" aria-hidden />,
                 title: `Paiement ${formatXof(p.amount)} — ${p.provider}`,
                 subtitle: `Période ${formatDate(p.period_start)} → ${formatDate(p.period_end)}`,
-                action: <Link href="/landlord"><Button size="sm" variant="ghost" className="btn-responsive-sm">Valider</Button></Link>,
+                action: (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="btn-responsive-sm"
+                    data-testid="validate-payment"
+                    loading={busyId === p.id}
+                    disabled={busyId !== null}
+                    onClick={() => void handleConfirmPayment(p.id)}
+                  >
+                    Valider
+                  </Button>
+                ),
                 variant: 'warning' as const,
               })),
               ...recentReceipts.map((r) => ({
@@ -404,7 +453,19 @@ export default function LandlordDashboardPage() {
                 icon: <FileSignature className="h-4 w-4 text-kaza-brand" aria-hidden />,
                 title: `Quittance ${formatXof(r.amount)}`,
                 subtitle: `Période ${formatDate(r.period_start)} → ${formatDate(r.period_end)}`,
-                action: <Link href="/landlord"><Button size="sm" variant="ghost" className="btn-responsive-sm">Signer</Button></Link>,
+                action: (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="btn-responsive-sm"
+                    data-testid="sign-receipt"
+                    loading={busyId === r.id}
+                    disabled={busyId !== null}
+                    onClick={() => void handleSignReceipt(r.id)}
+                  >
+                    Signer et envoyer
+                  </Button>
+                ),
                 variant: 'default' as const,
               })),
               ...recentLeases.slice(0, 2).map((l) => ({
@@ -425,7 +486,19 @@ export default function LandlordDashboardPage() {
                 icon: <CreditCard className="h-4 w-4 text-kaza-brand" aria-hidden />,
                 title: `Paiement ${formatXof(p.amount)} — ${p.provider}`,
                 subtitle: `Période ${formatDate(p.period_start)} → ${formatDate(p.period_end)}`,
-                action: <Link href="/landlord"><Button size="sm" variant="ghost" className="btn-responsive-sm">Valider</Button></Link>,
+                action: (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="btn-responsive-sm"
+                    data-testid="validate-payment"
+                    loading={busyId === p.id}
+                    disabled={busyId !== null}
+                    onClick={() => void handleConfirmPayment(p.id)}
+                  >
+                    Valider
+                  </Button>
+                ),
                 variant: 'warning' as const,
               })),
               ...recentReceipts.map((r) => ({
@@ -433,7 +506,19 @@ export default function LandlordDashboardPage() {
                 icon: <FileSignature className="h-4 w-4 text-kaza-brand" aria-hidden />,
                 title: `Quittance ${formatXof(r.amount)}`,
                 subtitle: `Période ${formatDate(r.period_start)} → ${formatDate(r.period_end)}`,
-                action: <Link href="/landlord"><Button size="sm" variant="ghost" className="btn-responsive-sm">Signer</Button></Link>,
+                action: (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="btn-responsive-sm"
+                    data-testid="sign-receipt"
+                    loading={busyId === r.id}
+                    disabled={busyId !== null}
+                    onClick={() => void handleSignReceipt(r.id)}
+                  >
+                    Signer et envoyer
+                  </Button>
+                ),
                 variant: 'default' as const,
               })),
               ...recentLeases.slice(0, 2).map((l) => ({
