@@ -1119,12 +1119,12 @@ export type Database = {
       }
       complete_landlord_onboarding: {
         Args: {
-          p_bank_iban?: string
-          p_bank_name?: string
+          p_bank_iban?: string | null
+          p_bank_name?: string | null
           p_business_name: string
           p_momo_number: string
           p_momo_provider: string
-          p_tax_id: string
+          p_tax_id?: string | null
         }
         Returns: undefined
       }
@@ -1266,22 +1266,16 @@ export type Database = {
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       get_my_billing: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
           bank_iban: string | null
           bank_name: string | null
-          business_name: string
-          momo_number: string
-          momo_provider: string
+          business_name: string | null
+          momo_number: string | null
+          momo_provider: string | null
           onboarding_completed: boolean
           tax_id: string | null
         }[]
-        SetofOptions: {
-          from: "get_my_billing"
-          to: "get_my_billing"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       get_residence: { Args: { p_residence_id: string }; Returns: Json }
       gettransactionid: { Args: never; Returns: unknown }
