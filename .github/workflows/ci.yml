@@ -70,6 +70,63 @@ jobs:
           sudo mv /tmp/supabase /usr/local/bin/supabase
           supabase --version
 
+      - name: Diagnose Docker Hub credentials
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          username = os.environ.get("DOCKERHUB_USERNAME", "")
+          token = os.environ.get("DOCKERHUB_TOKEN", "")
+
+          print(f"USERNAME_LENGTH={len(username)}")
+          print(f"TOKEN_LENGTH={len(token)}")
+          print(f"USERNAME_HAS_CR={str(chr(13) in username).lower()}")
+          print(f"USERNAME_HAS_LF={str(chr(10) in username).lower()}")
+          print(f"TOKEN_HAS_CR={str(chr(13) in token).lower()}")
+          print(f"TOKEN_HAS_LF={str(chr(10) in token).lower()}")
+          print(f"TOKEN_STARTS_WITH_DCKR_PAT={str(token.startswith('dckr_pat_')).lower()}")
+
+          payload = json.dumps({
+              "identifier": username,
+              "secret": token,
+          }).encode("utf-8")
+
+          request = urllib.request.Request(
+              "https://hub.docker.com/v2/auth/token",
+              data=payload,
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+
+          status = 0
+          body = {}
+          try:
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  status = response.status
+                  try:
+                      body = json.loads(response.read().decode("utf-8"))
+                  except Exception:
+                      body = {}
+          except urllib.error.HTTPError as error:
+              status = error.code
+          except Exception:
+              status = 0
+
+          print(f"DOCKER_HUB_AUTH_HTTP_STATUS={status}")
+
+          if status == 200 and isinstance(body, dict) and body.get("access_token"):
+              print("DOCKER_HUB_AUTH_RESULT=SUCCESS")
+          else:
+              print("DOCKER_HUB_AUTH_RESULT=FAILURE")
+              raise SystemExit(1)
+          PYEOF
+
       - name: Login to Docker Hub
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
