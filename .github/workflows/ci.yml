@@ -70,6 +70,12 @@ jobs:
           sudo mv /tmp/supabase /usr/local/bin/supabase
           supabase --version
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Start Supabase local
         id: supabase
         run: |
@@ -194,6 +200,12 @@ jobs:
           curl -fsSL https://github.com/supabase/cli/releases/download/v2.114.0/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz
           tar xzf /tmp/supabase.tar.gz -C /tmp
           sudo mv /tmp/supabase /usr/local/bin/supabase
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Start Supabase local
         id: supabase
