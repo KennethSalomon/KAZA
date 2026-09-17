@@ -130,7 +130,7 @@ grant execute on function public.landlord_dashboard_stats() to authenticated;
 -- ============================================================
 -- Correction de list_upcoming_due : fenêtre [today, today+N] au lieu d'égalité exacte
 -- ============================================================
-create or replace function public.list_upcoming_due(window_days int default 7)
+create or replace function public.list_upcoming_due(days int default 7)
 returns table (
   lease_id uuid, tenant_id uuid, landlord_id uuid, monthly_rent numeric, due_on date
 )
@@ -145,7 +145,7 @@ begin
   from public.leases l
   where l.status = 'active'
     and l.date_fn_couverture >= current_date
-    and l.date_fn_couverture <= current_date + window_days
+    and l.date_fn_couverture <= current_date + days
   order by l.date_fn_couverture asc;
 end;
 $$;
