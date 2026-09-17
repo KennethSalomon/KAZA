@@ -180,7 +180,7 @@ jobs:
           language plpgsql
           security definer
           set search_path = public
-          as $
+          as $$
           declare
             v_source text;
           begin
@@ -197,7 +197,7 @@ jobs:
             end if;
             return v_source;
           end;
-          $;
+          $$;
 
           revoke all on function public.get_function_source(text) from public, anon, authenticated;
           grant execute on function public.get_function_source(text) to service_role;
@@ -207,7 +207,7 @@ jobs:
           language plpgsql
           security definer
           set search_path = public
-          as $
+          as $$
           begin
             if auth.role() <> 'service_role' then
               raise exception 'Test-only helper';
@@ -224,7 +224,7 @@ jobs:
             delete from public.admin_audit_logs;
             delete from public.residences;
           end;
-          $;
+          $$;
 
           revoke all on function public.reset_test_database() from public, anon, authenticated;
           grant execute on function public.reset_test_database() to service_role;
