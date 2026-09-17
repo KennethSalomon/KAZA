@@ -275,7 +275,11 @@ jobs:
         run: |
           for f in supabase/functions/*/index.ts; do
             echo "Typechecking $f..."
-            deno check "$f" || exit 1
+            # --config : Deno ne découvre pas supabase/functions/deno.json depuis la
+            # racine du repo ; sans lui, les imports npm: sont résolus contre le
+            # node_modules npm de la racine (échec sur npm:@sentry/deno) au lieu du
+            # cache global + deno.lock des Edge Functions.
+            deno check --config supabase/functions/deno.json "$f" || exit 1
           done
         working-directory: .
 

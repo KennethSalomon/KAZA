@@ -232,7 +232,11 @@ Deno.serve(async (req: Request) => {
       const { data: cleared } = await supabase
         .from('profiles')
         .update({ push_token: null })
-        .in('push_token', invalidTokens);
+        .in('push_token', invalidTokens)
+        // .select() requis : supabase-js v2 envoie Prefer: return=minimal par
+        // défaut (données de retour typées null), et le compteur ci-dessous
+        // dépend des lignes réellement mises à jour.
+        .select('id');
       report.invalidTokensCleared = cleared?.length ?? 0;
     }
 
