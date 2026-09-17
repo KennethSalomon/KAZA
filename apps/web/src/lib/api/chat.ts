@@ -85,7 +85,7 @@ export async function agreeVisit(
 export async function cancelVisit(visitId: string, reason = ''): Promise<void> {
   const { error } = await supabase.rpc('cancel_visit', {
     p_visit_id: visitId,
-    p_reason: reason || null,
+    p_reason: reason || undefined,
   });
   if (error) throw normalizeError(error, 'Annulation impossible');
 }
@@ -93,7 +93,7 @@ export async function cancelVisit(visitId: string, reason = ''): Promise<void> {
 export async function declineVisit(visitId: string, reason = ''): Promise<void> {
   const { error } = await supabase.rpc('decline_visit', {
     p_visit_id: visitId,
-    p_reason: reason || null,
+    p_reason: reason || undefined,
   });
   if (error) throw normalizeError(error, 'Refus impossible');
 }

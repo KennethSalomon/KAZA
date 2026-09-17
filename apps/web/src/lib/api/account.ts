@@ -50,11 +50,11 @@ export async function completeLandlordOnboarding(
 
   const { error } = await supabase.rpc('complete_landlord_onboarding', {
     p_business_name: input.business_name,
-    p_tax_id: input.tax_id ?? null,
+    p_tax_id: input.tax_id ?? '',
     p_momo_provider: input.momo_provider,
     p_momo_number: input.momo_number,
-    p_bank_name: input.bank_name ?? null,
-    p_bank_iban: input.bank_iban ?? null,
+    p_bank_name: input.bank_name,
+    p_bank_iban: input.bank_iban,
   });
 
   if (error) {

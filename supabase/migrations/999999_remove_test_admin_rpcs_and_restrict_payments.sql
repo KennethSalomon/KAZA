@@ -42,11 +42,11 @@ end $$;
 drop function if exists public.reset_test_database();
 
 -- C3 — get_function_source(text) : helper de test
-do $
+do $$
 begin
   revoke execute on function public.get_function_source(text) from public, anon, authenticated;
 exception when undefined_function then null;
-end $;
+end $$;
 
 drop function if exists public.get_function_source(text);
 

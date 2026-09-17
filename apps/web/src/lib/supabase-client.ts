@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr';
 import { env } from './env';
+import type { Database } from './database.types';
 
 // note : variable exposée au navigateur — clé "anon", sans privilège.
 // La clé service_role vit exclusivement dans les Edge Functions.
@@ -24,7 +25,7 @@ const inMemoryStorage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
 // createBrowserClient (SSR) : la session est répliquée dans les cookies
 // (document.cookie) pour que le middleware et les Server Components
 // (createServerClient) voient la même session que le navigateur.
-export const supabase = createBrowserClient(url, anonKey, {
+export const supabase = createBrowserClient<Database>(url, anonKey, {
   auth: {
     persistSession: true,
     userStorage: inMemoryStorage,

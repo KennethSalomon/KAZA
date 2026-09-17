@@ -33,7 +33,12 @@ enable_confirmations = false
 
 [storage]
 enabled = true
-file_size_limit = "20MiB"
+file_size_limit = "5MiB"
+# Bucket expenses : justificatifs de dépenses
+# - Privé : seul le bailleur propriétaire peut accéder
+# - Types autorisés : images + PDF
+# - Taille max : 5 Mo
+# - Chemin canonique : expenses/{expense_id}.{extension}
 
 [edge_runtime]
 enabled = true
@@ -61,6 +66,9 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.overdue-cron]
+verify_jwt = false
+
+[functions.push-emitter]
 verify_jwt = false
 
 [analytics]

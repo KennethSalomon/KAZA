@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { listExpenses, createExpense, updateExpense, deleteExpense } from '@/lib/supabase-api';
+import { listExpenses, createExpense, updateExpense, deleteExpense, listMyResidences } from '@/lib/supabase-api';
+import type { ResidenceWithRelations } from '@/lib/types';
 import { useToast } from '@/components/ui/toast';
 
 export default function LandlordExpensesPage() {
@@ -25,6 +26,7 @@ export default function LandlordExpensesPage() {
   }
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [residences, setResidences] = useState<ResidenceWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filters, setFilters] = useState<{
@@ -45,13 +47,19 @@ export default function LandlordExpensesPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [formType, setFormType] = useState<'create' | 'update'>('create');
+  // Id de la dépense en cours d'édition : source de vérité unique pour
+  // l'update (l'ancien lookup `expenses.find((e) => e.id === '')` passait
+  // un objet vide à update_expense → échec systématique).
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
       const data = await listExpenses(filters);
       setExpenses(data);
-      setTotal(expenses.reduce((acc, exp) => acc + exp.amount, 0));
+      // Total calculé depuis les données fraîchement chargées (et donc
+      // filtrées) — pas depuis le state `expenses` du render précédent.
+      setTotal(data.reduce((acc, exp) => acc + exp.amount, 0));
     } catch (err) {
       toastError(err instanceof Error ? err.message : String(err), 'Erreur');
     } finally {
@@ -59,9 +67,21 @@ export default function LandlordExpensesPage() {
     }
   };
 
+  const loadResidences = async () => {
+    try {
+      setResidences(await listMyResidences());
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : String(err), 'Erreur');
+    }
+  };
+
   useEffect(() => {
     void load();
   }, [filters]);
+
+  useEffect(() => {
+    void loadResidences();
+  }, []);
 
   const handleCreate = () => {
     setForm({
@@ -71,6 +91,7 @@ export default function LandlordExpensesPage() {
       residence_id: undefined,
       description: undefined,
     });
+    setEditingId(null);
     setFormOpen(true);
     setFormType('create');
   };
@@ -112,11 +133,13 @@ export default function LandlordExpensesPage() {
       residence_id: expense.residence_id ?? undefined,
       description: expense.description ?? undefined,
     });
+    setEditingId(expense.id);
     setFormOpen(true);
     setFormType('update');
   };
 
-  const handleUpdateSubmit = async (expense: Expense) => {
+  const handleUpdateSubmit = async () => {
+    if (!editingId) return;
     if (form.amount <= 0) {
       toastError('Le montant doit être supérieur à 0', 'Erreur');
       return;
@@ -127,16 +150,20 @@ export default function LandlordExpensesPage() {
     }
     setIsSubmitting(true);
     try {
-      await updateExpense(expense.id, {
+      await updateExpense(editingId, {
         category: form.category,
         amount: form.amount,
         date: form.date,
         description: form.description,
         residence_id: form.residence_id,
+        // receipt_path hors périmètre P0 : update_expense (migration 031)
+        // écrase encore receipt_url à NULL en l'absence du paramètre —
+        // préservation du justificatif à traiter au lot Storage (P1).
         receipt_path: undefined,
       });
       toastSuccess('Dépense mise à jour');
       setFormOpen(false);
+      setEditingId(null);
       void load();
     } catch (err) {
       toastError(err instanceof Error ? err.message : String(err), 'Erreur');
@@ -145,7 +172,7 @@ export default function LandlordExpensesPage() {
     }
   };
 
-const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm('Supprimer cette dépense ?')) return;
     setIsSubmitting(true);
     try {
@@ -161,7 +188,12 @@ const handleDelete = async (id: string) => {
 
   const handleResetFilters = () => {
     setFilters({ from: undefined, to: undefined, category: undefined, residence_id: undefined });
-    void load();
+  };
+
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditingId(null);
+    setFormType('create');
   };
 
   return (
@@ -196,22 +228,16 @@ const handleDelete = async (id: string) => {
             <input
               type="date"
               value={filters.from || ''}
-              onChange={(e) => {
-                setFilters({ ...filters, from: e.target.value as string | undefined });
-                void load();
-              }}
+              onChange={(e) => setFilters({ ...filters, from: e.target.value || undefined })}
               className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Jusqu'au</label>
+            <label className="block text-sm font-medium mb-1">Jusqu&apos;au</label>
             <input
               type="date"
               value={filters.to || ''}
-              onChange={(e) => {
-                setFilters({ ...filters, to: e.target.value as string | undefined });
-                void load();
-              }}
+              onChange={(e) => setFilters({ ...filters, to: e.target.value || undefined })}
               className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -219,10 +245,9 @@ const handleDelete = async (id: string) => {
             <label className="block text-sm font-medium mb-1">Catégorie</label>
             <select
               value={filters.category || ''}
-              onChange={(e) => {
-                setFilters({ ...filters, category: e.target.value as 'travaux' | 'charges' | 'taxes' | 'assurance' | 'autre' | undefined });
-                void load();
-              }}
+              onChange={(e) =>
+                setFilters({ ...filters, category: (e.target.value || undefined) as typeof filters.category })
+              }
               className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Toutes</option>
@@ -231,6 +256,21 @@ const handleDelete = async (id: string) => {
               <option value="taxes">Taxes</option>
               <option value="assurance">Assurance</option>
               <option value="autre">Autre</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Résidence</label>
+            <select
+              value={filters.residence_id || ''}
+              onChange={(e) => setFilters({ ...filters, residence_id: e.target.value || undefined })}
+              className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Toutes</option>
+              {residences.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.title}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -317,11 +357,8 @@ const handleDelete = async (id: string) => {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (formType === 'create') handleSubmit();
-                  else {
-                    const expense = expenses.find((e) => e.id === '') || {} as Expense;
-                    handleUpdateSubmit(expense);
-                  }
+                  if (formType === 'create') void handleSubmit();
+                  else void handleUpdateSubmit();
                 }}
               >
                 <div className="grid grid-cols-1 gap-4 mb-4">
@@ -364,6 +401,11 @@ const handleDelete = async (id: string) => {
                     className="rounded border border-gray-300 px-3 py-2"
                   >
                     <option value="">Aucune</option>
+                    {residences.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.title}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -381,10 +423,7 @@ const handleDelete = async (id: string) => {
                 <div className="flex justify-end gap-3 mt-6">
                   <button
                     type="button"
-                    onClick={() => {
-                      setFormOpen(false);
-                      setFormType('create');
-                    }}
+                    onClick={closeForm}
                     className="px-4 py-2 rounded border border-border hover:bg-gray-100"
                   >
                     Annuler

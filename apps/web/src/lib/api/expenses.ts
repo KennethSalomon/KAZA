@@ -33,10 +33,10 @@ export interface CashflowMonth {
 
 export async function listExpenses(filters: ExpenseFilters = {}): Promise<Expense[]> {
   const { data, error } = await supabase.rpc('list_landlord_expenses', {
-    p_from: filters.from ?? null,
-    p_to: filters.to ?? null,
-    p_category: filters.category ?? null,
-    p_residence_id: filters.residence_id ?? null,
+    p_from: filters.from,
+    p_to: filters.to,
+    p_category: filters.category,
+    p_residence_id: filters.residence_id,
   });
   if (error) throw normalizeError(error, 'Chargement des dépenses impossible');
   return (data ?? []) as unknown as Expense[];
@@ -54,9 +54,9 @@ export async function createExpense(input: {
     p_category: input.category,
     p_amount: input.amount,
     p_date: input.date,
-    p_description: input.description ?? null,
-    p_residence_id: input.residence_id ?? null,
-    p_receipt_path: input.receipt_path ?? null,
+    p_description: input.description,
+    p_residence_id: input.residence_id,
+    p_receipt_path: input.receipt_path,
   });
   if (error) throw normalizeError(error, 'Création impossible');
   return data as string;
@@ -75,9 +75,9 @@ export async function updateExpense(id: string, input: {
     p_category: input.category,
     p_amount: input.amount,
     p_date: input.date,
-    p_description: input.description ?? null,
-    p_residence_id: input.residence_id ?? null,
-    p_receipt_path: input.receipt_path ?? null,
+    p_description: input.description,
+    p_residence_id: input.residence_id,
+    p_receipt_path: input.receipt_path,
   });
   if (error) throw normalizeError(error, 'Modification impossible');
 }
