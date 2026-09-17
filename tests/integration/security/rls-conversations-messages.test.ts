@@ -51,23 +51,30 @@ describe('RLS: conversations & messages tables', () => {
     return clients[user.token];
   }
 
-  async function setupConversation(landlord: any, tenant: any) {
-    const residenceId = await createResidence(landlord);
-    await supabaseAdmin.rpc('admin_moderate_residence', { p_residence_id: residenceId, p_action: 'approve' });
-    const convId = await getClient(tenant).rpc('open_conversation', { p_residence_id: residenceId });
-    return { residenceId, convId };
-  }
-
-  async function createResidence(user: any) {
-    const { data, error } = await getClient(user).rpc('create_residence', {
+  async function createPublishedVerifiedResidence(landlord: any): Promise<string> {
+    // Use service_role to create residence directly (bypasses RLS for test setup)
+    const { data, error } = await supabaseAdmin.from('residences').insert({
+      owner_id: landlord.user.id,
       title: `Test ${Date.now()}`,
       type: 'appartement',
       price_monthly: 100000,
+      deposit: 200000,
+      bedrooms: 2,
+      bathrooms: 1,
       city: 'Cotonou',
       zone: 'Haie Vive',
-    });
+      is_published: true,
+      is_verified: true,
+    }).select('id').single();
     if (error) throw error;
-    return data;
+    return data.id;
+  }
+
+  async function setupConversation(landlord: any, tenant: any) {
+    const residenceId = await createPublishedVerifiedResidence(landlord);
+    const { data: convId, error } = await getClient(tenant).rpc('open_conversation', { p_residence_id: residenceId });
+    if (error) throw error;
+    return { residenceId, convId };
   }
 
   describe('conversations SELECT', () => {
@@ -116,15 +123,14 @@ describe('RLS: conversations & messages tables', () => {
 
   describe('conversations INSERT', () => {
     it('tenant CAN open conversation via RPC (not direct insert)', async () => {
-      const residenceId = await createResidence(landlordA);
-      await supabaseAdmin.rpc('admin_moderate_residence', { p_residence_id: residenceId, p_action: 'approve' });
-      const convId = await getClient(tenantA).rpc('open_conversation', { p_residence_id: residenceId });
+      const residenceId = await createPublishedVerifiedResidence(landlordA);
+      const { data: convId, error } = await getClient(tenantA).rpc('open_conversation', { p_residence_id: residenceId });
+      expect(error).toBeNull();
       expect(convId).toBeDefined();
     });
 
     it('tenant CANNOT directly insert into conversations table', async () => {
-      const residenceId = await createResidence(landlordA);
-      await supabaseAdmin.rpc('admin_moderate_residence', { p_residence_id: residenceId, p_action: 'approve' });
+      const residenceId = await createPublishedVerifiedResidence(landlordA);
       const { error } = await getClient(tenantA).from('conversations').insert({
         residence_id: residenceId,
         landlord_id: landlordA.user.id,
@@ -134,8 +140,7 @@ describe('RLS: conversations & messages tables', () => {
     });
 
     it('landlord CANNOT directly insert into conversations', async () => {
-      const residenceId = await createResidence(landlordA);
-      await supabaseAdmin.rpc('admin_moderate_residence', { p_residence_id: residenceId, p_action: 'approve' });
+      const residenceId = await createPublishedVerifiedResidence(landlordA);
       const { error } = await getClient(landlordA).from('conversations').insert({
         residence_id: residenceId,
         landlord_id: landlordA.user.id,
@@ -148,12 +153,15 @@ describe('RLS: conversations & messages tables', () => {
   describe('messages SELECT', () => {
     it('participant CAN see messages in their conversation', async () => {
       const { convId } = await setupConversation(landlordA, tenantA);
-      // Send a message first
-      await getClient(tenantA).rpc('send_message', {
-        p_conversation_id: convId,
-        p_body: 'Hello landlord',
-        p_kind: 'text',
+      // Send a message first via direct INSERT (app pattern)
+      const { error: insertError } = await getClient(tenantA).from('messages').insert({
+        conversation_id: convId,
+        sender_id: tenantA.user.id,
+        body: 'Hello landlord',
+        kind: 'text',
       });
+      expect(insertError).toBeNull();
+
       const { data, error } = await getClient(tenantA).from('messages').select('*').eq('conversation_id', convId);
       expect(error).toBeNull();
       expect(data?.length).toBeGreaterThan(0);
@@ -161,7 +169,12 @@ describe('RLS: conversations & messages tables', () => {
 
     it('non-participant CANNOT see messages', async () => {
       const { convId } = await setupConversation(landlordA, tenantA);
-      await getClient(tenantA).rpc('send_message', { p_conversation_id: convId, p_body: 'Hello', p_kind: 'text' });
+      await getClient(tenantA).from('messages').insert({
+        conversation_id: convId,
+        sender_id: tenantA.user.id,
+        body: 'Hello',
+        kind: 'text',
+      });
       const { data, error } = await getClient(tenantB).from('messages').select('*').eq('conversation_id', convId);
       expect(error).toBeDefined();
       expect(data).toBeNull();
@@ -171,20 +184,22 @@ describe('RLS: conversations & messages tables', () => {
   describe('messages INSERT', () => {
     it('tenant CAN send message to their conversation', async () => {
       const { convId } = await setupConversation(landlordA, tenantA);
-      const { error } = await getClient(tenantA).rpc('send_message', {
-        p_conversation_id: convId,
-        p_body: 'Test message',
-        p_kind: 'text',
+      const { error } = await getClient(tenantA).from('messages').insert({
+        conversation_id: convId,
+        sender_id: tenantA.user.id,
+        body: 'Test message',
+        kind: 'text',
       });
       expect(error).toBeNull();
     });
 
     it('tenant CANNOT send message to conversation they are not in', async () => {
       const { convId } = await setupConversation(landlordA, tenantA);
-      const { error } = await getClient(tenantB).rpc('send_message', {
-        p_conversation_id: convId,
-        p_body: 'Hack attempt',
-        p_kind: 'text',
+      const { error } = await getClient(tenantB).from('messages').insert({
+        conversation_id: convId,
+        sender_id: tenantB.user.id,
+        body: 'Hack attempt',
+        kind: 'text',
       });
       expect(error).toBeDefined();
     });
@@ -202,10 +217,11 @@ describe('RLS: conversations & messages tables', () => {
 
     it('message kind is validated (no spoofing visit_agreed)', async () => {
       const { convId } = await setupConversation(landlordA, tenantA);
-      const { error } = await getClient(tenantA).rpc('send_message', {
-        p_conversation_id: convId,
-        p_body: 'Fake visit confirmation',
-        p_kind: 'visit_agreed',
+      const { error } = await getClient(tenantA).from('messages').insert({
+        conversation_id: convId,
+        sender_id: tenantA.user.id,
+        body: 'Fake visit confirmation',
+        kind: 'visit_agreed',
       });
       // Should be rejected - only landlord via agree_visit can create visit_agreed
       expect(error).toBeDefined();
@@ -215,7 +231,12 @@ describe('RLS: conversations & messages tables', () => {
   describe('messages UPDATE/DELETE', () => {
     it('user CANNOT update messages', async () => {
       const { convId } = await setupConversation(landlordA, tenantA);
-      await getClient(tenantA).rpc('send_message', { p_conversation_id: convId, p_body: 'Original', p_kind: 'text' });
+      await getClient(tenantA).from('messages').insert({
+        conversation_id: convId,
+        sender_id: tenantA.user.id,
+        body: 'Original',
+        kind: 'text',
+      });
       const { data: msgs } = await getClient(tenantA).from('messages').select('id').eq('conversation_id', convId);
       const msgId = msgs![0].id;
       const { error } = await getClient(tenantA).from('messages').update({ body: 'Hacked' }).eq('id', msgId);
@@ -224,7 +245,12 @@ describe('RLS: conversations & messages tables', () => {
 
     it('user CANNOT delete messages', async () => {
       const { convId } = await setupConversation(landlordA, tenantA);
-      await getClient(tenantA).rpc('send_message', { p_conversation_id: convId, p_body: 'To delete', p_kind: 'text' });
+      await getClient(tenantA).from('messages').insert({
+        conversation_id: convId,
+        sender_id: tenantA.user.id,
+        body: 'To delete',
+        kind: 'text',
+      });
       const { data: msgs } = await getClient(tenantA).from('messages').select('id').eq('conversation_id', convId);
       const msgId = msgs![0].id;
       const { error } = await getClient(tenantA).from('messages').delete().eq('id', msgId);

@@ -36,6 +36,7 @@ END;
 $$;
 
 -- 3. Créer open_conversation() si elle n'existe pas
+-- Garde-fou : bien publié + vérifié uniquement (cf. migration 004)
 CREATE OR REPLACE FUNCTION public.open_conversation(p_residence_id uuid)
 RETURNS uuid
 LANGUAGE plpgsql
@@ -46,7 +47,9 @@ DECLARE
   v_owner uuid;
   v_id uuid;
 BEGIN
-  SELECT owner_id INTO v_owner FROM public.residences WHERE id = p_residence_id;
+  SELECT owner_id INTO v_owner
+  FROM public.residences
+  WHERE id = p_residence_id AND is_published = true AND is_verified = true;
   IF v_owner IS NULL THEN
     RAISE EXCEPTION 'Bien introuvable' USING errcode = 'P0002';
   END IF;

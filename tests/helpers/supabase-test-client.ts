@@ -25,10 +25,25 @@ export const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KE
 
 export async function resetDatabase() {
   const { error } = await supabaseAdmin.rpc('reset_test_database');
-  // Migration 100000 supprime reset_test_database() par sécurité :
-  // son absence est attendue, on passe alors par un reset granulaire.
-  if (error && !error.message.includes('does not exist')) {
-    console.warn('reset_test_database RPC unavailable, manual cleanup may be needed');
+  // reset_test_database() est supprimé en production (migration 999999)
+  // et injecté uniquement dans le CI après db reset.
+  // Si absent, on nettoie manuellement les tables principales.
+  if (error) {
+    if (error.message.includes('does not exist') || error.message.includes('Could not find the function')) {
+      // Fallback: nettoyage manuel des tables de test (ordre FK respecté)
+      await supabaseAdmin.from('favorites').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseAdmin.from('messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseAdmin.from('receipts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseAdmin.from('payments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseAdmin.from('visits').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseAdmin.from('conversations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseAdmin.from('leases').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseAdmin.from('notifications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseAdmin.from('admin_audit_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseAdmin.from('residences').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      return;
+    }
+    console.warn('reset_test_database RPC unavailable, manual cleanup may be needed:', error.message);
   }
 }
 
