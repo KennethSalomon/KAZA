@@ -504,6 +504,9 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bank_iban: string | null
+          bank_name: string | null
+          business_name: string | null
           consent_apdp: boolean
           country: string | null
           created_at: string
@@ -512,13 +515,20 @@ export type Database = {
           id: string
           is_premium: boolean
           is_verified_landlord: boolean
+          momo_number: string | null
+          momo_provider: string | null
+          onboarding_completed: boolean
           phone: string | null
           push_token: string | null
           role: Database["public"]["Enums"]["user_role"]
+          tax_id: string | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
+          business_name?: string | null
           consent_apdp?: boolean
           country?: string | null
           created_at?: string
@@ -527,13 +537,20 @@ export type Database = {
           id: string
           is_premium?: boolean
           is_verified_landlord?: boolean
+          momo_number?: string | null
+          momo_provider?: string | null
+          onboarding_completed?: boolean
           phone?: string | null
           push_token?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          tax_id?: string | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
+          business_name?: string | null
           consent_apdp?: boolean
           country?: string | null
           created_at?: string
@@ -542,9 +559,13 @@ export type Database = {
           id?: string
           is_premium?: boolean
           is_verified_landlord?: boolean
+          momo_number?: string | null
+          momo_provider?: string | null
+          onboarding_completed?: boolean
           phone?: string | null
           push_token?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          tax_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1069,13 +1090,24 @@ export type Database = {
       claim_push_batch: {
         Args: { p_batch_size?: number; p_lease_seconds?: number }
         Returns: {
-          body: string | null
-          data: Json | null
+          body: string
+          data: Json
           id: string
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
         }[]
+      }
+      complete_landlord_onboarding: {
+        Args: {
+          p_bank_iban?: string
+          p_bank_name?: string
+          p_business_name: string
+          p_momo_number: string
+          p_momo_provider: string
+          p_tax_id: string
+        }
+        Returns: undefined
       }
       confirm_visit: {
         Args: { p_slot_index: number; p_visit_id: string }
@@ -1116,17 +1148,6 @@ export type Database = {
           zone?: string
         }
         Returns: string
-      }
-      complete_landlord_onboarding: {
-        Args: {
-          p_bank_iban?: string | null
-          p_bank_name?: string | null
-          p_business_name: string
-          p_momo_number: string
-          p_momo_provider: string
-          p_tax_id?: string | null
-        }
-        Returns: undefined
       }
       decline_visit: {
         Args: { p_reason?: string; p_visit_id: string }
@@ -1266,15 +1287,15 @@ export type Database = {
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       get_my_billing: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          bank_iban: string | null
-          bank_name: string | null
-          business_name: string | null
-          momo_number: string | null
-          momo_provider: string | null
+          bank_iban: string
+          bank_name: string
+          business_name: string
+          momo_number: string
+          momo_provider: string
           onboarding_completed: boolean
-          tax_id: string | null
+          tax_id: string
         }[]
       }
       get_residence: { Args: { p_residence_id: string }; Returns: Json }
@@ -1285,8 +1306,8 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: {
           collected: number
-          expenses: number
           expected: number
+          expenses: number
           month: string
           net: number
           overdue: number
@@ -1331,12 +1352,12 @@ export type Database = {
           category: Database["public"]["Enums"]["expense_category"]
           created_at: string
           date: string
-          description: string | null
+          description: string
           id: string
           landlord_id: string
-          receipt_sha256: string | null
-          receipt_url: string | null
-          residence_id: string | null
+          receipt_sha256: string
+          receipt_url: string
+          residence_id: string
           updated_at: string
         }[]
       }
@@ -1385,6 +1406,11 @@ export type Database = {
         Returns: undefined
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      mark_all_notifications_read: { Args: never; Returns: undefined }
+      mark_conversation_read: {
+        Args: { p_conversation_id: string }
+        Returns: undefined
+      }
       open_conversation: { Args: { p_residence_id: string }; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }

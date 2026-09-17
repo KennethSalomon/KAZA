@@ -98,13 +98,13 @@ export function PropertyCard({
         )}
 
         <View className="flex-row items-center mt-1.5 gap-3">
-          {residence.bedrooms > 0 && (
+          {(residence.bedrooms ?? 0) > 0 && (
             <View className="flex-row items-center gap-1">
               <Bed size={13} color="#64748B" />
               <Text className="text-xs text-slate-500">{residence.bedrooms} pièces</Text>
             </View>
           )}
-          {residence.bathrooms > 0 && (
+          {(residence.bathrooms ?? 0) > 0 && (
             <View className="flex-row items-center gap-1">
               <ShowerHead size={13} color="#64748B" />
               <Text className="text-xs text-slate-500">{residence.bathrooms} SDB</Text>

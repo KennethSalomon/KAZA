@@ -16,7 +16,7 @@ test.describe('Parcours principal locataire', () => {
     // 2. Connexion
     await page.goto('/login');
     await page.getByLabel('Email').fill(TENANT_EMAIL);
-    await page.getByLabel('Mot de passe').fill(TENANT_PW);
+    await page.getByRole('textbox', { name: 'Mot de passe' }).fill(TENANT_PW);
     await page.getByRole('button', { name: 'Se connecter' }).click();
     await expect(page).toHaveURL(/\/explorer/);
 
@@ -43,7 +43,7 @@ test.describe('Parcours principal locataire', () => {
     await page.context().clearCookies();
     await page.goto('/login');
     await page.getByLabel('Email').fill(LANDLORD_EMAIL);
-    await page.getByLabel('Mot de passe').fill(LANDLORD_PW);
+    await page.getByRole('textbox', { name: 'Mot de passe' }).fill(LANDLORD_PW);
     await page.getByRole('button', { name: 'Se connecter' }).click();
     await page.goto('/landlord');
     await page.getByRole('button', { name: /Valider/ }).first().click();
@@ -55,7 +55,7 @@ test.describe('Parcours principal locataire', () => {
     await page.context().clearCookies();
     await page.goto('/login');
     await page.getByLabel('Email').fill(TENANT_EMAIL);
-    await page.getByLabel('Mot de passe').fill(TENANT_PW);
+    await page.getByRole('textbox', { name: 'Mot de passe' }).fill(TENANT_PW);
     await page.getByRole('button', { name: 'Se connecter' }).click();
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: 'Mes quittances' })).toBeVisible();
