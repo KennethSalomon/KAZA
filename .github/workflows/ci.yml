@@ -360,6 +360,7 @@ EOF
           # Supabase CLI 2.114.0 ne prend pas le nom de fonction en argument
           # positionnel. Il sert les Edge Functions locales et on vérifie
           # explicitement que receipts-sign répond sur la route attendue.
+          # Ce step reste volontairement unique pour conserver le process vivant pendant Playwright.
           supabase functions serve --env-file /tmp/kaza-edge.env > /tmp/kaza-receipts-sign.log 2>&1 &
           FUNCTION_PID=$!
           trap 'kill "$FUNCTION_PID" 2>/dev/null || true' EXIT
