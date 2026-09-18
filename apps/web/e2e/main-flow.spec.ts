@@ -68,9 +68,12 @@ test.describe('Parcours principal locataire', () => {
     );
     await page.getByTestId('sign-receipt').first().click();
     const signResponse = await signResponsePromise;
+    const signBody = signResponse.status() >= 400
+      ? await signResponse.text().catch(() => '')
+      : '';
     expect(
       signResponse.status(),
-      `receipts-sign doit répondre 2xx (reçu ${signResponse.status()})`,
+      `receipts-sign doit répondre 2xx (reçu ${signResponse.status()})${signBody ? ` — ${signBody.slice(0, 500)}` : ''}`,
     ).toBeLessThan(400);
 
     // Résultat métier : la quittance passe à "signed" côté dashboard bailleur

@@ -160,6 +160,19 @@ jobs:
         run: supabase db reset
         working-directory: .
 
+      - name: Restore service_role privileges for Edge Functions (CI-only)
+        run: |
+          cat >/tmp/kaza-e2e-service-role-grants.sql <<'SQL'
+          -- CI local only: the Edge Function uses service_role through PostgREST.
+          -- Production privileges/RLS are unchanged by this runner-only SQL.
+          grant usage on schema public to service_role;
+          grant select, insert, update, delete on all tables in schema public to service_role;
+          grant usage, select on all sequences in schema public to service_role;
+          notify pgrst, 'reload schema';
+          SQL
+          docker exec -i supabase_db_kaza psql -U postgres -d postgres -v ON_ERROR_STOP=1 < /tmp/kaza-e2e-service-role-grants.sql
+        working-directory: .
+
       - name: DB types drift check
         run: npm run db:types:check
         id: types-check
@@ -327,10 +340,8 @@ jobs:
           # Aligner explicitement l'Edge Function sur le Supabase local.
           # Cela évite toute ambiguïté d'environnement pour getAdminClient().
           env_vars=$(supabase status -o env)
-          supabase_url=$(printf '%s
-' "$env_vars" | grep -iE '^API_URL=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
-          service_role_key=$(printf '%s
-' "$env_vars" | grep -iE '^service_role_key=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
+          supabase_url=$(printf '%s\n' "$env_vars" | grep -iE '^API_URL=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
+          service_role_key=$(printf '%s\n' "$env_vars" | grep -iE '^service_role_key=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
           if [ -z "$supabase_url" ] || [ -z "$service_role_key" ]; then
             echo "::error::Impossible de récupérer les paramètres Supabase locaux pour receipts-sign."
             exit 1
