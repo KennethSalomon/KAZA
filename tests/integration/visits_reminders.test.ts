@@ -57,8 +57,16 @@ describe('visit-reminders: Edge Function', () => {
       p_action: 'approve' 
     });
 
-    const { data: convId, error: convError } = await supabaseAdmin.rpc('open_conversation', { 
-      p_residence_id: residenceId 
+    // Vrai contrat : un locataire authentifié appelle open_conversation().
+    // supabaseAdmin (service_role) n'a volontairement pas EXECUTE sur cette fonction.
+    if (!tenant.token) throw new Error('tenant token missing');
+    const tenantClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: `Bearer ${tenant.token}` } } }
+    );
+    const { data: convId, error: convError } = await tenantClient.rpc('open_conversation', {
+      p_residence_id: residenceId,
     });
     if (convError) throw convError;
     return convId;
