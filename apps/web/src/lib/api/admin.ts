@@ -1,5 +1,6 @@
 import { supabase } from '../supabase-client';
 import type { AdminStats, Profile, Residence } from '../types';
+import type { Json } from '../database.types';
 import { normalizeError } from '../supabase-api';
 
 export async function adminStats(): Promise<AdminStats> {
@@ -81,9 +82,9 @@ export async function listAdminAuditLogs(params: {
   const { data, error } = await supabase.rpc('list_admin_audit_logs', {
     p_limit: params.limit ?? 100,
     p_offset: params.offset ?? 0,
-    p_admin_id: params.adminId ?? null,
-    p_target_type: params.targetType ?? null,
-    p_action: params.action ?? null,
+    p_admin_id: params.adminId ?? undefined,
+    p_target_type: params.targetType ?? undefined,
+    p_action: params.action ?? undefined,
   });
   if (error) throw normalizeError(error, 'Chargement impossible');
   return (data ?? []) as { id: string; admin_id: string; action: string; target_type: string; target_id: string | null; old_value: unknown; new_value: unknown; metadata: unknown; created_at: string }[];
@@ -93,16 +94,16 @@ async function logAdminAction(
   action: string,
   targetType: string,
   targetId: string,
-  oldValue?: unknown,
-  newValue?: unknown
+  oldValue?: Json,
+  newValue?: Json
 ): Promise<void> {
   const { error } = await supabase.rpc('log_admin_action', {
     p_action: action,
     p_target_type: targetType,
     p_target_id: targetId,
-    p_old_value: oldValue ?? null,
-    p_new_value: newValue ?? null,
-    p_metadata: null,
+    p_old_value: oldValue ?? undefined,
+    p_new_value: newValue ?? undefined,
+    p_metadata: undefined,
   });
   if (error) {
     console.error('Failed to log admin action:', error);

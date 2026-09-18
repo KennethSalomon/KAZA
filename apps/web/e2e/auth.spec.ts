@@ -5,7 +5,7 @@ test.describe('Auth flow', () => {
     await page.goto('/register');
     await expect(page.getByLabel(/nom complet/i)).toBeVisible();
     await expect(page.getByLabel(/e-?mail/i)).toBeVisible();
-    await expect(page.getByLabel(/mot de passe/i)).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /mot de passe/i })).toBeVisible();
     await expect(page.getByLabel(/je suis/i)).toBeVisible();
     await expect(page.getByRole('combobox', { name: /je suis/i })).toBeVisible();
     await expect(page.getByRole('checkbox')).toBeVisible();
@@ -15,7 +15,7 @@ test.describe('Auth flow', () => {
     await page.goto('/register');
     await page.getByLabel(/nom complet/i).fill('Test User');
     await page.getByLabel(/e-?mail/i).fill('test@example.com');
-    await page.getByLabel(/mot de passe/i).fill('TestPass123!');
+    await page.getByRole('textbox', { name: /mot de passe/i }).fill('TestPass123!');
     await page.getByLabel(/je suis/i).selectOption({ label: 'Un locataire — je cherche un logement' });
     await page.getByRole('button', { name: /créer mon compte/i }).click();
     await expect(page.getByText(/consentement/i)).toBeVisible();
@@ -24,14 +24,14 @@ test.describe('Auth flow', () => {
   test('login page renders with email and password', async ({ page }) => {
     await page.goto('/login');
     await expect(page.getByLabel(/e-?mail/i)).toBeVisible();
-    await expect(page.getByLabel(/mot de passe/i)).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /mot de passe/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /se connecter/i })).toBeVisible();
   });
 
   test('login shows error on bad credentials', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel(/e-?mail/i).fill('nonexistent@example.com');
-    await page.getByLabel(/mot de passe/i).fill('WrongPass123!');
+    await page.getByRole('textbox', { name: /mot de passe/i }).fill('WrongPass123!');
     await page.getByRole('button', { name: /se connecter/i }).click();
     await expect(page.getByText(/identifiants invalides/i)).toBeVisible();
   });
@@ -49,10 +49,12 @@ test.describe('Residences', () => {
   });
 
   test('residence detail page loads', async ({ page }) => {
-    await page.goto('/');
-    const firstCard = page.locator('a[href^="/residences/"]').first();
-    await expect(firstCard).toBeVisible();
-    await firstCard.click();
+    await page.goto('/explorer');
+    const demoResidence = page.getByRole('link', {
+      name: /Studio Lumineux Fidjrossè/i,
+    });
+    await expect(demoResidence).toBeVisible({ timeout: 15_000 });
+    await demoResidence.click();
     await expect(page).toHaveURL(/residences\//);
   });
 });

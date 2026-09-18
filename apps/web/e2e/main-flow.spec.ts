@@ -16,7 +16,7 @@ test.describe('Parcours principal locataire', () => {
     // 2. Connexion
     await page.goto('/login');
     await page.getByLabel('Email').fill(TENANT_EMAIL);
-    await page.getByLabel('Mot de passe').fill(TENANT_PW);
+    await page.getByRole('textbox', { name: 'Mot de passe' }).fill(TENANT_PW);
     await page.getByRole('button', { name: 'Se connecter' }).click();
     await expect(page).toHaveURL(/\/explorer/);
 
@@ -43,23 +43,63 @@ test.describe('Parcours principal locataire', () => {
     await page.context().clearCookies();
     await page.goto('/login');
     await page.getByLabel('Email').fill(LANDLORD_EMAIL);
-    await page.getByLabel('Mot de passe').fill(LANDLORD_PW);
+    await page.getByRole('textbox', { name: 'Mot de passe' }).fill(LANDLORD_PW);
     await page.getByRole('button', { name: 'Se connecter' }).click();
+    // Attendre la navigation résultant du login (même mécanisme que le login
+    // locataire) : sans cela, page.goto('/landlord') peut partir avant que la
+    // session soit propagée côté AuthProvider → middleware redirige vers login.
+    await expect(page).toHaveURL(/\/explorer/);
     await page.goto('/landlord');
-    await page.getByRole('button', { name: /Valider/ }).first().click();
+    await expect(page.getByTestId('validate-payment').first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByTestId('validate-payment').first().click();
     await expect(page.getByText('Paiement confirmé')).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('button', { name: /Signer et envoyer/ }).first().click();
-    await expect(page.getByText('Quittance signée')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('sign-receipt').first()).toBeVisible({
+      timeout: 15_000,
+    });
 
-    // 7. Reconnexion locataire : quittance signée visible dans "Mes quittances"
+    // Observation réseau du clic : distingue un échec réel de la Edge
+    // Function (status != 2xx) d'un simple problème de toast/selector.
+    // Aucun JWT ni secret n'est affiché — uniquement le statut HTTP.
+    const signResponsePromise = page.waitForResponse(
+      (resp) => resp.url().includes('/functions/v1/receipts-sign') && resp.request().method() === 'POST',
+      { timeout: 30_000 },
+    );
+    await page.getByTestId('sign-receipt').first().click();
+    const signResponse = await signResponsePromise;
+    const signBody = signResponse.status() >= 400
+      ? await signResponse.text().catch(() => '')
+      : '';
+    expect(
+      signResponse.status(),
+      `receipts-sign doit répondre 2xx (reçu ${signResponse.status()})${signBody ? ` — ${signBody.slice(0, 500)}` : ''}`,
+    ).toBeLessThan(400);
+
+    // Résultat métier : la quittance passe à "signed" côté dashboard bailleur
+    // (l'UI recharge après signature). On ne se fie pas au toast seul.
+    await expect(page.getByText('Quittance signée').first()).toBeVisible({ timeout: 10_000 });
+
+    // 7. Reconnexion locataire : LA quittance créée pendant CE parcours
+    // (période du mois courant) doit être signée. La quittance seed
+    // (période 2026-07, signée par avance) ne compte pas comme preuve.
+    const periodStart = new Date();
+    periodStart.setDate(1);
+    const currentPeriod = periodStart.toISOString().slice(0, 10); // ex: 2026-09-01
     await page.context().clearCookies();
     await page.goto('/login');
     await page.getByLabel('Email').fill(TENANT_EMAIL);
-    await page.getByLabel('Mot de passe').fill(TENANT_PW);
+    await page.getByRole('textbox', { name: 'Mot de passe' }).fill(TENANT_PW);
     await page.getByRole('button', { name: 'Se connecter' }).click();
+    // Même garde-fou que pour la connexion bailleur : attendre que la session
+    // soit propagée avant de naviguer vers une route protégée.
+    await expect(page).toHaveURL(/\/explorer/);
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: 'Mes quittances' })).toBeVisible();
-    await expect(page.getByText('signée').first()).toBeVisible({ timeout: 15_000 });
+    const newReceiptRow = page.locator('li', { hasText: currentPeriod }).filter({
+      hasText: 'signée',
+    });
+    await expect(newReceiptRow.first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('recherche géolocalisée : bascule carte/liste et carte affichée', async ({ page }) => {

@@ -26,6 +26,13 @@ const config: Config = {
           danger: '#B91C1C', // rouge 700 — impayé / erreur (contraste AA)
           warning: '#B45309', // ambre 700 — en attente (contraste AA)
           neutral: '#6B7280',
+          // Alias legacy remis au goût du design system (référencés par stepper,
+          // onboarding, badges et éléments de la charte initiale)
+          vert: '#0E4728', // vert Kaza (alias brand)
+          mint: '#059669', // émeraude 600 — accents positifs
+          red: '#DC2626', // rouge 600 — erreurs / alertes
+          amber: '#D97706', // ambre 600 — états temporaires
+          peche: '#F2B091', // pêche / sable (alias peach)
         },
       },
       fontFamily: {

@@ -33,14 +33,7 @@ export default function CarteScreen() {
   const loadResidences = useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc('search_residences', {
-        p_q: query || null,
-        p_city: null,
-        p_zone: null,
-        p_type: null,
-        p_max_price: null,
-        p_lat: null,
-        p_lng: null,
-        p_radius_km: null,
+        p_q: query || undefined,
         p_limit: 100,
         p_offset: 0,
       });

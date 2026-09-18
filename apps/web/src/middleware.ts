@@ -15,9 +15,8 @@ const PUBLIC_PATHS = [
   '/explorer',
   '/residences',
   '/confidentialite',
-  '/mentions-legales',
 ];
-const PUBLIC_PREFIXES = ['/residences/', '/confidentialite', '/mentions-legales'];
+const PUBLIC_PREFIXES = ['/residences/', '/confidentialite'];
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;

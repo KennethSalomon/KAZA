@@ -3,9 +3,9 @@ import type {
   Residence,
   ResidenceCreateInput,
   ResidenceWithRelations,
-  ResidenceType,
   ReviewsResult,
 } from '../types';
+import type { Database } from '../database.types';
 import { normalizeError } from '../supabase-api';
 import { requireUser } from '../require-user';
 
@@ -13,7 +13,7 @@ export interface SearchParams {
   q?: string;
   city?: string;
   zone?: string;
-  type?: string;
+  type?: Database['public']['Enums']['residence_type'];
   max_price?: number;
   lat?: number;
   lng?: number;
@@ -24,13 +24,13 @@ export interface SearchParams {
 
 export async function searchResidences(params: SearchParams = {}): Promise<Residence[]> {
   const { data, error } = await supabase.rpc('search_residences', {
-    p_q: params.q || null,
-    p_city: params.city || null,
-    p_zone: params.zone || null,
-    p_type: (params.type || null) as ResidenceType | null,
-    p_max_price: params.max_price ?? null,
-    p_lat: params.lat ?? null,
-    p_lng: params.lng ?? null,
+    p_q: params.q || undefined,
+    p_city: params.city || undefined,
+    p_zone: params.zone || undefined,
+    p_type: params.type,
+    p_max_price: params.max_price,
+    p_lat: params.lat,
+    p_lng: params.lng,
     p_radius_km: params.radius_km ?? 10,
     p_limit: params.limit ?? 40,
     p_offset: params.offset ?? 0,
@@ -166,7 +166,7 @@ export async function addReview(residenceId: string, rating: number, comment?: s
   const { error } = await supabase.rpc('add_review', {
     p_residence_id: residenceId,
     p_rating: rating,
-    p_comment: comment ?? null,
+    p_comment: comment ?? undefined,
   });
   if (error) throw normalizeError(error, 'Avis impossible à publier');
 }

@@ -163,6 +163,63 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          landlord_id: string
+          receipt_sha256: string | null
+          receipt_url: string | null
+          residence_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          landlord_id: string
+          receipt_sha256?: string | null
+          receipt_url?: string | null
+          residence_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          landlord_id?: string
+          receipt_sha256?: string | null
+          receipt_url?: string | null
+          residence_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_landlord_id_fkey"
+            columns: ["landlord_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_residence_id_fkey"
+            columns: ["residence_id"]
+            isOneToOne: false
+            referencedRelation: "residences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string
@@ -447,6 +504,9 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bank_iban: string | null
+          bank_name: string | null
+          business_name: string | null
           consent_apdp: boolean
           country: string | null
           created_at: string
@@ -455,13 +515,20 @@ export type Database = {
           id: string
           is_premium: boolean
           is_verified_landlord: boolean
+          momo_number: string | null
+          momo_provider: string | null
+          onboarding_completed: boolean
           phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
           push_token: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          tax_id: string | null
+          updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
+          business_name?: string | null
           consent_apdp?: boolean
           country?: string | null
           created_at?: string
@@ -470,13 +537,20 @@ export type Database = {
           id: string
           is_premium?: boolean
           is_verified_landlord?: boolean
+          momo_number?: string | null
+          momo_provider?: string | null
+          onboarding_completed?: boolean
           phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
           push_token?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          tax_id?: string | null
+          updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          bank_iban?: string | null
+          bank_name?: string | null
+          business_name?: string | null
           consent_apdp?: boolean
           country?: string | null
           created_at?: string
@@ -485,10 +559,14 @@ export type Database = {
           id?: string
           is_premium?: boolean
           is_verified_landlord?: boolean
+          momo_number?: string | null
+          momo_provider?: string | null
+          onboarding_completed?: boolean
           phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
           push_token?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          tax_id?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -582,8 +660,8 @@ export type Database = {
       residences: {
         Row: {
           address: string | null
-          bathrooms: number
-          bedrooms: number
+          bathrooms: number | null
+          bedrooms: number | null
           city: string | null
           created_at: string
           deposit: number | null
@@ -607,8 +685,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
-          bathrooms?: number
-          bedrooms?: number
+          bathrooms?: number | null
+          bedrooms?: number | null
           city?: string | null
           created_at?: string
           deposit?: number | null
@@ -632,8 +710,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
-          bathrooms?: number
-          bedrooms?: number
+          bathrooms?: number | null
+          bedrooms?: number | null
           city?: string | null
           created_at?: string
           deposit?: number | null
@@ -1012,17 +1090,39 @@ export type Database = {
       claim_push_batch: {
         Args: { p_batch_size?: number; p_lease_seconds?: number }
         Returns: {
-          body: string | null
-          data: Json | null
+          body: string
+          data: Json
           id: string
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
         }[]
       }
+      complete_landlord_onboarding: {
+        Args: {
+          p_bank_iban?: string
+          p_bank_name?: string
+          p_business_name: string
+          p_momo_number: string
+          p_momo_provider: string
+          p_tax_id: string
+        }
+        Returns: undefined
+      }
       confirm_visit: {
         Args: { p_slot_index: number; p_visit_id: string }
         Returns: undefined
+      }
+      create_expense: {
+        Args: {
+          p_amount: number
+          p_category: Database["public"]["Enums"]["expense_category"]
+          p_date: string
+          p_description?: string
+          p_receipt_path?: string
+          p_residence_id?: string
+        }
+        Returns: string
       }
       create_lease: {
         Args: {
@@ -1053,6 +1153,7 @@ export type Database = {
         Args: { p_reason?: string; p_visit_id: string }
         Returns: undefined
       }
+      delete_expense: { Args: { p_id: string }; Returns: undefined }
       delete_my_account: { Args: { p_user_id: string }; Returns: undefined }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
@@ -1185,10 +1286,34 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_my_billing: {
+        Args: never
+        Returns: {
+          bank_iban: string
+          bank_name: string
+          business_name: string
+          momo_number: string
+          momo_provider: string
+          onboarding_completed: boolean
+          tax_id: string
+        }[]
+      }
       get_residence: { Args: { p_residence_id: string }; Returns: Json }
       gettransactionid: { Args: never; Returns: unknown }
       increment_residence_views: { Args: { p_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
+      landlord_cashflow: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          collected: number
+          expected: number
+          expenses: number
+          month: string
+          net: number
+          overdue: number
+        }[]
+      }
+      landlord_dashboard_stats: { Args: never; Returns: Json }
       list_admin_audit_logs: {
         Args: {
           p_action?: string
@@ -1214,6 +1339,27 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      list_landlord_expenses: {
+        Args: {
+          p_category?: Database["public"]["Enums"]["expense_category"]
+          p_from?: string
+          p_residence_id?: string
+          p_to?: string
+        }
+        Returns: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string
+          date: string
+          description: string
+          id: string
+          landlord_id: string
+          receipt_sha256: string
+          receipt_url: string
+          residence_id: string
+          updated_at: string
+        }[]
       }
       list_my_conversations: { Args: never; Returns: Json }
       list_my_favorite_ids: { Args: never; Returns: string[] }
@@ -1260,6 +1406,11 @@ export type Database = {
         Returns: undefined
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      mark_all_notifications_read: { Args: never; Returns: undefined }
+      mark_conversation_read: {
+        Args: { p_conversation_id: string }
+        Returns: undefined
+      }
       open_conversation: { Args: { p_residence_id: string }; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -1312,16 +1463,16 @@ export type Database = {
       }
       search_residences: {
         Args: {
-          p_city?: unknown
-          p_lat?: unknown
-          p_limit?: unknown
-          p_lng?: unknown
-          p_max_price?: unknown
-          p_offset?: unknown
-          p_q?: unknown
-          p_radius_km?: unknown
-          p_type?: unknown
-          p_zone?: unknown
+          p_city?: string
+          p_lat?: number
+          p_limit?: number
+          p_lng?: number
+          p_max_price?: number
+          p_offset?: number
+          p_q?: string
+          p_radius_km?: number
+          p_type?: Database["public"]["Enums"]["residence_type"]
+          p_zone?: string
         }
         Returns: {
           address: string
@@ -1347,31 +1498,6 @@ export type Database = {
           zone: string
         }[]
       }
-      complete_landlord_onboarding: {
-        Args: {
-          p_bank_iban?: string | null
-          p_bank_name?: string | null
-          p_business_name: string
-          p_momo_number: string
-          p_momo_provider: string
-          p_tax_id?: string | null
-        }
-        Returns: undefined
-      }
-      get_my_billing: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          bank_iban: string | null
-          bank_name: string | null
-          business_name: string | null
-          momo_number: string | null
-          momo_provider: string | null
-          onboarding_completed: boolean
-          tax_id: string | null
-        }[]
-      }
-      mark_all_notifications_read: { Args: never; Returns: undefined }
-      mark_conversation_read: { Args: { p_conversation_id: string }; Returns: undefined }
       set_my_role: {
         Args: { p_role: Database["public"]["Enums"]["user_role"] }
         Returns: undefined
@@ -1960,6 +2086,18 @@ export type Database = {
       terminate_lease: { Args: { p_lease_id: string }; Returns: undefined }
       toggle_favorite: { Args: { p_residence_id: string }; Returns: boolean }
       unlockrows: { Args: { "": string }; Returns: number }
+      update_expense: {
+        Args: {
+          p_amount: number
+          p_category: Database["public"]["Enums"]["expense_category"]
+          p_date: string
+          p_description?: string
+          p_id: string
+          p_receipt_path?: string
+          p_residence_id?: string
+        }
+        Returns: undefined
+      }
       updategeometrysrid: {
         Args: {
           catalogn_name: string
@@ -1972,6 +2110,7 @@ export type Database = {
       }
     }
     Enums: {
+      expense_category: "travaux" | "charges" | "taxes" | "assurance" | "autre"
       lease_status: "active" | "terminated" | "pending"
       notification_type:
         | "message"
@@ -2677,6 +2816,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      expense_category: ["travaux", "charges", "taxes", "assurance", "autre"],
       lease_status: ["active", "terminated", "pending"],
       notification_type: [
         "message",
@@ -2709,3 +2849,4 @@ export const Constants = {
     },
   },
 } as const
+

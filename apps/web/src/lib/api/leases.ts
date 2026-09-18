@@ -20,7 +20,7 @@ export async function createLease(input: {
     p_residence_id: input.residence_id,
     p_tenant_id: input.tenant_id,
     p_start_date: input.start_date,
-    p_end_date: input.end_date ?? null,
+    p_end_date: input.end_date,
     p_monthly_rent: input.monthly_rent,
     p_deposit: input.deposit,
   });

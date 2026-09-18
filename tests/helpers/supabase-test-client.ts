@@ -25,10 +25,41 @@ export const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KE
 
 export async function resetDatabase() {
   const { error } = await supabaseAdmin.rpc('reset_test_database');
-  // Migration 100000 supprime reset_test_database() par sécurité :
-  // son absence est attendue, on passe alors par un reset granulaire.
-  if (error && !error.message.includes('does not exist')) {
-    console.warn('reset_test_database RPC unavailable, manual cleanup may be needed');
+  // reset_test_database() est supprimé en production (migration 999999)
+  // et injecté uniquement dans le CI après db reset.
+  if (error) {
+    const missing =
+      error.message.includes('does not exist') ||
+      error.message.includes('Could not find the function');
+    if (!missing) {
+      // RPC présent mais échoué (SQL error, permissions, …) : ne pas continuer
+      // avec une base sale, sinon les échecs contaminent toute la suite.
+      throw new Error(`reset_test_database RPC failed: ${error.message}`);
+    }
+    // Fonction absente (local dev sans helpers CI) : fallback manuel autorisé.
+    // Ordre compatible FK ; delete().neq(...) est requis par PostgREST
+    // (un delete nu sans filtre est rejeté).
+    const tables = [
+      'favorites',
+      'messages',
+      'receipts',
+      'payments',
+      'visits',
+      'conversations',
+      'leases',
+      'notifications',
+      'admin_audit_logs',
+      'residences',
+    ] as const;
+    for (const table of tables) {
+      const { error: delError } = await supabaseAdmin
+        .from(table)
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (delError) {
+        throw new Error(`Manual cleanup failed on ${table}: ${delError.message}`);
+      }
+    }
   }
 }
 
@@ -66,7 +97,13 @@ export async function createTestUser(role: 'locataire' | 'bailleur' | 'admin' = 
 }
 
 export async function signInTestUser(email: string, password: string) {
-  const { data, error } = await supabaseAnon.auth.signInWithPassword({ email, password });
+  // Client jetable réservé au login : supabaseAnon est un singleton partagé
+  // par tous les tests "anon" — le faire signer y collerait une session et
+  // fausserait tous les tests RLS qui s'attendent à un appelant anonyme.
+  const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data, error } = await authClient.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data;
 }

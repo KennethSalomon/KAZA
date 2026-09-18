@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { supabaseAnon, supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '../../helpers/supabase-test-client';
+import { createClient } from '@supabase/supabase-js';
 
 describe('RLS: profiles table', () => {
   let userA: { user: any; email: string; password: string; token: string };
@@ -76,7 +77,7 @@ describe('RLS: profiles table', () => {
 
     it('anon CANNOT read any profile', async () => {
       const profileIdA = await getProfileId(clientA);
-      const { data, error } = await anonClient.from('profiles').select('*').eq('id', profileIdA).single();
+      const { data, error } = await supabaseAnon.from('profiles').select('*').eq('id', profileIdA).single();
       expect(error).toBeDefined();
       expect(data).toBeNull();
     });
@@ -89,10 +90,15 @@ describe('RLS: profiles table', () => {
       expect(data!.id).toBe(profileIdB);
     });
 
-    it('user A CANNOT list all profiles', async () => {
+    it('user A sees only own profile in a global SELECT', async () => {
+      // Contrat PostgREST sous RLS : un SELECT global ne renvoie PAS une erreur,
+      // il filtre silencieusement. La policy SELECT profiles limite à soi-même
+      // (l'admin a sa propre policy).
       const { data, error } = await clientA.from('profiles').select('*');
-      expect(error).toBeDefined();
-      expect(data).toBeNull();
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data!.length).toBe(1);
+      expect(data![0].id).toBe(await getProfileId(clientA));
     });
 
     it('admin CAN list all profiles', async () => {
@@ -193,7 +199,7 @@ describe('RLS: profiles table', () => {
 
   describe('INSERT policies', () => {
     it('anon CANNOT insert profile directly', async () => {
-      const { data, error } = await anonClient.from('profiles').insert({
+      const { data, error } = await supabaseAnon.from('profiles').insert({
         id: '00000000-0000-0000-0000-000000000000',
         email: 'hack@test.com',
         full_name: 'Hacker',
@@ -217,8 +223,7 @@ describe('RLS: profiles table', () => {
       const profileId = await getProfileId(clientA);
       const { data, error } = await clientAdmin.from('profiles').delete().eq('id', profileId);
       expect(error).toBeDefined();
+      expect(data).toBeNull();
     });
   });
 });
-
-import { createClient } from '@supabase/supabase-js';

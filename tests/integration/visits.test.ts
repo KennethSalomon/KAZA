@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { supabaseAnon, supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '@tests/helpers/supabase-test-client';
+import { supabaseAnon, supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '../helpers/supabase-test-client';
 import { createClient } from '@supabase/supabase-js';
 import { proposeVisit } from '@/lib/supabase-api';
 
@@ -15,6 +15,7 @@ describe('Visits: table & RLS', () => {
     for (const u of [landlord, tenant]) {
       const signIn = await signInTestUser(u.email, u.password);
       u.token = signIn.session?.access_token ?? '';
+      u.session = signIn.session;
     }
   });
 
@@ -28,6 +29,7 @@ describe('Visits: table & RLS', () => {
     for (const u of [landlord, tenant]) {
       const signIn = await signInTestUser(u.email, u.password);
       u.token = signIn.session?.access_token ?? '';
+      u.session = signIn.session;
     }
   });
 
@@ -40,8 +42,25 @@ describe('Visits: table & RLS', () => {
   }
 
   async function setupConversation() {
-    const residenceId = await supabaseAdmin.rpc('create_residence', {
-      title: 'Test Residence',
+    const residenceId = await createPublishedVerifiedResidence(landlord.user.id);
+
+    await supabaseAdmin.rpc('admin_moderate_residence', { 
+      p_residence_id: residenceId, 
+      p_action: 'approve' 
+    });
+
+    const clientTenant = getClient(tenant);
+    const { data: convId, error } = await clientTenant.rpc('open_conversation', { 
+      p_residence_id: residenceId 
+    });
+    if (error) throw error;
+    return convId;
+  }
+
+  async function createPublishedVerifiedResidence(ownerId: string): Promise<string> {
+    const { data, error } = await supabaseAdmin.from('residences').insert({
+      owner_id: ownerId,
+      title: `Test Residence ${Date.now()}`,
       description: 'Test',
       type: 'appartement',
       price_monthly: 100000,
@@ -50,20 +69,11 @@ describe('Visits: table & RLS', () => {
       bathrooms: 1,
       city: 'Cotonou',
       zone: 'Haie Vive',
-    });
-    if (residenceId.error) throw residenceId.error;
-
-    await supabaseAdmin.rpc('admin_moderate_residence', { 
-      p_residence_id: residenceId.data, 
-      p_action: 'approve' 
-    });
-
-    const clientTenant = getClient(tenant);
-    const convResult = await clientTenant.rpc('open_conversation', { 
-      p_residence_id: residenceId.data 
-    });
-    if (convResult.error) throw convResult.error;
-    return convResult.data;
+      is_published: true,
+      is_verified: true,
+    }).select('id').single();
+    if (error) throw error;
+    return data.id;
   }
 
   describe('INSERT policies', () => {
@@ -96,7 +106,7 @@ describe('Visits: table & RLS', () => {
       const clientLandlord = getClient(landlord);
       const conversationId = await setupConversation();
 
-      // Create a proposed visit directly (proposeVisit RPC doesn't exist yet - Task 3)
+      // Create a proposed visit directly
       const { data: visit, error: visitError } = await supabaseAdmin
         .from('visits')
         .insert({
@@ -137,7 +147,17 @@ describe('Visits: table & RLS', () => {
     it('proposeVisit API', async () => {
       const conversationId = await setupConversation();
 
-      const visitId = await proposeVisit(conversationId, [{ start: '2026-08-20T14:00:00Z', end: '2026-08-20T16:00:00Z' }]);
+      // Client Node authentifié avec la vraie session du locataire :
+      // aucun singleton navigateur, aucun mock et aucun bypass.
+      const tenantClient = getClient(tenant);
+      const { error: sessionError } = await tenantClient.auth.setSession(tenant.session);
+      expect(sessionError).toBeNull();
+
+      const visitId = await proposeVisit(
+        conversationId,
+        [{ start: '2026-08-20T14:00:00Z', end: '2026-08-20T16:00:00Z' }],
+        tenantClient,
+      );
       expect(visitId).toBeDefined();
     });
   });

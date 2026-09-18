@@ -95,11 +95,11 @@ export function Navbar() {
 
           {(role === 'bailleur' || role === 'admin') && (
             <Link
-              href={role === 'admin' ? '/admin' : '/landlord'}
+              href={role === 'admin' ? '/admin' : '/landlord/dashboard'}
               className="hidden items-center gap-2 rounded-kaza px-3 py-2 text-sm font-medium text-kaza-muted transition-colors hover:bg-kaza-surface hover:text-kaza-text md:flex"
             >
               <Home className="h-4 w-4" aria-hidden />
-              {role === 'admin' ? 'Administration' : 'Mes biens'}
+              {role === 'admin' ? 'Administration' : 'Tableau de bord'}
             </Link>
           )}
 
@@ -195,12 +195,12 @@ export function Navbar() {
                     </Link>
                     {(role === 'bailleur' || role === 'admin') && (
                       <Link
-                        href={role === 'admin' ? '/admin' : '/landlord'}
+                        href={role === 'admin' ? '/admin' : '/landlord/dashboard'}
                         onClick={() => setIsMenuOpen(false)}
                         className="flex items-center gap-3 rounded-kaza px-3 py-3 text-base font-medium text-kaza-text hover:bg-kaza-bg"
                       >
                         <Home className="h-5.5 w-5.5 shrink-0" aria-hidden />
-                        {role === 'admin' ? 'Administration' : 'Mes biens'}
+                        {role === 'admin' ? 'Administration' : 'Tableau de bord'}
                       </Link>
                     )}
                     <hr className="border-kaza-border my-2" />

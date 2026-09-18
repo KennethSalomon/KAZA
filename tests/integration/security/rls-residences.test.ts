@@ -48,9 +48,9 @@ describe('RLS: residences table', () => {
     return clients[user.token];
   }
 
-  async function createResidence(user: any, overrides = {}) {
-    const client = getClient(user);
-    const { data, error } = await client.rpc('create_residence', {
+  async function createResidenceDirect(ownerId: string, overrides = {}) {
+    const { data, error } = await supabaseAdmin.from('residences').insert({
+      owner_id: ownerId,
       title: `Test Residence ${Date.now()}`,
       description: 'Test description',
       type: 'appartement',
@@ -60,16 +60,18 @@ describe('RLS: residences table', () => {
       bathrooms: 1,
       city: 'Cotonou',
       zone: 'Haie Vive',
+      is_published: true,
+      is_verified: true,
       ...overrides,
-    });
+    }).select('id').single();
     if (error) throw error;
-    return data;
+    return data.id;
   }
 
   describe('SELECT policies', () => {
     it('published & verified residence is visible to all', async () => {
-      const residenceId = await createResidence(landlordA);
-      // Admin verifies it
+      const residenceId = await createResidenceDirect(landlordA.user.id);
+      // Admin verifies it (already verified by default in test)
       await supabaseAdmin.rpc('admin_moderate_residence', { p_residence_id: residenceId, p_action: 'approve' });
 
       const { data, error } = await supabaseAnon.from('residences').select('*').eq('id', residenceId).single();
@@ -79,7 +81,7 @@ describe('RLS: residences table', () => {
     });
 
     it('draft residence is NOT visible to tenant', async () => {
-      const residenceId = await createResidence(landlordA, { is_published: false });
+      const residenceId = await createResidenceDirect(landlordA.user.id, { is_published: false });
       const clientTenant = getClient(tenantA);
       const { data, error } = await clientTenant.from('residences').select('*').eq('id', residenceId).single();
       expect(error).toBeDefined();
@@ -87,7 +89,7 @@ describe('RLS: residences table', () => {
     });
 
     it('unverified residence is NOT visible to tenant', async () => {
-      const residenceId = await createResidence(landlordA, { is_published: true, is_verified: false });
+      const residenceId = await createResidenceDirect(landlordA.user.id, { is_published: true, is_verified: false });
       const clientTenant = getClient(tenantA);
       const { data, error } = await clientTenant.from('residences').select('*').eq('id', residenceId).single();
       expect(error).toBeDefined();
@@ -95,7 +97,7 @@ describe('RLS: residences table', () => {
     });
 
     it('landlord CAN see own draft/unverified residences', async () => {
-      const residenceId = await createResidence(landlordA, { is_published: false, is_verified: false });
+      const residenceId = await createResidenceDirect(landlordA.user.id, { is_published: false, is_verified: false });
       const clientLandlord = getClient(landlordA);
       const { data, error } = await clientLandlord.from('residences').select('*').eq('id', residenceId).single();
       expect(error).toBeNull();
@@ -103,7 +105,7 @@ describe('RLS: residences table', () => {
     });
 
     it('landlord CANNOT see other landlord draft', async () => {
-      const residenceId = await createResidence(landlordB, { is_published: false });
+      const residenceId = await createResidenceDirect(landlordB.user.id, { is_published: false });
       const clientLandlordA = getClient(landlordA);
       const { data, error } = await clientLandlordA.from('residences').select('*').eq('id', residenceId).single();
       expect(error).toBeDefined();
@@ -111,7 +113,7 @@ describe('RLS: residences table', () => {
     });
 
     it('admin CAN see all residences', async () => {
-      const residenceId = await createResidence(landlordA, { is_published: false, is_verified: false });
+      const residenceId = await createResidenceDirect(landlordA.user.id, { is_published: false, is_verified: false });
       const clientAdmin = getClient(adminUser);
       const { data, error } = await clientAdmin.from('residences').select('*').eq('id', residenceId).single();
       expect(error).toBeNull();
@@ -120,30 +122,42 @@ describe('RLS: residences table', () => {
   });
 
   describe('INSERT policies', () => {
-    it('landlord CAN create residence', async () => {
-      const residenceId = await createResidence(landlordA);
-      expect(residenceId).toBeDefined();
+    it('landlord CAN create residence via direct INSERT', async () => {
+      const clientLandlord = getClient(landlordA);
+      const { data, error } = await clientLandlord.from('residences').insert({
+        owner_id: landlordA.user.id, // la policy INSERT exige owner_id = auth.uid()
+        title: 'My Residence',
+        type: 'appartement',
+        price_monthly: 100000,
+        deposit: 200000,
+        bedrooms: 2,
+        bathrooms: 1,
+        city: 'Cotonou',
+        zone: 'Haie Vive',
+      }).select('id').single();
+      expect(error).toBeNull();
+      expect(data?.id).toBeDefined();
     });
 
     it('tenant CANNOT create residence', async () => {
       const clientTenant = getClient(tenantA);
-      const { data, error } = await clientTenant.rpc('create_residence', {
+      const { data, error } = await clientTenant.from('residences').insert({
         title: 'Hack Attempt',
         type: 'appartement',
         price_monthly: 50000,
         city: 'Cotonou',
-      });
+      }).select('id').single();
       expect(error).toBeDefined();
       expect(data).toBeNull();
     });
 
     it('anon CANNOT create residence', async () => {
-      const { data, error } = await supabaseAnon.rpc('create_residence', {
+      const { data, error } = await supabaseAnon.from('residences').insert({
         title: 'Hack Attempt',
         type: 'appartement',
         price_monthly: 50000,
         city: 'Cotonou',
-      });
+      }).select('id').single();
       expect(error).toBeDefined();
       expect(data).toBeNull();
     });
@@ -151,7 +165,7 @@ describe('RLS: residences table', () => {
 
   describe('UPDATE policies', () => {
     it('landlord CAN update own residence', async () => {
-      const residenceId = await createResidence(landlordA);
+      const residenceId = await createResidenceDirect(landlordA.user.id);
       const clientLandlord = getClient(landlordA);
       const { data, error } = await clientLandlord
         .from('residences')
@@ -164,7 +178,7 @@ describe('RLS: residences table', () => {
     });
 
     it('landlord CANNOT update other landlord residence', async () => {
-      const residenceId = await createResidence(landlordB);
+      const residenceId = await createResidenceDirect(landlordB.user.id);
       const clientLandlordA = getClient(landlordA);
       const { data, error } = await clientLandlordA
         .from('residences')
@@ -177,7 +191,7 @@ describe('RLS: residences table', () => {
     });
 
     it('tenant CANNOT update any residence', async () => {
-      const residenceId = await createResidence(landlordA);
+      const residenceId = await createResidenceDirect(landlordA.user.id);
       const clientTenant = getClient(tenantA);
       const { data, error } = await clientTenant
         .from('residences')
@@ -190,7 +204,11 @@ describe('RLS: residences table', () => {
     });
 
     it('landlord CANNOT self-verify (is_verified is admin-only)', async () => {
-      const residenceId = await createResidence(landlordA);
+      // Le trigger residences_guard_owner écrase silencieusement
+      // is_verified (et owner_id) par la valeur existante pour tout
+      // appelant non service_role : l'UPDATE ne doit ni échouer ni
+      // modifier is_verified.
+      const residenceId = await createResidenceDirect(landlordA.user.id, { is_verified: false });
       const clientLandlord = getClient(landlordA);
       const { data, error } = await clientLandlord
         .from('residences')
@@ -198,12 +216,12 @@ describe('RLS: residences table', () => {
         .eq('id', residenceId)
         .select('is_verified')
         .single();
-      expect(error).toBeDefined();
-      expect(data).toBeNull();
+      expect(error).toBeNull();
+      expect(data?.is_verified).toBe(false); // écrasé par le garde-fou
     });
 
     it('admin CAN update any residence including is_verified', async () => {
-      const residenceId = await createResidence(landlordA);
+      const residenceId = await createResidenceDirect(landlordA.user.id);
       const clientAdmin = getClient(adminUser);
       const { data, error } = await clientAdmin
         .from('residences')
@@ -218,14 +236,14 @@ describe('RLS: residences table', () => {
 
   describe('DELETE policies', () => {
     it('landlord CAN delete own draft residence', async () => {
-      const residenceId = await createResidence(landlordA, { is_published: false });
+      const residenceId = await createResidenceDirect(landlordA.user.id, { is_published: false });
       const clientLandlord = getClient(landlordA);
       const { error } = await clientLandlord.from('residences').delete().eq('id', residenceId);
       expect(error).toBeNull();
     });
 
     it('landlord CANNOT delete published residence (status occupied check)', async () => {
-      const residenceId = await createResidence(landlordA, { is_published: true, is_verified: true });
+      const residenceId = await createResidenceDirect(landlordA.user.id, { is_published: true, is_verified: true });
       const clientLandlord = getClient(landlordA);
       const { error } = await clientLandlord.from('residences').delete().eq('id', residenceId);
       // May succeed if not occupied, but should fail if occupied
@@ -233,7 +251,7 @@ describe('RLS: residences table', () => {
     });
 
     it('tenant CANNOT delete any residence', async () => {
-      const residenceId = await createResidence(landlordA);
+      const residenceId = await createResidenceDirect(landlordA.user.id);
       const clientTenant = getClient(tenantA);
       const { error } = await clientTenant.from('residences').delete().eq('id', residenceId);
       expect(error).toBeDefined();

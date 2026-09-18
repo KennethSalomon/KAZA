@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import dynamic from 'next/dynamic';
 import { LocateFixed, Map as MapIcon, List, SlidersHorizontal, X } from 'lucide-react';
 import { searchResidences } from '@/lib/api/residences';
@@ -63,6 +63,26 @@ export default function ExplorerPage() {
     radius_km: geo ? 25 : undefined,
   }), [filters, geo]);
 
+  // Fonction de recherche stabilisée : elle ne doit pas être recréée à chaque
+  // render, sinon useInfiniteScroll relance le chargement et détruit/recrée les
+  // cartes (cause du "element was detached from the DOM" en E2E). Dépend
+  // volontairement de searchFilters uniquement : un changement de filtres doit
+  // provoquer une nouvelle recherche, un simple rerender non.
+  const fetchResidencesPage = useCallback(
+    async (page: number, pageSize: number) =>
+      searchResidences({
+        ...searchFilters,
+        limit: pageSize,
+        offset: page * pageSize,
+      }),
+    [searchFilters],
+  );
+
+  const handleSearchError = useCallback(
+    (err: Error) => toast.error('Recherche impossible', err.message),
+    [toast],
+  );
+
   // Hook infinite scroll
   const {
     items: residences,
@@ -74,17 +94,10 @@ export default function ExplorerPage() {
     refresh,
     setItems: _setItems,
   } = useInfiniteScroll<ResidenceWithRelations>({
-    fetchFn: async (page, pageSize) => {
-      const results = await searchResidences({
-        ...searchFilters,
-        limit: pageSize,
-        offset: page * pageSize,
-      });
-      return results;
-    },
+    fetchFn: fetchResidencesPage,
     pageSize: 20,
     enabled: true,
-    onError: (err) => toast.error('Recherche impossible', err.message),
+    onError: handleSearchError,
   });
 
   // Detect mobile viewport
@@ -95,8 +108,16 @@ export default function ExplorerPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Recherche debouncée quand les filtres changent
+  // Recherche debouncée quand les filtres changent.
+  // Le premier render est ignoré : le chargement initial est déjà assuré par
+  // useInfiniteScroll — un refresh redondant à ~450ms démontait la grille
+  // (skeletons) dans la fenêtre d'interaction des tests E2E.
+  const isFirstFiltersRun = useRef(true);
   useEffect(() => {
+    if (isFirstFiltersRun.current) {
+      isFirstFiltersRun.current = false;
+      return;
+    }
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => refresh(), 450);
     return () => {
@@ -344,7 +365,7 @@ export default function ExplorerPage() {
             )}
           </p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Select
               aria-label="Trier les résultats"
               value={sort}
@@ -356,7 +377,7 @@ export default function ExplorerPage() {
               ]}
               className="h-9 w-44 !py-1.5 text-xs"
             />
-            <div role="tablist" aria-label="Vue" className="flex rounded-kaza border border-kaza-border bg-kaza-surface p-1">
+            <div role="tablist" aria-label="Vue" className="hidden sm:flex rounded-kaza border border-kaza-border bg-kaza-surface p-1">
               <button
                 role="tab"
                 aria-selected={view === 'list'}
@@ -387,7 +408,7 @@ export default function ExplorerPage() {
       {/* Résultats : grille + carte */}
       <div className="mt-4">
         {/* Mobile: toggle between list and map */}
-        <div className="lg:hidden">
+        <div className="sm:hidden">
           <div role="tablist" aria-label="Vue" className="flex rounded-kaza border border-kaza-border bg-kaza-surface p-1 mb-4">
             <button
               role="tab"

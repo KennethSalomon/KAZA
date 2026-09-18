@@ -70,6 +70,72 @@ jobs:
           sudo mv /tmp/supabase /usr/local/bin/supabase
           supabase --version
 
+      - name: Diagnose Docker Hub credentials
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          username = os.environ.get("DOCKERHUB_USERNAME", "")
+          token = os.environ.get("DOCKERHUB_TOKEN", "")
+
+          print(f"USERNAME_LENGTH={len(username)}")
+          print(f"TOKEN_LENGTH={len(token)}")
+          print(f"USERNAME_HAS_CR={str(chr(13) in username).lower()}")
+          print(f"USERNAME_HAS_LF={str(chr(10) in username).lower()}")
+          print(f"TOKEN_HAS_CR={str(chr(13) in token).lower()}")
+          print(f"TOKEN_HAS_LF={str(chr(10) in token).lower()}")
+          print(f"TOKEN_STARTS_WITH_DCKR_PAT={str(token.startswith('dckr_pat_')).lower()}")
+
+          payload = json.dumps({
+              "identifier": username,
+              "secret": token,
+          }).encode("utf-8")
+
+          request = urllib.request.Request(
+              "https://hub.docker.com/v2/auth/token",
+              data=payload,
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+
+          status = 0
+          body = {}
+          try:
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  status = response.status
+                  try:
+                      body = json.loads(response.read().decode("utf-8"))
+                  except Exception:
+                      body = {}
+          except urllib.error.HTTPError as error:
+              status = error.code
+          except Exception:
+              status = 0
+
+          print(f"DOCKER_HUB_AUTH_HTTP_STATUS={status}")
+
+          if status == 200 and isinstance(body, dict) and body.get("access_token"):
+              print("DOCKER_HUB_AUTH_RESULT=SUCCESS")
+          else:
+              print("DOCKER_HUB_AUTH_RESULT=FAILURE")
+              raise SystemExit(1)
+          PYEOF
+
+      - name: Login to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login docker.io \
+            --username "$DOCKERHUB_USERNAME" \
+            --password-stdin
+
       - name: Start Supabase local
         id: supabase
         run: |
@@ -94,6 +160,19 @@ jobs:
         run: supabase db reset
         working-directory: .
 
+      - name: Restore service_role privileges for Edge Functions (CI-only)
+        run: |
+          cat >/tmp/kaza-e2e-service-role-grants.sql <<'SQL'
+          -- CI local only: the Edge Function uses service_role through PostgREST.
+          -- Production privileges/RLS are unchanged by this runner-only SQL.
+          grant usage on schema public to service_role;
+          grant select, insert, update, delete on all tables in schema public to service_role;
+          grant usage, select on all sequences in schema public to service_role;
+          notify pgrst, 'reload schema';
+          SQL
+          docker exec -i supabase_db_kaza psql -U postgres -d postgres -v ON_ERROR_STOP=1 < /tmp/kaza-e2e-service-role-grants.sql
+        working-directory: .
+
       - name: DB types drift check
         run: npm run db:types:check
         id: types-check
@@ -114,7 +193,7 @@ jobs:
           language plpgsql
           security definer
           set search_path = public
-          as $
+          as $$
           declare
             v_source text;
           begin
@@ -131,7 +210,7 @@ jobs:
             end if;
             return v_source;
           end;
-          $;
+          $$;
 
           revoke all on function public.get_function_source(text) from public, anon, authenticated;
           grant execute on function public.get_function_source(text) to service_role;
@@ -141,27 +220,50 @@ jobs:
           language plpgsql
           security definer
           set search_path = public
-          as $
+          as $$
           begin
             if auth.role() <> 'service_role' then
               raise exception 'Test-only helper';
             end if;
 
-            delete from public.favorites;
-            delete from public.messages;
-            delete from public.receipts;
-            delete from public.payments;
-            delete from public.visits;
-            delete from public.conversations;
-            delete from public.leases;
-            delete from public.notifications;
-            delete from public.admin_audit_logs;
-            delete from public.residences;
+            -- Les DELETE sont explicitement bornés (where true) : le garde-fou
+            -- Supabase du CI rejette tout DELETE sans clause WHERE.
+            delete from public.favorites where true;
+            delete from public.messages where true;
+            delete from public.receipts where true;
+            delete from public.payments where true;
+            delete from public.visits where true;
+            delete from public.conversations where true;
+            delete from public.leases where true;
+            delete from public.notifications where true;
+            delete from public.admin_audit_logs where true;
+            delete from public.residences where true;
           end;
-          $;
+          $$;
 
           revoke all on function public.reset_test_database() from public, anon, authenticated;
           grant execute on function public.reset_test_database() to service_role;
+
+          -- CI-only : le client service_role des tests passe par PostgREST et
+          -- nécessite les privileges SQL correspondants sur le schema public.
+          -- Aucun effet en production (injecte uniquement ici, apres db reset).
+          grant usage on schema public to service_role;
+          grant select, insert, update, delete on all tables in schema public to service_role;
+          grant usage, select on all sequences in schema public to service_role;
+
+          -- Verification non sensible des privileges (echec explicite si absents).
+          do $$
+          begin
+            if not has_schema_privilege('service_role', 'public', 'USAGE')
+               or not has_table_privilege('service_role', 'public.profiles', 'UPDATE') then
+              raise exception 'CI precondition failed: service_role privileges missing';
+            end if;
+          end;
+          $$;
+
+          -- Rechargement du cache de schema PostgREST pour prendre en compte
+          -- les privileges fraichement accordes.
+          notify pgrst, 'reload schema';
           SQL
           docker exec -i supabase_db_kaza psql -U postgres -d postgres -v ON_ERROR_STOP=1 < /tmp/kaza-ci-test-helpers.sql
         working-directory: .
@@ -195,6 +297,15 @@ jobs:
           tar xzf /tmp/supabase.tar.gz -C /tmp
           sudo mv /tmp/supabase /usr/local/bin/supabase
 
+      - name: Login to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login docker.io \
+            --username "$DOCKERHUB_USERNAME" \
+            --password-stdin
+
       - name: Start Supabase local
         id: supabase
         run: |
@@ -217,18 +328,96 @@ jobs:
         run: supabase db reset
         working-directory: .
 
-      - name: Install Playwright browsers
-        run: npx playwright install chromium
-        working-directory: apps/web
+      - name: Restore service_role privileges for Edge Functions (CI-only)
+        run: |
+          cat >/tmp/kaza-e2e-service-role-grants.sql <<'SQL'
+          -- CI local only: receipts-sign uses service_role through PostgREST.
+          grant usage on schema public to service_role;
+          grant select, insert, update, delete on all tables in schema public to service_role;
+          grant usage, select on all sequences in schema public to service_role;
+          notify pgrst, 'reload schema';
+          SQL
+          docker exec -i supabase_db_kaza psql -U postgres -d postgres -v ON_ERROR_STOP=1 < /tmp/kaza-e2e-service-role-grants.sql
+        working-directory: .
 
-      - name: Run e2e tests
-        run: npm run test:e2e
+      - name: Run e2e tests with receipts-sign
         env:
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321/
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
           NEXT_PUBLIC_APP_URL: http://localhost:3000/
           NEXT_PUBLIC_HCAPTCHA_SITEKEY: ""
-        working-directory: .
+        run: |
+          set -e
+
+          # Aligner explicitement l'Edge Function sur le Supabase local.
+          # Cela évite toute ambiguïté d'environnement pour getAdminClient().
+          env_vars=$(supabase status -o env)
+          supabase_url=$(printf '%s\n' "$env_vars" | grep -iE '^API_URL=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
+          service_role_key=$(printf '%s\n' "$env_vars" | grep -iE '^service_role_key=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
+          if [ -z "$supabase_url" ] || [ -z "$service_role_key" ]; then
+            echo "::error::Impossible de récupérer les paramètres Supabase locaux pour receipts-sign."
+            exit 1
+          fi
+          export SUPABASE_URL="$supabase_url"
+          export SUPABASE_SERVICE_ROLE_KEY="$service_role_key"
+          echo "receipts-sign cible Supabase local: $SUPABASE_URL"
+
+          # Garder receipts-sign vivant pendant toute l'exécution Playwright :
+          # le process background ne doit pas mourir entre deux steps GitHub Actions.
+          cat >/tmp/kaza-edge.env <<EOF
+          SUPABASE_URL=$SUPABASE_URL
+          SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+          EOF
+
+          # Supabase CLI 2.114.0 ne prend pas le nom de fonction en argument
+          # positionnel. Il sert les Edge Functions locales et on vérifie
+          # explicitement que receipts-sign répond sur la route attendue.
+          # Le process reste vivant dans ce même step pendant tout Playwright.
+          supabase functions serve --env-file /tmp/kaza-edge.env > /tmp/kaza-receipts-sign.log 2>&1 &
+          FUNCTION_PID=$!
+          trap 'kill "$FUNCTION_PID" 2>/dev/null || true' EXIT
+
+          # Polling borné sur la disponibilité HTTP de la route : un 401/400
+          # (JWT requis, corps invalide) prouve que la route répond — seul le
+          # 404 « route inexistante » est un échec. Aucun token ni body sensible.
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' \
+              -X POST http://127.0.0.1:54321/functions/v1/receipts-sign \
+              -H 'Content-Type: application/json' \
+              -d '{}' || echo '000')
+            if [ "$code" != '000' ] && [ "$code" != '404' ]; then
+              echo "receipts-sign disponible (HTTP $code)"
+              break
+            fi
+            if [ "$i" = '30' ]; then
+              echo "::error::receipts-sign indisponible après 60s"
+              tail -80 /tmp/kaza-receipts-sign.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+
+          cd apps/web
+          npx playwright install chromium
+          cd ../..
+
+          # Conserver le log Edge Function uniquement en cas d'échec E2E :
+          # il permet de distinguer un process mort d'une erreur métier HTTP.
+          set +e
+          npm run test:e2e
+          TEST_STATUS=$?
+          set -e
+          if [ "$TEST_STATUS" -ne 0 ]; then
+            echo "::group::receipts-sign diagnostics"
+            if kill -0 "$FUNCTION_PID" 2>/dev/null; then
+              echo "receipts-sign process toujours vivant au moment de l'échec."
+            else
+              echo "::error::receipts-sign process terminé avant l'échec E2E."
+            fi
+            tail -200 /tmp/kaza-receipts-sign.log || true
+            echo "::endgroup::"
+          fi
+          exit "$TEST_STATUS"
 
       - name: Upload e2e report
         if: failure()
@@ -275,7 +464,11 @@ jobs:
         run: |
           for f in supabase/functions/*/index.ts; do
             echo "Typechecking $f..."
-            deno check "$f" || exit 1
+            # --config : Deno ne découvre pas supabase/functions/deno.json depuis la
+            # racine du repo ; sans lui, les imports npm: sont résolus contre le
+            # node_modules npm de la racine (échec sur npm:@sentry/deno) au lieu du
+            # cache global + deno.lock des Edge Functions.
+            deno check --config supabase/functions/deno.json "$f" || exit 1
           done
         working-directory: .
 

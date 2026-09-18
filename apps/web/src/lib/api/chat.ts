@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../supabase-client';
 import type {
   ConversationWithRelations,
@@ -85,7 +86,7 @@ export async function agreeVisit(
 export async function cancelVisit(visitId: string, reason = ''): Promise<void> {
   const { error } = await supabase.rpc('cancel_visit', {
     p_visit_id: visitId,
-    p_reason: reason || null,
+    p_reason: reason || undefined,
   });
   if (error) throw normalizeError(error, 'Annulation impossible');
 }
@@ -93,18 +94,19 @@ export async function cancelVisit(visitId: string, reason = ''): Promise<void> {
 export async function declineVisit(visitId: string, reason = ''): Promise<void> {
   const { error } = await supabase.rpc('decline_visit', {
     p_visit_id: visitId,
-    p_reason: reason || null,
+    p_reason: reason || undefined,
   });
   if (error) throw normalizeError(error, 'Refus impossible');
 }
 
 export async function proposeVisit(
   conversationId: string,
-  slots: { start: string; end: string }[]
+  slots: { start: string; end: string }[],
+  client: SupabaseClient = supabase,
 ): Promise<string> {
-  const user = await requireUser();
+  const user = await requireUser(client);
   const visitPromises = slots.map(slot =>
-    supabase.from('visits').insert({
+    client.from('visits').insert({
       conversation_id: conversationId,
       proposed_by: user.id,
       slot_start: slot.start,

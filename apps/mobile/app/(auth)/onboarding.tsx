@@ -42,11 +42,11 @@ export default function OnboardingScreen() {
     try {
       const { error } = await supabase.rpc('complete_landlord_onboarding', {
         p_business_name: form.business_name.trim(),
-        p_tax_id: form.ifu.trim() || null,
+        p_tax_id: form.ifu.trim() || '',
         p_momo_provider: form.momo_provider,
         p_momo_number: form.momo_number.replace(/\s/g, ''),
-        p_bank_name: null,
-        p_bank_iban: null,
+        p_bank_name: undefined,
+        p_bank_iban: undefined,
       });
       if (error) { Alert.alert('Erreur', error.message); return; }
       router.replace('/(tabs)/dashboard');

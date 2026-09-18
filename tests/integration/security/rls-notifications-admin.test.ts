@@ -45,20 +45,23 @@ describe('RLS: notifications & admin tables', () => {
     return clients[user.token];
   }
 
-  async function createResidence(user: any) {
-    const { data, error } = await getClient(user).rpc('create_residence', {
+  async function createPublishedVerifiedResidence(ownerId: string): Promise<string> {
+    const { data, error } = await supabaseAdmin.from('residences').insert({
+      owner_id: ownerId,
       title: `Test ${Date.now()}`,
       type: 'appartement',
       price_monthly: 100000,
       city: 'Cotonou',
       zone: 'Haie Vive',
-    });
+      is_published: true,
+      is_verified: true,
+    }).select('id').single();
     if (error) throw error;
-    return data;
+    return data.id;
   }
 
   async function createLease(landlord: any, tenant: any) {
-    const residenceId = await createResidence(landlord);
+    const residenceId = await createPublishedVerifiedResidence(landlord.user.id);
     await supabaseAdmin.rpc('admin_moderate_residence', { p_residence_id: residenceId, p_action: 'approve' });
     const { data, error } = await getClient(landlord).rpc('create_lease', {
       p_residence_id: residenceId,
@@ -82,16 +85,22 @@ describe('RLS: notifications & admin tables', () => {
 
     it('user CANNOT see other user notifications', async () => {
       await createLease(landlordA, tenantA);
+      // Contrat PostgREST sous RLS : SELECT collection filtre silencieusement
+      // (tableau vide, pas d'erreur) — pas data=null.
       const { data, error } = await getClient(landlordA).from('notifications').select('*').eq('user_id', tenantA.user.id);
-      expect(error).toBeDefined();
-      expect(data).toBeNull();
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data!.length).toBe(0);
     });
 
     it('anon CANNOT see any notifications', async () => {
       await createLease(landlordA, tenantA);
+      // Contrat PostgREST sous RLS : SELECT collection filtre silencieusement
+      // (tableau vide, pas d'erreur) — pas data=null.
       const { data, error } = await supabaseAnon.from('notifications').select('*').limit(1);
-      expect(error).toBeDefined();
-      expect(data).toBeNull();
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data!.length).toBe(0);
     });
   });
 
@@ -182,19 +191,19 @@ describe('RLS: notifications & admin tables', () => {
     });
 
     it('admin CAN verify residence via RPC', async () => {
-      const residenceId = await createResidence(landlordA);
+      const residenceId = await createPublishedVerifiedResidence(landlordA.user.id);
       const { error } = await getClient(adminUser).rpc('admin_verify_residence', { p_residence_id: residenceId });
       expect(error).toBeNull();
     });
 
     it('tenant CANNOT verify residence', async () => {
-      const residenceId = await createResidence(landlordA);
+      const residenceId = await createPublishedVerifiedResidence(landlordA.user.id);
       const { error } = await getClient(tenantA).rpc('admin_verify_residence', { p_residence_id: residenceId });
       expect(error).toBeDefined();
     });
 
     it('admin CAN unpublish residence via RPC', async () => {
-      const residenceId = await createResidence(landlordA);
+      const residenceId = await createPublishedVerifiedResidence(landlordA.user.id);
       await supabaseAdmin.rpc('admin_moderate_residence', { p_residence_id: residenceId, p_action: 'approve' });
       const { error } = await getClient(adminUser).rpc('admin_unpublish_residence', { p_residence_id: residenceId });
       expect(error).toBeNull();

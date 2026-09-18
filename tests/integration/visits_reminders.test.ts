@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '@tests/helpers/supabase-test-client';
+import { supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '../helpers/supabase-test-client';
+import { createClient } from '@supabase/supabase-js';
 
 describe('visit-reminders: Edge Function', () => {
   let landlord: any;
@@ -29,9 +30,10 @@ describe('visit-reminders: Edge Function', () => {
     }
   });
 
-  async function setupConversation() {
-    const residenceId = await supabaseAdmin.rpc('create_residence', {
-      title: 'Test Residence',
+  async function createPublishedVerifiedResidence(ownerId: string): Promise<string> {
+    const { data, error } = await supabaseAdmin.from('residences').insert({
+      owner_id: ownerId,
+      title: `Test Residence ${Date.now()}`,
       description: 'Test',
       type: 'appartement',
       price_monthly: 100000,
@@ -40,19 +42,34 @@ describe('visit-reminders: Edge Function', () => {
       bathrooms: 1,
       city: 'Cotonou',
       zone: 'Haie Vive',
-    });
-    if (residenceId.error) throw residenceId.error;
+      is_published: true,
+      is_verified: true,
+    }).select('id').single();
+    if (error) throw error;
+    return data.id;
+  }
+
+  async function setupConversation() {
+    const residenceId = await createPublishedVerifiedResidence(landlord.user.id);
 
     await supabaseAdmin.rpc('admin_moderate_residence', { 
-      p_residence_id: residenceId.data, 
+      p_residence_id: residenceId, 
       p_action: 'approve' 
     });
 
-    const { data: convResult, error: convError } = await supabaseAdmin.rpc('open_conversation', { 
-      p_residence_id: residenceId.data 
+    // Vrai contrat : un locataire authentifié appelle open_conversation().
+    // supabaseAdmin (service_role) n'a volontairement pas EXECUTE sur cette fonction.
+    if (!tenant.token) throw new Error('tenant token missing');
+    const tenantClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: `Bearer ${tenant.token}` } } }
+    );
+    const { data: convId, error: convError } = await tenantClient.rpc('open_conversation', {
+      p_residence_id: residenceId,
     });
     if (convError) throw convError;
-    return convResult;
+    return convId;
   }
 
   it('creates notifications 24h before confirmed visit for both tenant and landlord', async () => {
@@ -109,9 +126,9 @@ describe('visit-reminders: Edge Function', () => {
   it('creates notifications 2h before confirmed visit', async () => {
     const conversationId = await setupConversation();
 
-    // Create a confirmed visit 2.5 hours from now (within 2h ± 15min window)
-    const slotStart = new Date(Date.now() + 2.5 * 60 * 60 * 1000).toISOString();
-    const slotEnd = new Date(Date.now() + 4.5 * 60 * 60 * 1000).toISOString();
+    // Create a confirmed visit 2h10 from now (inside the 2h ± 15min window).
+    const slotStart = new Date(Date.now() + (2 * 60 + 10) * 60 * 1000).toISOString();
+    const slotEnd = new Date(Date.now() + (4 * 60 + 10) * 60 * 1000).toISOString();
 
     const { data: visit, error: visitError } = await supabaseAdmin
       .from('visits')
