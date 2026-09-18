@@ -101,7 +101,7 @@ declare
   v_old text;
 begin
   -- conversations_select inclut bien is_admin()
-  select pg_get_expr(pol.qual, pol.polrelid) into v_old
+  select pg_get_expr(pol.polqual, pol.polrelid) into v_old
     from pg_policy pol
    where pol.polname = 'conversations_select'
      and pol.polrelid = 'public.conversations'::regclass;
