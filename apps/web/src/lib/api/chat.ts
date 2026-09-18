@@ -106,7 +106,7 @@ export async function proposeVisit(
 ): Promise<string> {
   const user = await requireUser(client);
   const visitPromises = slots.map(slot =>
-    supabase.from('visits').insert({
+    client.from('visits').insert({
       conversation_id: conversationId,
       proposed_by: user.id,
       slot_start: slot.start,
