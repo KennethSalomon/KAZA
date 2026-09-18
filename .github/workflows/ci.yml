@@ -315,17 +315,24 @@ jobs:
         run: supabase db reset
         working-directory: .
 
-      - name: Serve receipts-sign locally
+      - name: Run e2e tests with receipts-sign
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321/
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3000/
+          NEXT_PUBLIC_HCAPTCHA_SITEKEY: ""
         run: |
+          set -e
+
+          # Garder receipts-sign vivant pendant toute l'exécution Playwright :
+          # le process background ne doit pas mourir entre deux steps GitHub Actions.
           supabase functions serve receipts-sign > /tmp/kaza-receipts-sign.log 2>&1 &
           FUNCTION_PID=$!
-          echo "$FUNCTION_PID" > /tmp/kaza-receipts-sign.pid
           trap 'kill "$FUNCTION_PID" 2>/dev/null || true' EXIT
 
           # Polling borné sur la disponibilité HTTP de la route : un 401/400
           # (JWT requis, corps invalide) prouve que la route répond — seul le
-          # 404 « route inexistante » est un échec. Aucun token ni body
-          # sensible dans le probe.
+          # 404 « route inexistante » est un échec. Aucun token ni body sensible.
           for i in $(seq 1 30); do
             code=$(curl -s -o /dev/null -w '%{http_code}' \
               -X POST http://127.0.0.1:54321/functions/v1/receipts-sign \
@@ -342,20 +349,11 @@ jobs:
             fi
             sleep 2
           done
-        working-directory: .
 
-      - name: Install Playwright browsers
-        run: npx playwright install chromium
-        working-directory: apps/web
-
-      - name: Run e2e tests
-        run: npm run test:e2e
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321/
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.supabase.outputs.ANON_KEY }}
-          NEXT_PUBLIC_APP_URL: http://localhost:3000/
-          NEXT_PUBLIC_HCAPTCHA_SITEKEY: ""
-        working-directory: .
+          cd apps/web
+          npx playwright install chromium
+          cd ../..
+          npm run test:e2e
 
       - name: Upload e2e report
         if: failure()

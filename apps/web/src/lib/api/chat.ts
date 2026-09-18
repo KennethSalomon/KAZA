@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../supabase-client';
 import type {
   ConversationWithRelations,
@@ -100,9 +101,10 @@ export async function declineVisit(visitId: string, reason = ''): Promise<void> 
 
 export async function proposeVisit(
   conversationId: string,
-  slots: { start: string; end: string }[]
+  slots: { start: string; end: string }[],
+  client: SupabaseClient = supabase,
 ): Promise<string> {
-  const user = await requireUser();
+  const user = await requireUser(client);
   const visitPromises = slots.map(slot =>
     supabase.from('visits').insert({
       conversation_id: conversationId,

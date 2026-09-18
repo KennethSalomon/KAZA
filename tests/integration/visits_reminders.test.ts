@@ -126,9 +126,9 @@ describe('visit-reminders: Edge Function', () => {
   it('creates notifications 2h before confirmed visit', async () => {
     const conversationId = await setupConversation();
 
-    // Create a confirmed visit 2.5 hours from now (within 2h ± 15min window)
-    const slotStart = new Date(Date.now() + 2.5 * 60 * 60 * 1000).toISOString();
-    const slotEnd = new Date(Date.now() + 4.5 * 60 * 60 * 1000).toISOString();
+    // Create a confirmed visit 2h10 from now (inside the 2h ± 15min window).
+    const slotStart = new Date(Date.now() + (2 * 60 + 10) * 60 * 1000).toISOString();
+    const slotEnd = new Date(Date.now() + (4 * 60 + 10) * 60 * 1000).toISOString();
 
     const { data: visit, error: visitError } = await supabaseAdmin
       .from('visits')
