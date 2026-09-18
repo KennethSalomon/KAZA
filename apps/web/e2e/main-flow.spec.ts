@@ -45,6 +45,10 @@ test.describe('Parcours principal locataire', () => {
     await page.getByLabel('Email').fill(LANDLORD_EMAIL);
     await page.getByRole('textbox', { name: 'Mot de passe' }).fill(LANDLORD_PW);
     await page.getByRole('button', { name: 'Se connecter' }).click();
+    // Attendre la navigation résultant du login (même mécanisme que le login
+    // locataire) : sans cela, page.goto('/landlord') peut partir avant que la
+    // session soit propagée côté AuthProvider → middleware redirige vers login.
+    await expect(page).toHaveURL(/\/explorer/);
     await page.goto('/landlord');
     await expect(page.getByTestId('validate-payment').first()).toBeVisible({
       timeout: 15_000,

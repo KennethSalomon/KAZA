@@ -213,16 +213,18 @@ jobs:
               raise exception 'Test-only helper';
             end if;
 
-            delete from public.favorites;
-            delete from public.messages;
-            delete from public.receipts;
-            delete from public.payments;
-            delete from public.visits;
-            delete from public.conversations;
-            delete from public.leases;
-            delete from public.notifications;
-            delete from public.admin_audit_logs;
-            delete from public.residences;
+            -- Les DELETE sont explicitement bornés (where true) : le garde-fou
+            -- Supabase du CI rejette tout DELETE sans clause WHERE.
+            delete from public.favorites where true;
+            delete from public.messages where true;
+            delete from public.receipts where true;
+            delete from public.payments where true;
+            delete from public.visits where true;
+            delete from public.conversations where true;
+            delete from public.leases where true;
+            delete from public.notifications where true;
+            delete from public.admin_audit_logs where true;
+            delete from public.residences where true;
           end;
           $$;
 

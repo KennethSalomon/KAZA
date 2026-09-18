@@ -27,23 +27,39 @@ export async function resetDatabase() {
   const { error } = await supabaseAdmin.rpc('reset_test_database');
   // reset_test_database() est supprimé en production (migration 999999)
   // et injecté uniquement dans le CI après db reset.
-  // Si absent, on nettoie manuellement les tables principales.
   if (error) {
-    if (error.message.includes('does not exist') || error.message.includes('Could not find the function')) {
-      // Fallback: nettoyage manuel des tables de test (ordre FK respecté)
-      await supabaseAdmin.from('favorites').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabaseAdmin.from('messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabaseAdmin.from('receipts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabaseAdmin.from('payments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabaseAdmin.from('visits').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabaseAdmin.from('conversations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabaseAdmin.from('leases').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabaseAdmin.from('notifications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabaseAdmin.from('admin_audit_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabaseAdmin.from('residences').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      return;
+    const missing =
+      error.message.includes('does not exist') ||
+      error.message.includes('Could not find the function');
+    if (!missing) {
+      // RPC présent mais échoué (SQL error, permissions, …) : ne pas continuer
+      // avec une base sale, sinon les échecs contaminent toute la suite.
+      throw new Error(`reset_test_database RPC failed: ${error.message}`);
     }
-    console.warn('reset_test_database RPC unavailable, manual cleanup may be needed:', error.message);
+    // Fonction absente (local dev sans helpers CI) : fallback manuel autorisé.
+    // Ordre compatible FK ; delete().neq(...) est requis par PostgREST
+    // (un delete nu sans filtre est rejeté).
+    const tables = [
+      'favorites',
+      'messages',
+      'receipts',
+      'payments',
+      'visits',
+      'conversations',
+      'leases',
+      'notifications',
+      'admin_audit_logs',
+      'residences',
+    ] as const;
+    for (const table of tables) {
+      const { error: delError } = await supabaseAdmin
+        .from(table)
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (delError) {
+        throw new Error(`Manual cleanup failed on ${table}: ${delError.message}`);
+      }
+    }
   }
 }
 

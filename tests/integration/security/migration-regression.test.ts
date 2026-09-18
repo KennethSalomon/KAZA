@@ -92,10 +92,13 @@ describe('Migration regression tests', () => {
       expect(error).toBeNull();
       expect(data).toBeDefined();
 
-      const source = data as string;
-      expect(source).toContain('is_published = true');
-      expect(source).toContain('is_verified = true');
-      expect(source).toContain('and is_verified = true');
+      const source = (data as string).toLowerCase();
+      // pg_get_functiondef() conserve la casse du SQL d'origine : on normalise
+      // en lowercase et on tolère les espaces autour de '='.
+      expect(source).toMatch(/is_published\s*=\s*true/);
+      expect(source).toMatch(/is_verified\s*=\s*true/);
+      // Le guard doit refuser la conversation au propriétaire du bien.
+      expect(source).toMatch(/owner_id\s*=\s*auth\.uid\(\)/);
     });
 
     it('function rejects draft residence', async () => {

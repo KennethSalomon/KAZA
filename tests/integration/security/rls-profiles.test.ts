@@ -217,7 +217,8 @@ describe('RLS: profiles table', () => {
     it('admin CANNOT delete profiles via RLS (use RPC instead)', async () => {
       const profileId = await getProfileId(clientA);
       const { data, error } = await clientAdmin.from('profiles').delete().eq('id', profileId);
-expect(error).toBeDefined();
-    }
+      expect(error).toBeDefined();
+      expect(data).toBeNull();
+    });
   });
 });
