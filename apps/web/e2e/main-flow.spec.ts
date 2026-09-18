@@ -91,6 +91,9 @@ test.describe('Parcours principal locataire', () => {
     await page.getByLabel('Email').fill(TENANT_EMAIL);
     await page.getByRole('textbox', { name: 'Mot de passe' }).fill(TENANT_PW);
     await page.getByRole('button', { name: 'Se connecter' }).click();
+    // Même garde-fou que pour la connexion bailleur : attendre que la session
+    // soit propagée avant de naviguer vers une route protégée.
+    await expect(page).toHaveURL(/\/explorer/);
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: 'Mes quittances' })).toBeVisible();
     const newReceiptRow = page.locator('li', { hasText: currentPeriod }).filter({
