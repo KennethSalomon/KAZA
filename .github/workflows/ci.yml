@@ -352,7 +352,15 @@ jobs:
 
           # Garder receipts-sign vivant pendant toute l'exécution Playwright :
           # le process background ne doit pas mourir entre deux steps GitHub Actions.
-          supabase functions serve receipts-sign > /tmp/kaza-receipts-sign.log 2>&1 &
+          cat >/tmp/kaza-edge.env <<EOF
+SUPABASE_URL=$SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+EOF
+
+          # Supabase CLI 2.114.0 ne prend pas le nom de fonction en argument
+          # positionnel. Il sert les Edge Functions locales et on vérifie
+          # explicitement que receipts-sign répond sur la route attendue.
+          supabase functions serve --env-file /tmp/kaza-edge.env > /tmp/kaza-receipts-sign.log 2>&1 &
           FUNCTION_PID=$!
           trap 'kill "$FUNCTION_PID" 2>/dev/null || true' EXIT
 
