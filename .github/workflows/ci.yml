@@ -365,9 +365,9 @@ jobs:
           # Garder receipts-sign vivant pendant toute l'exécution Playwright :
           # le process background ne doit pas mourir entre deux steps GitHub Actions.
           cat >/tmp/kaza-edge.env <<EOF
-SUPABASE_URL=$SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
-EOF
+          SUPABASE_URL=$SUPABASE_URL
+          SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+          EOF
 
           # Supabase CLI 2.114.0 ne prend pas le nom de fonction en argument
           # positionnel. Il sert les Edge Functions locales et on vérifie
