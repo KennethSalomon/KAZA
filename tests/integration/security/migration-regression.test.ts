@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '../../helpers/supabase-test-client';
 import { createClient } from '@supabase/supabase-js';
 
@@ -12,7 +12,16 @@ describe('Migration regression tests', () => {
     await resetDatabase();
     landlord = await createTestUser('bailleur');
     tenant = await createTestUser('locataire');
+  });
 
+  // Isolation : chaque test repart sans residence. Sans ce reset, le
+  // dataset d'un test precedent (draft, unverified) contamine le
+  // suivant — notamment la limite freemium "1 bien" qui compte les
+  // residences publiees (is_verified ou non) du meme bailleur.
+  // Les utilisateurs/profiles ne sont pas supprimes par le reset : les
+  // clients authentifies sont recreees a chaque test avec un token frais.
+  beforeEach(async () => {
+    await resetDatabase();
     const signInLandlord = await signInTestUser(landlord.email, landlord.password);
     const signInTenant = await signInTestUser(tenant.email, tenant.password);
 

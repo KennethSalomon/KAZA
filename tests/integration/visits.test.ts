@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { supabaseAnon, supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '../helpers/supabase-test-client';
 import { createClient } from '@supabase/supabase-js';
 import { proposeVisit } from '@/lib/supabase-api';
+import { supabase as appSupabase } from '@/lib/supabase-client';
 
 describe('Visits: table & RLS', () => {
   let landlord: any;
@@ -15,10 +16,14 @@ describe('Visits: table & RLS', () => {
     for (const u of [landlord, tenant]) {
       const signIn = await signInTestUser(u.email, u.password);
       u.token = signIn.session?.access_token ?? '';
+      u.session = signIn.session;
     }
   });
 
   afterAll(async () => {
+    // Le singleton frontend du test porte la session du locataire :
+    // la nettoyer pour ne pas polluer d'autres suites du meme process.
+    await appSupabase.auth.signOut().catch(() => {});
     await deleteTestUser(landlord.user.id);
     await deleteTestUser(tenant.user.id);
   });
@@ -145,8 +150,23 @@ describe('Visits: table & RLS', () => {
     it('proposeVisit API', async () => {
       const conversationId = await setupConversation();
 
-      const visitId = await proposeVisit(conversationId, [{ start: '2026-08-20T14:00:00Z', end: '2026-08-20T16:00:00Z' }]);
-      expect(visitId).toBeDefined();
+      // proposeVisit() passe par requireUser() qui lit la session du
+      // singleton frontend (@/lib/supabase-client). On y installe la
+      // VRAIE session Supabase du locataire (token réel, vrai RLS) —
+      // aucun mock, aucun bypass.
+      const { error: sessionError } = await appSupabase.auth.setSession({
+        access_token: tenant.session.access_token,
+        refresh_token: tenant.session.refresh_token,
+      });
+      expect(sessionError).toBeNull();
+
+      try {
+        const visitId = await proposeVisit(conversationId, [{ start: '2026-08-20T14:00:00Z', end: '2026-08-20T16:00:00Z' }]);
+        expect(visitId).toBeDefined();
+      } finally {
+        // Ne pas laisser la session dans le singleton pour les tests suivants.
+        await appSupabase.auth.signOut().catch(() => {});
+      }
     });
   });
 });
