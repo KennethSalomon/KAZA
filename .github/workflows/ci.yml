@@ -328,6 +328,18 @@ jobs:
         run: supabase db reset
         working-directory: .
 
+      - name: Restore service_role privileges for Edge Functions (CI-only)
+        run: |
+          cat >/tmp/kaza-e2e-service-role-grants.sql <<'SQL'
+          -- CI local only: receipts-sign uses service_role through PostgREST.
+          grant usage on schema public to service_role;
+          grant select, insert, update, delete on all tables in schema public to service_role;
+          grant usage, select on all sequences in schema public to service_role;
+          notify pgrst, 'reload schema';
+          SQL
+          docker exec -i supabase_db_kaza psql -U postgres -d postgres -v ON_ERROR_STOP=1 < /tmp/kaza-e2e-service-role-grants.sql
+        working-directory: .
+
       - name: Run e2e tests with receipts-sign
         env:
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321/
@@ -360,7 +372,6 @@ EOF
           # Supabase CLI 2.114.0 ne prend pas le nom de fonction en argument
           # positionnel. Il sert les Edge Functions locales et on vérifie
           # explicitement que receipts-sign répond sur la route attendue.
-          # Ce step reste volontairement unique pour conserver le process vivant pendant Playwright.
           supabase functions serve --env-file /tmp/kaza-edge.env > /tmp/kaza-receipts-sign.log 2>&1 &
           FUNCTION_PID=$!
           trap 'kill "$FUNCTION_PID" 2>/dev/null || true' EXIT
