@@ -324,6 +324,21 @@ jobs:
         run: |
           set -e
 
+          # Aligner explicitement l'Edge Function sur le Supabase local.
+          # Cela évite toute ambiguïté d'environnement pour getAdminClient().
+          env_vars=$(supabase status -o env)
+          supabase_url=$(printf '%s
+' "$env_vars" | grep -iE '^API_URL=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
+          service_role_key=$(printf '%s
+' "$env_vars" | grep -iE '^service_role_key=' | cut -d= -f2- | tr -d '"' | tr -d '[:space:]')
+          if [ -z "$supabase_url" ] || [ -z "$service_role_key" ]; then
+            echo "::error::Impossible de récupérer les paramètres Supabase locaux pour receipts-sign."
+            exit 1
+          fi
+          export SUPABASE_URL="$supabase_url"
+          export SUPABASE_SERVICE_ROLE_KEY="$service_role_key"
+          echo "receipts-sign cible Supabase local: $SUPABASE_URL"
+
           # Garder receipts-sign vivant pendant toute l'exécution Playwright :
           # le process background ne doit pas mourir entre deux steps GitHub Actions.
           supabase functions serve receipts-sign > /tmp/kaza-receipts-sign.log 2>&1 &
@@ -344,7 +359,7 @@ jobs:
             fi
             if [ "$i" = '30' ]; then
               echo "::error::receipts-sign indisponible après 60s"
-              tail -40 /tmp/kaza-receipts-sign.log || true
+              tail -80 /tmp/kaza-receipts-sign.log || true
               exit 1
             fi
             sleep 2
@@ -353,7 +368,24 @@ jobs:
           cd apps/web
           npx playwright install chromium
           cd ../..
+
+          # Conserver le log Edge Function uniquement en cas d'échec E2E :
+          # il permet de distinguer un process mort d'une erreur métier HTTP.
+          set +e
           npm run test:e2e
+          TEST_STATUS=$?
+          set -e
+          if [ "$TEST_STATUS" -ne 0 ]; then
+            echo "::group::receipts-sign diagnostics"
+            if kill -0 "$FUNCTION_PID" 2>/dev/null; then
+              echo "receipts-sign process toujours vivant au moment de l'échec."
+            else
+              echo "::error::receipts-sign process terminé avant l'échec E2E."
+            fi
+            tail -200 /tmp/kaza-receipts-sign.log || true
+            echo "::endgroup::"
+          fi
+          exit "$TEST_STATUS"
 
       - name: Upload e2e report
         if: failure()
