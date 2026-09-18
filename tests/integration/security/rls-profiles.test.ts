@@ -90,10 +90,15 @@ describe('RLS: profiles table', () => {
       expect(data!.id).toBe(profileIdB);
     });
 
-    it('user A CANNOT list all profiles', async () => {
+    it('user A sees only own profile in a global SELECT', async () => {
+      // Contrat PostgREST sous RLS : un SELECT global ne renvoie PAS une erreur,
+      // il filtre silencieusement. La policy SELECT profiles limite à soi-même
+      // (l'admin a sa propre policy).
       const { data, error } = await clientA.from('profiles').select('*');
-      expect(error).toBeDefined();
-      expect(data).toBeNull();
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data!.length).toBe(1);
+      expect(data![0].id).toBe(await getProfileId(clientA));
     });
 
     it('admin CAN list all profiles', async () => {

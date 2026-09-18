@@ -97,7 +97,13 @@ export async function createTestUser(role: 'locataire' | 'bailleur' | 'admin' = 
 }
 
 export async function signInTestUser(email: string, password: string) {
-  const { data, error } = await supabaseAnon.auth.signInWithPassword({ email, password });
+  // Client jetable réservé au login : supabaseAnon est un singleton partagé
+  // par tous les tests "anon" — le faire signer y collerait une session et
+  // fausserait tous les tests RLS qui s'attendent à un appelant anonyme.
+  const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data, error } = await authClient.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data;
 }

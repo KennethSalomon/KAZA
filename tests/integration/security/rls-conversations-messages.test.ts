@@ -175,9 +175,12 @@ describe('RLS: conversations & messages tables', () => {
         body: 'Hello',
         kind: 'text',
       });
+      // Contrat PostgREST sous RLS : SELECT collection filtre silencieusement
+      // (tableau vide, pas d'erreur) — pas data=null.
       const { data, error } = await getClient(tenantB).from('messages').select('*').eq('conversation_id', convId);
-      expect(error).toBeDefined();
-      expect(data).toBeNull();
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data!.length).toBe(0);
     });
   });
 

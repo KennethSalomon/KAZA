@@ -125,6 +125,7 @@ describe('RLS: residences table', () => {
     it('landlord CAN create residence via direct INSERT', async () => {
       const clientLandlord = getClient(landlordA);
       const { data, error } = await clientLandlord.from('residences').insert({
+        owner_id: landlordA.user.id, // la policy INSERT exige owner_id = auth.uid()
         title: 'My Residence',
         type: 'appartement',
         price_monthly: 100000,
@@ -203,7 +204,11 @@ describe('RLS: residences table', () => {
     });
 
     it('landlord CANNOT self-verify (is_verified is admin-only)', async () => {
-      const residenceId = await createResidenceDirect(landlordA.user.id);
+      // Le trigger residences_guard_owner écrase silencieusement
+      // is_verified (et owner_id) par la valeur existante pour tout
+      // appelant non service_role : l'UPDATE ne doit ni échouer ni
+      // modifier is_verified.
+      const residenceId = await createResidenceDirect(landlordA.user.id, { is_verified: false });
       const clientLandlord = getClient(landlordA);
       const { data, error } = await clientLandlord
         .from('residences')
@@ -211,8 +216,8 @@ describe('RLS: residences table', () => {
         .eq('id', residenceId)
         .select('is_verified')
         .single();
-      expect(error).toBeDefined();
-      expect(data).toBeNull();
+      expect(error).toBeNull();
+      expect(data?.is_verified).toBe(false); // écrasé par le garde-fou
     });
 
     it('admin CAN update any residence including is_verified', async () => {

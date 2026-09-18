@@ -85,16 +85,22 @@ describe('RLS: notifications & admin tables', () => {
 
     it('user CANNOT see other user notifications', async () => {
       await createLease(landlordA, tenantA);
+      // Contrat PostgREST sous RLS : SELECT collection filtre silencieusement
+      // (tableau vide, pas d'erreur) — pas data=null.
       const { data, error } = await getClient(landlordA).from('notifications').select('*').eq('user_id', tenantA.user.id);
-      expect(error).toBeDefined();
-      expect(data).toBeNull();
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data!.length).toBe(0);
     });
 
     it('anon CANNOT see any notifications', async () => {
       await createLease(landlordA, tenantA);
+      // Contrat PostgREST sous RLS : SELECT collection filtre silencieusement
+      // (tableau vide, pas d'erreur) — pas data=null.
       const { data, error } = await supabaseAnon.from('notifications').select('*').limit(1);
-      expect(error).toBeDefined();
-      expect(data).toBeNull();
+      expect(error).toBeNull();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data!.length).toBe(0);
     });
   });
 

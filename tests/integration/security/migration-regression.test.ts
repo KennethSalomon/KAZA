@@ -97,8 +97,10 @@ describe('Migration regression tests', () => {
       // en lowercase et on tolère les espaces autour de '='.
       expect(source).toMatch(/is_published\s*=\s*true/);
       expect(source).toMatch(/is_verified\s*=\s*true/);
-      // Le guard doit refuser la conversation au propriétaire du bien.
-      expect(source).toMatch(/owner_id\s*=\s*auth\.uid\(\)/);
+      // Le guard doit refuser la conversation au propriétaire du bien :
+      // open_conversation lit SELECT owner_id INTO v_owner puis compare
+      // v_owner = auth.uid() (pas une clause WHERE directe).
+      expect(source).toMatch(/v_owner\s*=\s*auth\.uid\(\)/);
     });
 
     it('function rejects draft residence', async () => {

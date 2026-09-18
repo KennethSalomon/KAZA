@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '../../helpers/supabase-test-client';
+import { supabaseAdmin, createTestUser, signInTestUser, deleteTestUser, resetDatabase } from '../helpers/supabase-test-client';
 import { createClient } from '@supabase/supabase-js';
 
 describe('visit-reminders: Edge Function', () => {
