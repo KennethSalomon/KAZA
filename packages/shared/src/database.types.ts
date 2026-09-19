@@ -1135,20 +1135,6 @@ export type Database = {
         }
         Returns: string
       }
-      create_residence: {
-        Args: {
-          bathrooms?: number
-          bedrooms?: number
-          city?: string
-          deposit?: number
-          description?: string
-          price_monthly?: number
-          title: string
-          type?: Database["public"]["Enums"]["residence_type"]
-          zone?: string
-        }
-        Returns: string
-      }
       decline_visit: {
         Args: { p_reason?: string; p_visit_id: string }
         Returns: undefined
